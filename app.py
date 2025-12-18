@@ -32,7 +32,7 @@ def index():
     ]
 
     return render_template(
-        "map.html",
+        "areamap.html",
         area=area,
         spots=spots
     )
