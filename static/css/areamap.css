@@ -1,0 +1,83 @@
+#map-wrapper {
+  position: relative;
+  width: 100%;
+  height: 70vh;          /* チラシ・SNS想定 */
+  max-height: 600px;
+  background: #f8f8f8;
+  overflow: hidden;
+}
+#spot-cards-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none; /* 地図操作を邪魔しない */
+  z-index: 500;
+}
+.spot-card {
+  position: absolute;
+  min-width: 140px;
+  max-width: 180px;
+
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+
+  padding: 8px 10px;
+  font-size: 13px;
+  line-height: 1.3;
+
+  transform: translate(-50%, -100%);
+  /* ↑ ピンの少し上に来る */
+
+  pointer-events: auto;
+  cursor: pointer;
+
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+
+  white-space: nowrap;
+}
+.spot-name {
+  font-weight: 600;
+  margin: 0;
+  font-size: 14px;
+}
+
+.spot-meta {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: #666;
+}
+.spot-card:hover,
+.spot-card:focus {
+  transform: translate(-50%, -110%);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.18);
+  z-index: 10;
+}
+.card-up {
+  transform: translate(-50%, -110%);
+}
+.card-down {
+  transform: translate(-50%, 10%);
+}
+.card-left {
+  transform: translate(-110%, -50%);
+}
+@media print {
+  .spot-card {
+    box-shadow: none;
+    border: 1px solid #000;
+    background: #fff;
+  }
+}
+@media (max-width: 600px) {
+  .spot-card {
+    min-width: 120px;
+    max-width: 160px;
+    font-size: 12px;
+  }
+
+  .spot-name {
+    font-size: 13px;
+  }
+}
