@@ -85,3 +85,42 @@
     font-size: 13px;
   }
 }
+
+/* ===== Modal Base ===== */
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+
+  /* ★ 初期状態は非表示 */
+  display: none;
+}
+
+/* 表示状態 */
+.modal.is-open {
+  display: block;
+}
+
+/* 背景オーバーレイ */
+.modal-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+/* モーダル本体 */
+.modal-content {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+
+  width: 100%;
+  max-width: 480px;
+  background: #fff;
+  border-radius: 16px 16px 0 0;
+  padding: 16px;
+
+  max-height: 90vh;
+  overflow-y: auto;
+}
