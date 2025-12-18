@@ -6,6 +6,10 @@
   background: #f8f8f8;
   overflow: hidden;
 }
+#map {
+  width: 100%;
+  height: 70vh;
+}
 #spot-cards-layer {
   position: absolute;
   inset: 0;
