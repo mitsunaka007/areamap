@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <link rel="stylesheet" href="/static/css/areamap.css">
+</head>
+<body>
+
+<!-- =========================
+  Header（最小・印刷耐性）
+========================= -->
+<header class="areamap-header">
+  <h1>○○エリア AreaMap</h1>
+</header>
+
+<!-- =========================
+  Map Wrapper（固定構図）
+========================= -->
+<div id="map-wrapper">
+
+  <!-- 地図本体（Leaflet） -->
+  <div id="map"></div>
+
+  <!-- 店舗カードレイヤー -->
+  <div id="spot-cards-layer">
+
+    <!-- ▼ 店舗カード（1件） -->
+    <div class="spot-card"
+         data-spot-id="1"
+         role="button"
+         aria-haspopup="dialog">
+
+      <p class="spot-name">○○カフェ</p>
+      <p class="spot-meta">カフェ・軽食</p>
+
+    </div>
+
+    <!-- 他の店舗カードが続く -->
+
+  </div>
+
+</div>
+
+<!-- =========================
+  Spot Detail Modal
+========================= -->
+<div id="spot-modal"
+     class="modal"
+     aria-hidden="true">
+
+  <div class="modal-overlay"></div>
+
+  <div class="modal-content"
+       role="dialog"
+       aria-modal="true">
+
+    <!-- 閉じる -->
+    <button class="modal-close" aria-label="閉じる">
+      ×
+    </button>
+
+    <!-- 店舗名 -->
+    <h2 class="modal-title">○○カフェ</h2>
+
+    <!-- 外観 or 店内画像 -->
+    <div class="modal-image">
+      <img src="/static/images/sample_shop.jpg"
+           alt="○○カフェ 外観">
+    </div>
+
+    <!-- 基本情報 -->
+    <div class="modal-info">
+      <p class="modal-category">カフェ・軽食</p>
+      <p class="modal-address">福井市○○町1-2-3</p>
+    </div>
+
+    <!-- メニュー（簡易） -->
+    <div class="modal-menu">
+      <h3>主なメニュー</h3>
+      <ul>
+        <li>ブレンドコーヒー　¥450</li>
+        <li>カフェラテ　¥520</li>
+        <li>日替わりケーキ　¥600</li>
+      </ul>
+    </div>
+
+    <!-- CTA -->
+    <div class="modal-actions">
+      <a href="https://www.google.com/maps/search/?api=1&query=36.0619,136.2235"
+         target="_blank"
+         rel="noopener"
+         class="btn-route">
+        Google Mapでルート検索
+      </a>
+    </div>
+
+  </div>
+</div>
+
+<!-- =========================
+  Footer（任意）
+========================= -->
+<footer class="areamap-footer">
+  <small>AreaMap（仮）</small>
+</footer>
+  <script src="/static/js/areamap.js"></script>
+</body>
