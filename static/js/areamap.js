@@ -116,16 +116,22 @@ function openModal(spot) {
 
   // Google Map ルート
   const gmap = modal.querySelector(".btn-route");
-  gmap.href = `https://www.google.com/maps/search/?api=1&query=${spot.lat},${spot.lng}`;
+  gmap.href =
+    `https://www.google.com/maps/search/?api=1&query=${spot.lat},${spot.lng}`;
 
+  /* ===== ここが修正ポイント ===== */
+  modal.classList.add("is-open");          // 表示
   modal.setAttribute("aria-hidden", "false");
 }
+
 modal.querySelector(".modal-close").addEventListener("click", closeModal);
 modal.querySelector(".modal-overlay").addEventListener("click", closeModal);
 
 function closeModal() {
+  modal.classList.remove("is-open");       // 非表示
   modal.setAttribute("aria-hidden", "true");
 }
+
 window.addEventListener("resize", () => {
   document.querySelectorAll(".spot-card").forEach(card => card.remove());
   placedCards.length = 0;
@@ -149,4 +155,10 @@ window.addEventListener("resize", () => {
 
     card.addEventListener("click", () => openModal(spot));
   });
+});
+// Escキーで閉じる
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && modal.classList.contains("is-open")) {
+    closeModal();
+  }
 });
