@@ -203,10 +203,28 @@
         YES / NOで答えるだけの<br>
         無料ヒアリングです。
       </p>
+      <div class="hearing-wrapper">
+        <h3>今の状況を整理しましょう</h3>
+        <p>YES / NOで答えるだけです</p>
+        <!-- =========================
+          Question Area
+        ========================= -->
+        <div class="hearing-main">
 
-      <a href="#hearing-form" class="lp-cta">
-        無料ヒアリングを申し込む
-      </a>
+          <div class="hearing-question" id="question-text">
+            お店の場所は、初めての人でも迷わず分かると思いますか？
+          </div>
+
+          <div class="hearing-actions">
+            <button class="btn-yes" data-answer="yes">YES</button>
+            <button class="btn-no" data-answer="no">NO</button>
+          </div>
+
+          <div class="hearing-progress">
+            <span id="current-step">1</span> / <span id="total-step">3</span>
+          </div>
+        </div>
+      </div>
     </div>
 
   </section>
@@ -245,6 +263,131 @@
 
       sections.forEach(section => observer.observe(section));
     });
-    </script>
+    const questions = [
+      {
+        id: "map_visibility",
+        text: "お店の場所は、初めての人でも迷わず分かると思いますか？"
+      },
+      {
+        id: "map_click",
+        text: "ホームページやSNSから、地図は実際に押されていると思いますか？"
+      },
+      {
+        id: "route_action",
+        text: "地図を見た人は、そのまま来店行動に移れていると思いますか？"
+      }
+    ];
+
+    let currentIndex = 0;
+    const answers = {};
+
+    const questionText = document.getElementById("question-text");
+    const currentStep = document.getElementById("current-step");
+    const totalStep = document.getElementById("total-step");
+
+    totalStep.textContent = questions.length;
+
+    document.querySelectorAll(".hearing-actions button").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const answer = btn.dataset.answer;
+        answers[questions[currentIndex].id] = answer;
+
+        currentIndex++;
+
+        if (currentIndex < questions.length) {
+          updateQuestion();
+        } else {
+          goToResult();
+        }
+      });
+    });
+
+    function updateQuestion() {
+      questionText.textContent = questions[currentIndex].text;
+      currentStep.textContent = currentIndex + 1;
+    }
+
+    function goToResult() {
+      // 結果を sessionStorage に保存
+      sessionStorage.setItem("hearingResult", JSON.stringify(answers));
+
+      // Before / After 画面へ
+      window.location.href = "/before-after";
+    }
+    const result = JSON.parse(
+      sessionStorage.getItem("hearingResult") || "{}"
+    );
+
+    const beforeText = document.getElementById("before-text");
+    const afterText  = document.getElementById("after-text");
+    const actionList = document.getElementById("action-list");
+
+    /* =========================
+      シナリオ定義
+    ========================= */
+    const scenarios = [
+      {
+        condition: r => r.map_visibility === "no",
+        before: "初めて来る人にとって、場所が分かりにくい状態です。地図はあるものの、目印や構図が足りず、迷いやすくなっています。",
+        after: "目的地1点に絞ったシンプルな地図で、初めての人でも迷わずたどり着ける状態になります。",
+        actions: [
+          "目的地を1点に絞る",
+          "目印（交差点・建物）を追加",
+          "構図を固定して迷いを減らす"
+        ]
+      },
+      {
+        condition: r => r.map_click === "no",
+        before: "地図は置いてあるものの、あまり押されていません。場所の情報が目に入りづらい可能性があります。",
+        after: "ホームページやSNSで、地図が自然に目に入り、押される状態になります。",
+        actions: [
+          "地図の配置を目立つ位置に変更",
+          "『地図はこちら』の導線を明確に",
+          "Instagramプロフィールから直接開けるようにする"
+        ]
+      },
+      {
+        condition: r => r.route_action === "no",
+        before: "地図を見た人が、そのまま来店行動に移りづらい状態です。",
+        after: "地図を見た流れで、そのままGoogle Mapを開き、行動に移れる状態になります。",
+        actions: [
+          "ワンタップでGoogle Mapを開けるようにする",
+          "徒歩◯分・駐車場情報を強調",
+          "『今行ける』訴求を追加"
+        ]
+      }
+    ];
+
+    /* =========================
+      適用シナリオ抽出
+    ========================= */
+    const activeScenarios = scenarios.filter(s => s.condition(result));
+
+    /* =========================
+      表示生成
+    ========================= */
+    if (activeScenarios.length === 0) {
+      beforeText.textContent =
+        "現状、大きな問題は見当たりません。導線はうまく機能している可能性があります。";
+
+      afterText.textContent =
+        "今の導線を維持しつつ、細かい改善でさらに来店率を高めることができます。";
+
+    } else {
+      beforeText.textContent =
+        activeScenarios.map(s => s.before).join(" ");
+
+      afterText.textContent =
+        activeScenarios.map(s => s.after).join(" ");
+
+      activeScenarios.forEach(s => {
+        s.actions.forEach(action => {
+          const li = document.createElement("li");
+          li.textContent = action;
+          actionList.appendChild(li);
+        });
+      });
+    }
+  </script>
 </body>
 </html>
