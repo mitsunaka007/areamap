@@ -251,3 +251,154 @@ body[data-active-section="data"] .lp-data .lp-bg {
 body[data-active-section="hearing"] .lp-hearing .lp-bg {
   opacity: 1;
 }
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont;
+  background: #f5f5f5;
+  color: #111;
+}
+
+.hearing-wrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 24px;
+}
+
+.hearing-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.hearing-header h1 {
+  font-size: 28px;
+  margin-bottom: 8px;
+}
+
+.hearing-header p {
+  color: #555;
+}
+
+.hearing-main {
+  max-width: 520px;
+  margin: 0 auto;
+  background: #fff;
+  padding: 32px;
+  border-radius: 16px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.1);
+  text-align: center;
+}
+
+.hearing-question {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 32px;
+}
+
+.hearing-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+
+.hearing-actions button {
+  min-width: 120px;
+  padding: 14px 0;
+  font-size: 16px;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-yes {
+  background: #111;
+  color: #fff;
+}
+
+.btn-no {
+  background: #eee;
+  color: #111;
+}
+
+.hearing-progress {
+  margin-top: 24px;
+  font-size: 14px;
+  color: #666;
+}
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont;
+  background: #f5f5f5;
+  color: #111;
+}
+
+.ba-wrapper {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+
+.ba-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.ba-header h1 {
+  font-size: 28px;
+  margin-bottom: 8px;
+}
+
+.ba-header p {
+  color: #555;
+}
+
+.ba-main {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.ba-block {
+  background: #fff;
+  padding: 24px;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+}
+
+.ba-before h2 {
+  color: #c0392b;
+}
+
+.ba-after h2 {
+  color: #27ae60;
+}
+
+.ba-action ul {
+  padding-left: 20px;
+}
+
+.ba-action li {
+  margin-bottom: 8px;
+}
+
+.ba-footer {
+  margin-top: 40px;
+  text-align: center;
+}
+
+.ba-note {
+  font-size: 14px;
+  color: #555;
+  margin-bottom: 16px;
+}
+
+.ba-cta {
+  display: inline-block;
+  padding: 14px 28px;
+  background: #111;
+  color: #fff;
+  text-decoration: none;
+  border-radius: 999px;
+  font-weight: 600;
+}
