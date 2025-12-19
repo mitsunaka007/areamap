@@ -1,22 +1,44 @@
 #map-wrapper {
   position: relative;
   width: 100%;
-  height: 70vh;          /* チラシ・SNS想定 */
+  height: 70vh;
   max-height: 600px;
   background: #f8f8f8;
   overflow: hidden;
 }
+
 #map {
   width: 100%;
   height: 70vh;
 }
+
+/* カードレイヤー（存在はさせる） */
 #spot-cards-layer {
   position: absolute;
   inset: 0;
-  pointer-events: none; /* 地図操作を邪魔しない */
   z-index: 500;
 }
-.spot-card {
+/* =========================
+   Default Mode
+========================= */
+
+body[data-areamap-mode="default"] #spot-cards-layer {
+  display: none; /* カード完全無効 */
+}
+
+/* モーダルも使わない */
+body[data-areamap-mode="default"] .modal {
+  display: none !important;
+}
+/* =========================
+   Extended Mode
+========================= */
+
+body[data-areamap-mode="extended"] #spot-cards-layer {
+  display: block;
+  pointer-events: none;
+}
+body[data-areamap-mode="extended"] .spot-card {
   position: absolute;
   min-width: 140px;
   max-width: 180px;
@@ -30,8 +52,6 @@
   line-height: 1.3;
 
   transform: translate(-50%, -100%);
-  /* ↑ ピンの少し上に来る */
-
   pointer-events: auto;
   cursor: pointer;
 
@@ -41,6 +61,7 @@
 
   white-space: nowrap;
 }
+
 .spot-name {
   font-weight: 600;
   margin: 0;
@@ -52,63 +73,37 @@
   font-size: 12px;
   color: #666;
 }
-.spot-card:hover,
-.spot-card:focus {
+
+/* hover */
+body[data-areamap-mode="extended"] .spot-card:hover {
   transform: translate(-50%, -110%);
   box-shadow: 0 6px 16px rgba(0,0,0,0.18);
   z-index: 10;
 }
-.card-up {
-  transform: translate(-50%, -110%);
-}
-.card-down {
-  transform: translate(-50%, 10%);
-}
-.card-left {
-  transform: translate(-110%, -50%);
-}
-@media print {
-  .spot-card {
-    box-shadow: none;
-    border: 1px solid #000;
-    background: #fff;
-  }
-}
-@media (max-width: 600px) {
-  .spot-card {
-    min-width: 120px;
-    max-width: 160px;
-    font-size: 12px;
-  }
 
-  .spot-name {
-    font-size: 13px;
-  }
-}
-
+/* 向き制御 */
+.card-up    { transform: translate(-50%, -110%); }
+.card-down  { transform: translate(-50%, 10%); }
+.card-left  { transform: translate(-110%, -50%); }
+.card-right { transform: translate(10%, -50%); }
 /* ===== Modal Base ===== */
-.modal {
+body[data-areamap-mode="extended"] .modal {
   position: fixed;
   inset: 0;
   z-index: 1000;
-
-  /* ★ 初期状態は非表示 */
   display: none;
 }
 
-/* 表示状態 */
-.modal.is-open {
+body[data-areamap-mode="extended"] .modal.is-open {
   display: block;
 }
 
-/* 背景オーバーレイ */
 .modal-overlay {
   position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.5);
 }
 
-/* モーダル本体 */
 .modal-content {
   position: absolute;
   left: 50%;
@@ -123,4 +118,23 @@
 
   max-height: 90vh;
   overflow-y: auto;
+}
+@media print {
+  body[data-areamap-mode="extended"] .spot-card {
+    box-shadow: none;
+    border: 1px solid #000;
+    background: #fff;
+  }
+}
+
+@media (max-width: 600px) {
+  body[data-areamap-mode="extended"] .spot-card {
+    min-width: 120px;
+    max-width: 160px;
+    font-size: 12px;
+  }
+
+  .spot-name {
+    font-size: 13px;
+  }
 }
