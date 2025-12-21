@@ -3,11 +3,11 @@ import os
 
 app = Flask(__name__)
 
-db_url = os.getenv("DATABASE_URL")
-if db_url is None:
-    raise ValueError("データベースURLが環境変数に設定されていません")
-print("Loaded DATABASE_URL:", db_url)
-app.config['SQLALCHEMY_DATABASE_URI'] = db_url
+# db_url = os.getenv("DATABASE_URL")
+# if db_url is None:
+#     raise ValueError("データベースURLが環境変数に設定されていません")
+# print("Loaded DATABASE_URL:", db_url)
+# app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 
 # @app.route("/")
 # def index():
