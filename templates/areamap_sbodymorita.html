@@ -11,6 +11,7 @@
     crossorigin=""
   >
   <link rel="stylesheet" href="/static/css/areamap.css">
+  <link rel="stylesheet" href="/static/css/areamap-sbody.css">
 </head>
 <body data-areamap-mode="default">
 
@@ -26,8 +27,24 @@
 ========================= -->
 <div id="map-wrapper">
   <div id="map"></div>
-  <div class="sbodymap">
-    <img src="../static/img/sbodymorita.png" alt="">
+  <div class="sbodymarker">
+    <ul>
+      <li>
+        <div class="sbodymap">
+          <img src="../static/img/sbodymorita.png" alt="S・BODY地図">
+        </div>
+      </li>
+      <li>
+        <div class="sbody-parking">
+          <img src="" alt="S・BODY駐車場">
+        </div>
+      </li>
+      <li>
+        <div class="sbody-menu">
+          <img src="" alt="S・BODYメニュー">
+        </div>
+      </li>
+    </ul>
   </div>
 </div>
 
@@ -68,5 +85,8 @@
 ></script>
 
 <script src="/static/js/areamap.js"></script>
+<script src="/static/js/areamap-sbody.js"></script>
+<script>
+</script>
 </body>
 </html>
