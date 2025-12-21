@@ -3,21 +3,14 @@ import os
 
 app = Flask(__name__)
 
-# db_url = os.getenv("DATABASE_URL")
-# if db_url is None:
-#     raise ValueError("データベースURLが環境変数に設定されていません")
-# print("Loaded DATABASE_URL:", db_url)
-# app.config['SQLALCHEMY_DATABASE_URI'] = db_url
-
-# @app.route("/")
-# def index():
-#     return render_template(
-#         "areamaplp.html"
-#     )
-# @app.route("/areamap")
-# def areamap():
 @app.route("/")
 def index():
+    return render_template(
+        "areamaplp.html"
+    )
+
+@app.route("/areamap")
+def areamap():
     # 仮データ（後でDB化）
     area = {
         "id": "fukui-sta",
@@ -46,7 +39,7 @@ def index():
     return render_template("areamap.html", area=area, spots=spots)
 
 @app.route("/areamap_sbodymorita")
-def index():
+def areamapsbodymorita():
     # 仮データ（後でDB化）
     area = {
         "id": "sbody-morita",
