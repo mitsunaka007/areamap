@@ -1,0 +1,16 @@
+/* 地図画像あり→マーカー位置をtopとright/leftで調整 */
+/* 地図画像なし→Leafletの緯度経度からマーカー表示して、そのマーカーにCSSをあてる */
+.sbodymarker {
+    position: absolute;
+    top: 30%;
+    right: 30%;
+    z-index: 100;
+    width: 150px;
+    height: 50px;
+    border-radius: 5%;
+    background-color: aqua;
+}
+.sbodymarker:hover {
+    cursor: pointer;
+    background-color: coral;
+}
