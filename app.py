@@ -1,7 +1,22 @@
 from flask import Flask, render_template
+import os
+from models import ( )
 
 app = Flask(__name__)
 
+db_url = os.getenv("DATABASE_URL")
+if db_url is None:
+    raise ValueError("データベースURLが環境変数に設定されていません")
+print("Loaded DATABASE_URL:", db_url)
+app.config['SQLALCHEMY_DATABASE_URI'] = db_url
+
+# @app.route("/")
+# def index():
+#     return render_template(
+#         "areamaplp.html"
+#     )
+# @app.route("/areamap")
+# def areamap():
 @app.route("/")
 def index():
     # 仮データ（後でDB化）
@@ -11,7 +26,6 @@ def index():
         "center": [36.0619, 136.2235],
         "zoom": 16
     }
-
     spots = [
         {
             "id": 1,
@@ -30,12 +44,28 @@ def index():
             "status": "now"
         }
     ]
+    return render_template("areamap.html", area=area, spots=spots)
 
-    return render_template(
-        "areamap.html",
-        area=area,
-        spots=spots
-    )
+@app.route("/areamap_sbodymorita")
+def index():
+    # 仮データ（後でDB化）
+    area = {
+        "id": "sbody-morita",
+        "name": "パーソナルトレーニング＆コンディショニングジム S・BODY",
+        "center": [36.107958796048855, 136.22480066137308],
+        "zoom": 20
+    }
+    spots = [
+        {
+            "id": 1,
+            "type": "shop",
+            "name": "パーソナルトレーニング＆コンディショニングジム S・BODY",
+            "lat": 36.107958796048855,
+            "lng": 136.22480066137308,
+            "status": "open"
+        }
+    ]
+    return render_template("areamap_sbodymorita.html", area=area, spots=spots)
 
 # if __name__ == "__main__":
 #     app.run(
