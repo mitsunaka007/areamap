@@ -18,6 +18,13 @@
 
   <link rel="stylesheet" href="/static/css/areamap.css">
   <link rel="stylesheet" href="/static/css/areamap-sbody.css">
+  <script>
+    (() => {
+      const p = new URLSearchParams(location.search);
+      const mode = p.get("mode") || "page"; // page | embed | ig
+      document.documentElement.setAttribute("data-areamap-view", mode);
+    })();
+  </script>
 </head>
 
 <body data-areamap-mode="default">
