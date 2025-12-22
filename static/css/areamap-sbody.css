@@ -1,7 +1,7 @@
 #map-wrapper {
   position: relative;
   width: 100%;
-  height: 70vh;
+  height: 40vh;
   max-height: 600px;
   background: #f8f8f8;
   overflow: hidden;
@@ -115,7 +115,7 @@
 }
 .areamap-cta {
   position: absolute;
-  bottom: 12%;
+  bottom: 10px;
   left: 10px;
   z-index: 10;
   width: 140px;
