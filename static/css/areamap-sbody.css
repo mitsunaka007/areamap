@@ -75,7 +75,7 @@
 /* ホットスポット共通 */
 .hotspot {
   position: absolute;
-  bottom: 16px;
+  bottom: 35%;
   top: auto;
   transform: none; /* bottom/right運用なら不要 */
 }
