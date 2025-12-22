@@ -5,88 +5,130 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>S・BODY</title>
 
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    crossorigin=""
-  >
   <link rel="stylesheet" href="/static/css/areamap.css">
   <link rel="stylesheet" href="/static/css/areamap-sbody.css">
 </head>
+
 <body data-areamap-mode="default">
 
-<!-- =========================
-  Header（最小）
-========================= -->
-<!-- <header class="areamap-header">
-  <h1>パーソナルトレーニング＆コンディショニングジム S・BODY</h1>
-</header> -->
+  <!-- =========================
+    Map Wrapper（画像地図）
+  ========================= -->
+  <div id="map-wrapper">
+    <div class="map-image-container">
 
-<!-- =========================
-  Map Wrapper（固定構図）
-========================= -->
-<div id="map-wrapper">
-  <div id="map"></div>
-  <div class="sbodymarker">
-    <ul>
-      <li>
-        <div class="sbodymap" id="sbody-map">
-          <img src="../static/img/sbodymorita.png" alt="S・BODY地図">
-        </div>
-      </li>
-      <li>
-        <div class="sbody-parking" id="sbody-parking">
-          <img src="" alt="S・BODY駐車場">
-        </div>
-      </li>
-      <li>
-        <div class="sbody-menu" id="sbody-menu">
-          <img src="" alt="S・BODYメニュー">
-        </div>
-      </li>
-    </ul>
+      <!-- ベース地図画像 -->
+      <img
+        id="sbody-map-img"
+        src="../static/img/sbodymorita.png"
+        alt="S・BODY地図"
+      >
+
+      <!-- ホットスポット：駐車場 -->
+      <button
+        type="button"
+        class="hotspot hotspot-parking"
+        data-modal-img="../static/img/sbody_parking.png"
+        data-modal-alt="S・BODY駐車場"
+        aria-label="S・BODY駐車場を表示"
+      ></button>
+
+      <!-- ホットスポット：メニュー -->
+      <button
+        type="button"
+        class="hotspot hotspot-menu"
+        data-modal-img="../static/img/sbody_menu.png"
+        data-modal-alt="S・BODYメニュー"
+        aria-label="S・BODYメニューを表示"
+      ></button>
+
+    </div>
   </div>
-</div>
 
-<div class="spot-cards-layer"></div>
+  <!-- =========================
+    Google Map CTA（常時表示）
+  ========================= -->
+  <div class="areamap-cta">
+    <a
+      id="google-map-link"
+      href="https://www.google.com/maps/place/%E3%83%91%E3%83%BC%E3%82%BD%E3%83%8A%E3%83%AB%E3%83%88%E3%83%AC%E3%83%BC%E3%83%8B%E3%83%B3%E3%82%B0%EF%BC%86%E3%82%B3%E3%83%B3%E3%83%87%E3%82%A3%E3%82%B7%E3%83%A7%E3%83%8B%E3%83%B3%E3%82%B0%E3%82%B8%E3%83%A0+S%E3%83%BBBODY/@36.107092,136.224629,14z/data=!4m6!3m5!1s0x5ff8bf327aa10c13:0x92bcedb7ecd7e870!8m2!3d36.107092!4d136.2246294!16s%2Fg%2F11h3q6s_6s?hl=ja&entry=ttu&g_ep=EgoyMDI1MTIwOS4wIKXMDSoASAFQAw%3D%3D"
+      target="_blank"
+      rel="noopener"
+      class="btn-route"
+    >
+      Google Mapでルート検索
+    </a>
+  </div>
 
-<!-- =========================
-  Google Map CTA（常時表示）
-========================= -->
-<div class="areamap-cta">
-  <a
-    id="google-map-link"
-    href="https://www.google.com/maps/place/%E3%83%91%E3%83%BC%E3%82%BD%E3%83%8A%E3%83%AB%E3%83%88%E3%83%AC%E3%83%BC%E3%83%8B%E3%83%B3%E3%82%B0%EF%BC%86%E3%82%B3%E3%83%B3%E3%83%87%E3%82%A3%E3%82%B7%E3%83%A7%E3%83%8B%E3%83%B3%E3%82%B0%E3%82%B8%E3%83%A0+S%E3%83%BBBODY/@36.107092,136.224629,14z/data=!4m6!3m5!1s0x5ff8bf327aa10c13:0x92bcedb7ecd7e870!8m2!3d36.107092!4d136.2246294!16s%2Fg%2F11h3q6s_6s?hl=ja&entry=ttu&g_ep=EgoyMDI1MTIwOS4wIKXMDSoASAFQAw%3D%3D"
-    target="_blank"
-    rel="noopener"
-    class="btn-route"
-  >
-    Google Mapでルート検索
-  </a>
-</div>
+  <!-- =========================
+    Footer
+  ========================= -->
+  <footer class="areamap-footer">
+    <small>AreaMap</small>
+  </footer>
 
-<!-- =========================
-  Footer
-========================= -->
-<footer class="areamap-footer">
-  <small>AreaMap</small>
-</footer>
+  <!-- =========================
+    Modal（画像表示）
+    - モーダル外クリック（overlay）で閉じる
+  ========================= -->
+  <div id="img-modal" class="img-modal" aria-hidden="true">
+    <div class="img-modal__overlay" data-close></div>
 
-<!-- =========================
-  Data
-========================= -->
-<script>
-  const AREA = {{ area | tojson | safe }};
-</script>
+    <div class="img-modal__content" role="dialog" aria-modal="true" aria-label="画像プレビュー">
+      <button class="img-modal__close" type="button" data-close aria-label="閉じる">×</button>
+      <img id="img-modal-target" src="" alt="">
+    </div>
+  </div>
 
-<script
-  src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-  crossorigin=""
-></script>
+  <!-- =========================
+    JS（ホットスポット→モーダル）
+  ========================= -->
+  <script>
+    (function () {
+      const modal = document.getElementById("img-modal");
+      const modalImg = document.getElementById("img-modal-target");
+      const hotspots = document.querySelectorAll(".hotspot");
 
-<script src="/static/js/areamap.js"></script>
-<script src="/static/js/areamap-sbody.js"></script>
-<script>
-</script>
+      function openModal(src, alt) {
+        if (!src) return;
+        modalImg.src = src;
+        modalImg.alt = alt || "";
+        modal.classList.add("is-open");
+        modal.setAttribute("aria-hidden", "false");
+        document.body.style.overflow = "hidden";
+      }
+
+      function closeModal() {
+        modal.classList.remove("is-open");
+        modal.setAttribute("aria-hidden", "true");
+        modalImg.src = "";
+        modalImg.alt = "";
+        document.body.style.overflow = "";
+      }
+
+      hotspots.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const src = btn.getAttribute("data-modal-img");
+          const alt = btn.getAttribute("data-modal-alt");
+          openModal(src, alt);
+        });
+      });
+
+      // モーダル外（overlay / closeボタン）クリックで閉じる
+      modal.addEventListener("click", (e) => {
+        if (e.target && e.target.matches("[data-close]")) {
+          closeModal();
+        }
+      });
+
+      // Escでも閉じる（任意）
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && modal.classList.contains("is-open")) {
+          closeModal();
+        }
+      });
+    })();
+  </script>
+
 </body>
 </html>
