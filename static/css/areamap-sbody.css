@@ -22,10 +22,12 @@
 
 /* ===== モーダル ===== */
 .img-modal {
-  position: fixed;
-  inset: 0;
+  position: absolute;
+  inset: 10px;
   z-index: 2000;
   display: none;
+  border-radius: 14px;
+  overflow: hidden;
 }
 
 .img-modal.is-open {
@@ -44,8 +46,8 @@
   top: 50%;
   transform: translate(-50%, -50%);
 
-  width: min(92vw, 720px);
-  max-height: 90vh;
+  width: min(92%, 720px);
+  max-height: 90%;
 
   background: #fff;
   border-radius: 14px;
