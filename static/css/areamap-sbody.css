@@ -75,7 +75,7 @@
 /* ホットスポット共通 */
 .hotspot {
   position: absolute;
-  bottom: 30%;
+  bottom: 32%;
   top: auto;
   transform: none;
   width: 40px;
@@ -115,11 +115,11 @@
 }
 .areamap-cta {
   position: absolute;
-  bottom: 15%;
+  bottom: 12%;
   left: 10px;
   z-index: 10;
   width: 140px;
-  height: 40px;
+  height: 30px;
   background-color: rgba(255,255,255,0.7);
   padding: 5px;
 }
