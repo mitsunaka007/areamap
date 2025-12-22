@@ -73,22 +73,11 @@
   cursor: pointer;
 }
 /* ホットスポット共通 */
-/* ホットスポット共通 */
 .hotspot {
   position: absolute;
-  transform: translate(-50%, -50%);
-  width: 52px;
-  height: 52px;
-  border-radius: 999px;
-  border: 2px solid #fff;
-  background-color: rgba(255, 127, 80, 0.75);
-  box-shadow: 0 6px 16px rgba(0,0,0,0.18);
-  cursor: pointer;
-
-  /* アイコン表示用 */
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: 60% 60%;
+  bottom: 16px;
+  top: auto;
+  transform: none; /* bottom/right運用なら不要 */
 }
 
 .hotspot:hover {
@@ -102,14 +91,22 @@
 
 /* 駐車場（アイコン + 位置） */
 .hotspot-parking {
-  top: 60%;
-  left: 70%;
+  right: 76px;
   background-image: url("../img/parking-sign.svg");
 }
 
 /* メニュー（アイコン + 位置） */
 .hotspot-menu {
-  top: 60%;
-  left: 80%;
+  right: 16px;
   background-image: url("../img/yen-sign.svg");
+}
+.hotspot.has-leader::before{
+  content:"";
+  position:absolute;
+  width:40px;
+  height:2px;
+  background: rgba(255,255,255,0.9);
+  left:-36px; top:50%;
+  transform: translateY(-50%) rotate(-20deg);
+  border-radius: 2px;
 }
