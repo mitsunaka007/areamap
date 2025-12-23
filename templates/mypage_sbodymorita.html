@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>S・BODY 計測結果</title>
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; margin: 24px; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 18px; }
+    .card { border: 1px solid #ddd; border-radius: 12px; padding: 14px; }
+    .card h3 { margin: 0 0 8px; font-size: 14px; color: #555; }
+    .card .num { font-size: 28px; font-weight: 700; }
+    table { width: 100%; border-collapse: collapse; margin-top: 14px; }
+    th, td { border-bottom: 1px solid #eee; padding: 10px; text-align: left; font-size: 14px; }
+    th { background: #fafafa; }
+    .muted { color: #777; font-size: 12px; }
+  </style>
+</head>
+<body>
+
+  <h1>S・BODY 計測結果</h1>
+  <p class="muted">対象ページ：areamap_sbodymorita（/areamap_sbodymorita.html 等）</p>
+
+  <div class="cards">
+    <div class="card">
+      <h3>総イベント数（view + click 全部）</h3>
+      <div class="num">{{ total_events }}</div>
+    </div>
+    <div class="card">
+      <h3>ページ表示回数（areamap_page_view）</h3>
+      <div class="num">{{ page_views }}</div>
+    </div>
+    <div class="card">
+      <h3>GoogleMap クリック数（google_map_click）</h3>
+      <div class="num">{{ google_map_clicks }}</div>
+    </div>
+  </div>
+
+  <h2>metric_id（クリック対象）別の回数</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>metric_id（element_key）</th>
+        <th>回数</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in by_metric %}
+      <tr>
+        <td>{{ row.metric_id }}</td>
+        <td>{{ row.cnt }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h2>日別推移</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>日付</th>
+        <th>イベント数</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in daily %}
+      <tr>
+        <td>{{ row.day.strftime("%Y-%m-%d") if row.day else "" }}</td>
+        <td>{{ row.cnt }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+</body>
+</html>
