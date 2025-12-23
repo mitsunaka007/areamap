@@ -3,16 +3,26 @@ import os
 import hashlib
 from sqlalchemy import func
 from werkzeug.middleware.proxy_fix import ProxyFix
+from dotenv import load_dotenv
+load_dotenv()
 
 # models.py に db / AreamapClickEvent がある前提
-from models import db, AreamapClickEvent
-
+from models import  AreamapClickEvent
+from extensions import db
 app = Flask(__name__)
 
 # ----------------------------
 # DB 設定
 # ----------------------------
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
+db_url = os.environ.get("DATABASE_URL")
+if not db_url:
+    raise ValueError("DATABASE_URL is not set (RenderのEnvironmentまたは .env を確認)")
+
+# 環境によっては postgres:// が来ることがあるので補正（念のため）
+if db_url.startswith("postgres://"):
+    db_url = db_url.replace("postgres://", "postgresql://", 1)
+
+app.config["SQLALCHEMY_DATABASE_URI"] = db_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 # Render等のリバースプロキシ配下でIP等を正しく取るため
