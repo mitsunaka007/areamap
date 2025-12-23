@@ -20,6 +20,8 @@
 
   <h1>S・BODY 計測結果</h1>
   <p class="muted">対象ページ：areamap_sbodymorita（/areamap_sbodymorita.html 等）</p>
+  <button id="reloadBtn" type="button">再読み込み</button>
+  <span id="lastReload" class="muted"></span>
 
   <div class="cards">
     <div class="card">
@@ -71,6 +73,26 @@
       {% endfor %}
     </tbody>
   </table>
+  <script>
+  (function () {
+    const btn = document.getElementById("reloadBtn");
+    const last = document.getElementById("lastReload");
 
+    function stamp() {
+      const d = new Date();
+      last.textContent = "最終更新: " + d.toLocaleString();
+    }
+    stamp();
+
+    if (btn) {
+      btn.addEventListener("click", () => location.reload());
+    }
+
+    // 30秒ごとに自動更新（不要なら消す）
+    setInterval(() => {
+      location.reload();
+    }, 30000);
+  })();
+</script>
 </body>
 </html>
