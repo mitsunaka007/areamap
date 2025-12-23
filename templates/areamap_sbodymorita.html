@@ -146,7 +146,150 @@
       });
     })();
   </script>
+    <!-- =========================
+    JS（計測）
+    - クリックイベントを /api/metrics/log に送信
+  ========================= -->
+  <script>
+    (function () {
+      // ----------------------------
+      // 設定
+      // ----------------------------
+      const ENDPOINT = "/api/metrics/log";
 
+      // URLパラメータ（媒体別/投稿別計測）
+      const qs = new URLSearchParams(location.search);
+      const ref = qs.get("ref") || "";       // instagram / hp / flyer など
+      const post = qs.get("post") || "";     // reel_001 など
+      const variant = qs.get("variant") || "";
+
+      // 簡易セッションID（匿名。localStorageで維持）
+      function getOrCreateSessionId() {
+        const key = "areamap_session_id";
+        let id = localStorage.getItem(key);
+        if (!id) {
+          id = (crypto?.randomUUID?.() || ("sid_" + Math.random().toString(36).slice(2) + Date.now()));
+          localStorage.setItem(key, id);
+        }
+        return id;
+      }
+
+      function getClientMeta() {
+        const nav = navigator || {};
+        const scr = window.screen || {};
+        const conn = nav.connection || nav.mozConnection || nav.webkitConnection;
+
+        const mmPointerCoarse = window.matchMedia ? window.matchMedia("(pointer: coarse)").matches : null;
+        const mmHoverNone = window.matchMedia ? window.matchMedia("(hover: none)").matches : null;
+        const mmReducedMotion = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)").matches : null;
+        const mmColorScheme = window.matchMedia
+          ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark"
+             : (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : null))
+          : null;
+
+        return {
+          page_url: location.href,
+          page_path: location.pathname,
+          referrer: document.referrer || "",
+          title: document.title || "",
+
+          ref, post, variant,
+
+          session_id: getOrCreateSessionId(),
+
+          user_agent: nav.userAgent || "",
+          language: nav.language || "",
+          languages: Array.isArray(nav.languages) ? nav.languages : [],
+          platform: nav.platform || "",
+
+          timezone: (() => {
+            try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (e) { return ""; }
+          })(),
+          tz_offset_min: new Date().getTimezoneOffset(),
+
+          screen_width: scr.width || null,
+          screen_height: scr.height || null,
+          viewport_width: window.innerWidth || null,
+          viewport_height: window.innerHeight || null,
+          device_pixel_ratio: window.devicePixelRatio || null,
+          color_depth: scr.colorDepth || null,
+
+          max_touch_points: nav.maxTouchPoints ?? null,
+          pointer_coarse: mmPointerCoarse,
+          hover_none: mmHoverNone,
+
+          device_memory_gb: nav.deviceMemory ?? null,
+          hardware_concurrency: nav.hardwareConcurrency ?? null,
+
+          connection_effective_type: conn?.effectiveType || null,
+          connection_rtt_ms: conn?.rtt ?? null,
+          connection_downlink_mbps: conn?.downlink ?? null,
+          connection_save_data: conn?.saveData ?? null,
+
+          cookies_enabled: nav.cookieEnabled ?? null,
+          do_not_track: nav.doNotTrack ?? null,
+          prefers_reduced_motion: mmReducedMotion,
+          prefers_color_scheme: mmColorScheme
+        };
+      }
+
+      async function sendMetric(event_name, metric_id, extra = {}) {
+        const payload = {
+          event_name,
+          metric_id,
+          extra: {
+            ...extra,
+            ...getClientMeta()
+          }
+        };
+
+        // 失敗してもUXを壊さない
+        try {
+          // keepalive: ページ遷移直前でも送れる（対応ブラウザのみ）
+          await fetch(ENDPOINT, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+            keepalive: true
+          });
+        } catch (e) {
+          // noop
+        }
+      }
+
+      // ----------------------------
+      // イベント紐付け
+      // ----------------------------
+      const mapImg = document.getElementById("sbody-map-img");
+      const googleLink = document.getElementById("google-map-link");
+      const parkingBtn = document.querySelector(".hotspot-parking");
+      const menuBtn = document.querySelector(".hotspot-menu");
+
+      // ページ表示（任意）
+      sendMetric("view", "areamap_page_view");
+
+      if (mapImg) {
+        mapImg.addEventListener("click", () => sendMetric("click", "map_image_click"));
+      }
+      if (parkingBtn) {
+        parkingBtn.addEventListener("click", () => sendMetric("click", "hotspot_parking_open", {
+          modal_img: parkingBtn.getAttribute("data-modal-img") || ""
+        }));
+      }
+      if (menuBtn) {
+        menuBtn.addEventListener("click", () => sendMetric("click", "hotspot_menu_open", {
+          modal_img: menuBtn.getAttribute("data-modal-img") || ""
+        }));
+      }
+      if (googleLink) {
+        // 遷移前に送る（target=_blankでもOK）
+        googleLink.addEventListener("click", () => sendMetric("click", "google_map_click", {
+          href: googleLink.href
+        }));
+      }
+    })();
+  </script>
 </body>
 </html>
+
 
