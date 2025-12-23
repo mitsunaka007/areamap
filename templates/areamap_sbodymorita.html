@@ -288,10 +288,29 @@
         }));
       }
     })();
+
+    (function () {
+    const tracker = window.AreamapMetrics.createTracker({
+      endpoint: "/api/metrics/log"
+    });
+
+    // 1) 到達（=リンククリック後の到達結果）
+    tracker.trackPageView("areamap_page_view");
+
+    // 2) data-track を付けた要素は全部自動で click 計測
+    tracker.bindAutoClicks();
+
+    // 3) 個別に明示したいものだけ（任意）
+    const mapImg = document.getElementById("sbody-map-img");
+    if (mapImg) {
+      mapImg.addEventListener("click", () => tracker.track("click", "map_image_click"));
+    }
+  })();
   </script>
   <script src="/static/js/areamap_metrics.js"></script>
 </body>
 </html>
+
 
 
 
