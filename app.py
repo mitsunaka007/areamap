@@ -233,8 +233,7 @@ def log_metric():
         db.session.commit()
     except Exception as e:
         db.session.rollback()
-        return jsonify({"error": "db_error", "detail": str(e)}), 500
-
+        return jsonify({"error": "db_error", "detail": repr(e)}), 500
     return jsonify({"ok": True}), 200
 
 
@@ -307,4 +306,5 @@ def mypage_sbodymorita():
 #         port=5050,
 #         debug=True
 #     )
+
 
