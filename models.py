@@ -100,11 +100,9 @@ class AreaMapTemplate(db.Model):
 class AreamapClickEvent(db.Model):
     __tablename__ = "areamap_click_events"
 
-    # --- PK / time ---
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True, nullable=False)
     occurred_at = db.Column(db.DateTime(timezone=True), nullable=False, server_default=func.now())
 
-    # --- event core ---
     event_name = db.Column(db.Text, nullable=False)
     element_key = db.Column(db.Text, nullable=False)
     element_id = db.Column(db.Text)
@@ -112,7 +110,6 @@ class AreamapClickEvent(db.Model):
     element_text = db.Column(db.Text)
     action_value = db.Column(db.Text)
 
-    # --- page ---
     page_url = db.Column(db.Text, nullable=False)
     page_path = db.Column(db.Text)
     page_title = db.Column(db.Text)
@@ -121,25 +118,21 @@ class AreamapClickEvent(db.Model):
     post = db.Column(db.Text)
     variant = db.Column(db.Text)
 
-    # --- utm ---
     utm_source = db.Column(db.Text)
     utm_medium = db.Column(db.Text)
     utm_campaign = db.Column(db.Text)
     utm_content = db.Column(db.Text)
     utm_term = db.Column(db.Text)
 
-    # --- session / visitor / ua ---
     session_id = db.Column(db.Text)
     visitor_id = db.Column(db.Text)
     user_agent = db.Column(db.Text)
     accept_language = db.Column(db.Text)
 
-    # --- locale ---
     language = db.Column(db.Text)
     languages = db.Column(ARRAY(db.Text))
     platform = db.Column(db.Text)
 
-    # --- bot / device ---
     is_bot = db.Column(db.Boolean)
     is_mobile = db.Column(db.Boolean)
 
@@ -161,19 +154,16 @@ class AreamapClickEvent(db.Model):
     device_memory_gb = db.Column(db.Numeric)
     hardware_concurrency = db.Column(db.Integer)
 
-    # --- connection ---
     connection_effective_type = db.Column(db.Text)
     connection_rtt_ms = db.Column(db.Integer)
     connection_downlink_mbps = db.Column(db.Numeric)
     connection_save_data = db.Column(db.Boolean)
 
-    # --- privacy ---
     cookies_enabled = db.Column(db.Boolean)
     do_not_track = db.Column(db.Text)
     prefers_reduced_motion = db.Column(db.Boolean)
     prefers_color_scheme = db.Column(db.Text)
 
-    # --- geo ---
     geo_lat = db.Column(db.Numeric)
     geo_lng = db.Column(db.Numeric)
     geo_accuracy_m = db.Column(db.Numeric)
@@ -181,7 +171,7 @@ class AreamapClickEvent(db.Model):
     geo_region = db.Column(db.Text)
     geo_city = db.Column(db.Text)
 
-    # --- ip / extra ---
     ip_addr = db.Column(INET)
     ip_hash = db.Column(BYTEA)
+
     extra_json = db.Column(JSONB, nullable=False, server_default=text("'{}'::jsonb"))
