@@ -178,56 +178,29 @@ def log_metric():
     row = AreamapClickEvent(
         event_name=event_name,
         element_key=metric_id,
-        action_value=action_value,
-
-        page_url=page_url,
-        page_path=page_path,
-        page_title=page_title,
-        referrer=referrer,
-
-        ref=ref,
-        post=post,
-        variant=variant,
-
-        user_agent=user_agent,
-        session_id=session_id,
-
-        viewport_w=viewport_w,
-        viewport_h=viewport_h,
-        screen_w=screen_w,
-        screen_h=screen_h,
-        device_pixel_ratio=device_pixel_ratio,
-        timezone_offset_min=tz_offset_min,
-
-        language=language,
-        languages=languages,
-        platform=platform,
-
-        max_touch_points=max_touch_points,
-        hover_none=hover_none,
-
-        device_memory_gb=device_memory_gb,
-        hardware_concurrency=hardware_concurrency,
-
-        connection_effective_type=connection_effective_type,
-        connection_rtt_ms=connection_rtt_ms,
-        connection_downlink_mbps=connection_downlink_mbps,
-        connection_save_data=connection_save_data,
-
-        cookies_enabled=cookies_enabled,
-        do_not_track=do_not_track,
-        prefers_reduced_motion=prefers_reduced_motion,
-        prefers_color_scheme=prefers_color_scheme,
-
-        # 生IPを保存したい場合（不要なら消してOK）
-        ip_addr=ip,
-        # 匿名化も残したい場合（不要なら消してOK）
-        ip_hash=_ip_to_hash_bytes(ip),
-
-        # 将来の解析用に丸ごと保存（JSONB）
+        page_url=extra.get("page_url") or request.headers.get("Referer") or request.url_root,
+        page_path=extra.get("page_path"),
+        page_title=extra.get("title"),
+        referrer=extra.get("referrer"),
+        ref=extra.get("ref") or "",
+        post=extra.get("post") or "",
+        variant=extra.get("variant") or "",
+    
+        screen_width=extra.get("screen_width"),
+        screen_height=extra.get("screen_height"),
+        viewport_width=extra.get("viewport_width"),
+        viewport_height=extra.get("viewport_height"),
+        tz_offset_min=extra.get("tz_offset_min"),
+        is_mobile=extra.get("is_mobile"),
+    
+        pointer_coarse=extra.get("pointer_coarse"),
+        color_depth=extra.get("color_depth"),
+        accept_language=extra.get("accept_language"),
+        timezone=extra.get("timezone"),
+    
+        cookies_enabled=extra.get("cookies_enabled"),
         extra_json={"client": extra},
     )
-
     try:
         db.session.add(row)
         db.session.commit()
@@ -306,5 +279,6 @@ def mypage_sbodymorita():
 #         port=5050,
 #         debug=True
 #     )
+
 
 
