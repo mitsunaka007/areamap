@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, jsonify
 import os
 import hashlib
-from sqlalchemy import func
+from sqlalchemy import func, case
 from werkzeug.middleware.proxy_fix import ProxyFix
 from dotenv import load_dotenv
 load_dotenv()
@@ -209,20 +209,8 @@ def log_metric():
         return jsonify({"error": "db_error", "detail": repr(e)}), 500
     return jsonify({"ok": True}), 200
 
-
-# =========================
-# 追加：S・BODY 集計ページ
-# =========================
 @app.route("/mypage_sbodymorita")
 def mypage_sbodymorita():
-    """
-    areamap_sbodymorita の計測結果を表示
-    - ページ表示回数（areamap_page_view）
-    - GoogleMapクリック回数（google_map_click）
-    - metric別カウント
-    - 日別推移
-    """
-    # /areamap_sbodymorita と /areamap_sbodymorita.html どっちでも拾う
     path_filter = "%areamap_sbodymorita%"
 
     base = db.session.query(AreamapClickEvent).filter(
@@ -263,15 +251,64 @@ def mypage_sbodymorita():
         .all()
     )
 
+    # =========================
+    # 追加：ref/post 別 集計 + CVR
+    # =========================
+    views_expr = func.sum(
+        case(
+            (
+                (AreamapClickEvent.event_name == "view") &
+                (AreamapClickEvent.element_key == "areamap_page_view"),
+                1
+            ),
+            else_=0
+        )
+    ).label("views")
+
+    clicks_expr = func.sum(
+        case(
+            (
+                (AreamapClickEvent.event_name == "click") &
+                (AreamapClickEvent.element_key == "google_map_click"),
+                1
+            ),
+            else_=0
+        )
+    ).label("clicks")
+
+    # CVR = clicks / views（views=0 は NULL にして安全）
+    cvr_expr = (
+        clicks_expr.cast(db.Float) / func.nullif(views_expr.cast(db.Float), 0.0)
+    ).label("cvr")
+
+    post_stats = (
+        db.session.query(
+            AreamapClickEvent.ref.label("ref"),
+            AreamapClickEvent.post.label("post"),
+            views_expr,
+            clicks_expr,
+            cvr_expr,
+        )
+        .filter(AreamapClickEvent.page_path.ilike(path_filter))
+        .group_by(AreamapClickEvent.ref, AreamapClickEvent.post)
+        # PVがない(=0)行も出るので、まずはクリック多い順→CVR高い順→PV多い順
+        .order_by(clicks_expr.desc(), cvr_expr.desc().nullslast(), views_expr.desc())
+        .all()
+    )
+
+    # 全体CVRも表示したい場合（任意）
+    overall_cvr = (google_map_clicks / page_views) if page_views else 0.0
+
     return render_template(
         "mypage_sbodymorita.html",
         total_events=total_events,
         page_views=page_views,
         google_map_clicks=google_map_clicks,
+        overall_cvr=overall_cvr,          # 追加
         by_metric=by_metric,
         daily=daily,
+        post_stats=post_stats,            # 追加
     )
-
 
 # if __name__ == "__main__":
 #     app.run(
@@ -279,6 +316,7 @@ def mypage_sbodymorita():
 #         port=5050,
 #         debug=True
 #     )
+
 
 
 
