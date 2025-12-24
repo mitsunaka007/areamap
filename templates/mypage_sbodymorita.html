@@ -42,6 +42,40 @@
     <div class="num">{{ (overall_cvr * 100) | round(1) }}%</div>
     <div class="muted">※ PV=0 の場合は 0%</div>
   </div>
+  <h2>投稿別（ref / post）PV・クリック・CVR</h2>
+<p class="muted">
+  ref/post はURLパラメータ（例：?ref=ig&post=reel_001）を付けた時に効きます。
+</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>ref</th>
+      <th>post</th>
+      <th>PV</th>
+      <th>GoogleMapクリック</th>
+      <th>CVR</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in post_stats %}
+    <tr>
+      <td>{{ row.ref if row.ref else "(none)" }}</td>
+      <td>{{ row.post if row.post else "(none)" }}</td>
+      <td>{{ row.views }}</td>
+      <td>{{ row.clicks }}</td>
+      <td>
+        {% if row.cvr %}
+          {{ (row.cvr * 100) | round(1) }}%
+        {% else %}
+          0.0%
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
 
   <h2>metric_id（クリック対象）別の回数</h2>
   <table>
