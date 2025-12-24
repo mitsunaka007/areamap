@@ -37,6 +37,11 @@
       <div class="num">{{ google_map_clicks }}</div>
     </div>
   </div>
+  <div class="card">
+    <h3>CVR（GoogleMapクリック / PV）</h3>
+    <div class="num">{{ (overall_cvr * 100) | round(1) }}%</div>
+    <div class="muted">※ PV=0 の場合は 0%</div>
+  </div>
 
   <h2>metric_id（クリック対象）別の回数</h2>
   <table>
