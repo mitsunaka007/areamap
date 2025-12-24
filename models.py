@@ -98,78 +98,90 @@ class AreaMapTemplate(db.Model):
     templatetype                = db.Column(db.String(100), nullable=False)
 
 class AreamapClickEvent(db.Model):
-    __tablename__               = "areamap_click_events"
-    id                          = db.Column(db.BigInteger, primary_key=True, autoincrement=True, nullable=False)
-    occurred_at                 = db.Column(db.DateTime(timezone=True), nullable=False, server_default=func.now())
-    event_name                  = db.Column(db.Text, nullable=False)
-    element_key                 = db.Column(db.Text, nullable=False)
-    element_id                  = db.Column(db.Text)
-    element_tag                 = db.Column(db.Text)
-    element_text                = db.Column(db.Text)
-    action_value                = db.Column(db.Text)
-    page_url                    = db.Column(db.Text, nullable=False)
-    page_path                   = db.Column(db.Text)
-    page_title                  = db.Column(db.Text)
-    referrer                    = db.Column(db.Text)
-    ref                         = db.Column(db.Text)
-    post                        = db.Column(db.Text)
-    variant                     = db.Column(db.Text)
-    user_agent                  = db.Column(db.Text)
-    session_id                  = db.Column(db.Text)
-    visitor_id                  = db.Column(db.Text)
-    is_bot                      = db.Column(db.Boolean)
-    viewport_w                  = db.Column(db.Integer)
-    viewport_h                  = db.Column(db.Integer)
-    screen_w                    = db.Column(db.Integer)
-    screen_h                    = db.Column(db.Integer)
-    device_pixel_ratio          = db.Column(db.Numeric(precision=6, scale=3))
-    timezone_offset_min         = db.Column(db.Integer)
-    language                    = db.Column(db.Text)
-    languages                   = db.Column(ARRAY(db.Text))
-    platform                    = db.Column(db.Text)
-    mobile                      = db.Column(db.Boolean)
-    cookie_enabled              = db.Column(db.Boolean)
-    touch_support               = db.Column(db.Boolean)
-    max_touch_points            = db.Column(db.Integer)
-    app_name                    = db.Column(db.Text)
-    app_version                 = db.Column(db.Text)
-    vendor                      = db.Column(db.Text)
-    connection_type             = db.Column(db.Text)
-    downlink                    = db.Column(db.Numeric(precision=6, scale=2))
-    effective_type              = db.Column(db.Text)
-    rtt                         = db.Column(db.Integer)
-    save_data                   = db.Column(db.Boolean)
-    memory_gb                   = db.Column(db.Numeric(precision=4, scale=1))
-    cpu_cores                   = db.Column(db.Integer)
-    battery_level               = db.Column(db.Numeric(precision=4, scale=1))
-    battery_charging            = db.Column(db.Boolean)
-    visibility_state            = db.Column(db.Text)
-    page_load_ms                = db.Column(db.Numeric(precision=6, scale=2))
-    first_paint_ms              = db.Column(db.Numeric(precision=6, scale=2))
-    first_contentful_paint_ms   = db.Column(db.Numeric(precision=6, scale=2))
-    largest_contentful_paint_ms = db.Column(db.Numeric(precision=6, scale=2))
-    cumulative_layout_shift     = db.Column(db.Numeric(precision=6, scale=3))
-    inp_ms                      = db.Column(db.Numeric(precision=6, scale=2))
-    hover_none                  = db.Column(db.Boolean)
-    device_memory_gb            = db.Column(db.Numeric(precision=4, scale=1))
-    hardware_concurrency        = db.Column(db.Integer)
-    connection_effective_type   = db.Column(db.Text)
-    connection_rtt_ms           = db.Column(db.Integer)
-    connection_downlink_mbps    = db.Column(db.Numeric(precision=6, scale=2))
-    connection_save_data        = db.Column(db.Boolean)
-    cookies_enabled             = db.Column(db.Boolean)
-    do_not_track                = db.Column(db.Text)
-    prefers_reduced_motion      = db.Column(db.Boolean)
-    prefers_color_scheme        = db.Column(db.Text)
-    geo_lat                     = db.Column(db.Numeric(precision=10, scale=7))
-    geo_lng                     = db.Column(db.Numeric(precision=10, scale=7))
-    geo_accuracy_m              = db.Column(db.Numeric(precision=10, scale=2))
-    ip_addr                     = db.Column(INET)
-    ip_hash                     = db.Column(BYTEA)
-    utm_source                  = db.Column(db.Text)
-    utm_medium                  = db.Column(db.Text)
-    utm_campaign                = db.Column(db.Text)
-    utm_term                    = db.Column(db.Text)
-    utm_content                 = db.Column(db.Text)
-    extra_json                  = db.Column(JSONB, nullable=False, server_default=text("'{}'::jsonb"))
- 
+    __tablename__ = "areamap_click_events"
+
+    # --- PK / time ---
+    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True, nullable=False)
+    occurred_at = db.Column(db.DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    # --- event core ---
+    event_name = db.Column(db.Text, nullable=False)
+    element_key = db.Column(db.Text, nullable=False)
+    element_id = db.Column(db.Text)
+    element_tag = db.Column(db.Text)
+    element_text = db.Column(db.Text)
+    action_value = db.Column(db.Text)
+
+    # --- page ---
+    page_url = db.Column(db.Text, nullable=False)
+    page_path = db.Column(db.Text)
+    page_title = db.Column(db.Text)
+    referrer = db.Column(db.Text)
+    ref = db.Column(db.Text)
+    post = db.Column(db.Text)
+    variant = db.Column(db.Text)
+
+    # --- utm ---
+    utm_source = db.Column(db.Text)
+    utm_medium = db.Column(db.Text)
+    utm_campaign = db.Column(db.Text)
+    utm_content = db.Column(db.Text)
+    utm_term = db.Column(db.Text)
+
+    # --- session / visitor / ua ---
+    session_id = db.Column(db.Text)
+    visitor_id = db.Column(db.Text)
+    user_agent = db.Column(db.Text)
+    accept_language = db.Column(db.Text)
+
+    # --- locale ---
+    language = db.Column(db.Text)
+    languages = db.Column(ARRAY(db.Text))
+    platform = db.Column(db.Text)
+
+    # --- bot / device ---
+    is_bot = db.Column(db.Boolean)
+    is_mobile = db.Column(db.Boolean)
+
+    timezone = db.Column(db.Text)
+    tz_offset_min = db.Column(db.Integer)
+
+    screen_width = db.Column(db.Integer)
+    screen_height = db.Column(db.Integer)
+    viewport_width = db.Column(db.Integer)
+    viewport_height = db.Column(db.Integer)
+
+    device_pixel_ratio = db.Column(db.Numeric)
+    color_depth = db.Column(db.Integer)
+
+    max_touch_points = db.Column(db.Integer)
+    pointer_coarse = db.Column(db.Boolean)
+    hover_none = db.Column(db.Boolean)
+
+    device_memory_gb = db.Column(db.Numeric)
+    hardware_concurrency = db.Column(db.Integer)
+
+    # --- connection ---
+    connection_effective_type = db.Column(db.Text)
+    connection_rtt_ms = db.Column(db.Integer)
+    connection_downlink_mbps = db.Column(db.Numeric)
+    connection_save_data = db.Column(db.Boolean)
+
+    # --- privacy ---
+    cookies_enabled = db.Column(db.Boolean)
+    do_not_track = db.Column(db.Text)
+    prefers_reduced_motion = db.Column(db.Boolean)
+    prefers_color_scheme = db.Column(db.Text)
+
+    # --- geo ---
+    geo_lat = db.Column(db.Numeric)
+    geo_lng = db.Column(db.Numeric)
+    geo_accuracy_m = db.Column(db.Numeric)
+    geo_country = db.Column(db.Text)
+    geo_region = db.Column(db.Text)
+    geo_city = db.Column(db.Text)
+
+    # --- ip / extra ---
+    ip_addr = db.Column(INET)
+    ip_hash = db.Column(BYTEA)
+    extra_json = db.Column(JSONB, nullable=False, server_default=text("'{}'::jsonb"))
