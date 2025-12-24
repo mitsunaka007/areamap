@@ -4,6 +4,10 @@
 
   const DEFAULT_ENDPOINT = "/api/metrics/log";
 
+  // 送信の重複防止（同一キーは一定時間スキップ）
+  const DEDUPE_WINDOW_MS = 1200; // 1.2秒（必要なら調整）
+  const sentCache = new Map();   // key -> timestamp
+
   function qs(name, def = "") {
     try {
       const p = new URLSearchParams(location.search);
@@ -22,7 +26,6 @@
       }
       return id;
     } catch (e) {
-      // localStorage不可でも最低限ユニーク
       return "sid_" + Math.random().toString(36).slice(2) + Date.now();
     }
   }
@@ -41,33 +44,27 @@
       : null;
 
     return {
-      // ページ情報
       page_url: location.href,
       page_path: location.pathname,
       referrer: document.referrer || "",
       title: document.title || "",
 
-      // URLパラメータ（媒体/投稿別）
       ref: qs("ref", ""),
       post: qs("post", ""),
       variant: qs("variant", ""),
 
-      // 匿名セッションID
       session_id: getOrCreateSessionId(),
 
-      // ブラウザ情報
       user_agent: nav.userAgent || "",
       language: nav.language || "",
       languages: Array.isArray(nav.languages) ? nav.languages : [],
       platform: nav.platform || "",
 
-      // タイムゾーン
       timezone: (() => {
         try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (e) { return ""; }
       })(),
       tz_offset_min: new Date().getTimezoneOffset(),
 
-      // 画面/表示
       screen_width: scr.width || null,
       screen_height: scr.height || null,
       viewport_width: window.innerWidth || null,
@@ -75,22 +72,18 @@
       device_pixel_ratio: window.devicePixelRatio || null,
       color_depth: scr.colorDepth || null,
 
-      // 入力環境
       max_touch_points: nav.maxTouchPoints ?? null,
       pointer_coarse: mmPointerCoarse,
       hover_none: mmHoverNone,
 
-      // 端末性能
       device_memory_gb: nav.deviceMemory ?? null,
       hardware_concurrency: nav.hardwareConcurrency ?? null,
 
-      // 回線（対応ブラウザのみ）
       connection_effective_type: conn?.effectiveType || null,
       connection_rtt_ms: conn?.rtt ?? null,
       connection_downlink_mbps: conn?.downlink ?? null,
       connection_save_data: conn?.saveData ?? null,
 
-      // プライバシー系
       cookies_enabled: nav.cookieEnabled ?? null,
       do_not_track: nav.doNotTrack ?? null,
       prefers_reduced_motion: mmReducedMotion,
@@ -106,39 +99,31 @@
     };
   }
 
-  // ---- 送信（優先順位：sendBeacon > fetch keepalive > fetch）
+  // ✅ 送信経路を fetch keepalive のみに固定
   function postJSON(endpoint, payload) {
-    const body = JSON.stringify(payload);
+    return fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      keepalive: true,
+      credentials: "same-origin"
+    }).then(() => true).catch(() => false);
+  }
 
-    // 1) sendBeacon（ページ遷移/離脱に強い）
-    try {
-      if (navigator.sendBeacon) {
-        const blob = new Blob([body], { type: "application/json" });
-        const ok = navigator.sendBeacon(endpoint, blob);
-        if (ok) return Promise.resolve(true);
-      }
-    } catch (e) {
-      // fallback
+  // ✅ 同一イベントの短時間二重送信を防ぐ
+  function shouldSend(key) {
+    const now = Date.now();
+    const last = sentCache.get(key);
+    if (last && (now - last) < DEDUPE_WINDOW_MS) {
+      return false;
     }
+    sentCache.set(key, now);
 
-    // 2) fetch keepalive
-    try {
-      return fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body,
-        keepalive: true,
-        credentials: "same-origin"
-      }).then(() => true).catch(() => false);
-    } catch (e) {
-      // 3) 最後のfallback
-      return fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body,
-        credentials: "same-origin"
-      }).then(() => true).catch(() => false);
+    // キャッシュ肥大を防ぐ簡易掃除
+    if (sentCache.size > 2000) {
+      sentCache.clear();
     }
+    return true;
   }
 
   function createTracker(opts = {}) {
@@ -146,12 +131,19 @@
 
     function track(event_name, metric_id, extra = {}) {
       if (!event_name || !metric_id) return Promise.resolve(false);
+
+      // session_id + event + metric + href/modal_img で重複判定
+      const sid = (extra && extra.session_id) || getOrCreateSessionId();
+      const a = extra?.href || extra?.modal_img || "";
+      const key = [sid, event_name, metric_id, a, location.pathname].join("|");
+
+      if (!shouldSend(key)) return Promise.resolve(true);
+
       const payload = buildPayload(event_name, metric_id, extra);
       return postJSON(endpoint, payload);
     }
 
-    // DOM要素に data-track が付いてたら自動でクリック計測
-    // 例: <a data-track="google_map_click" ...>
+    // data-track のクリックを自動計測（※これだけ使う運用が一番安全）
     function bindAutoClicks(root = document) {
       root.addEventListener("click", (e) => {
         const el = e.target?.closest?.("[data-track]");
@@ -161,16 +153,14 @@
         const href = el.getAttribute("href") || "";
         const modalImg = el.getAttribute("data-modal-img") || "";
 
-        track("click", metricId, {
-          href,
-          modal_img: modalImg
-        });
+        // ここで extra に href 等を入れる（重複判定にも使う）
+        track("click", metricId, { href, modal_img: modalImg });
       }, true);
     }
 
-    // PV（到達）計測。ページ読み込みで呼ぶ
     function trackPageView(metricId = "areamap_page_view") {
-      return track("view", metricId);
+      // PVは二重送信されやすいので、dedupeキーに引っかかるようにする
+      return track("view", metricId, {});
     }
 
     return { track, bindAutoClicks, trackPageView };
