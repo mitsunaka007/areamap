@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta property="og:title" content="AreaMap｜アクセスマップ">
+  <meta property="og:description" content="初めての人でも迷わないアクセス案内（駐車場・入口あり）">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://areamap.onrender.com/areamaplite">
+  <meta property="og:image" content="https://areamap.onrender.com/static/img/headermap.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="AreaMap-Lite｜アクセスマップ">
+  <meta name="twitter:description" content="初めての人でも迷わないアクセス案内（駐車場・入口あり）">
+  <meta name="twitter:image" content="https://areamap.onrender.com/static/img/headermap.jpg">
+  <title>AreaMap-Lite版</title>
+
+  <link rel="stylesheet" href="/static/css/areamap.css">
+  <link rel="stylesheet" href="/static/css/areamap-lite.css">
+  <script>
+    (() => {
+      const p = new URLSearchParams(location.search);
+      const mode = p.get("mode") || "page"; // page | embed | ig
+      document.documentElement.setAttribute("data-areamap-view", mode);
+    })();
+  </script>
+</head>
+
+<body data-areamap-mode="default">
+
+  <div id="map-wrapper">
+    <div class="map-image-container">
+
+      <!-- ✅ map image click も自動計測に寄せる -->
+      <img
+        id="sbody-map-img"
+        data-track="map_image_click"
+        src="../static/img/areamaplite-map.jpg"
+        alt="AreaMap"
+      >
+
+      <button
+        type="button"
+        class="hotspot hotspot-parking"
+        data-track="hotspot_parking_open"
+        data-modal-img="../static/img/parking.png"
+        data-modal-alt="AreaMap駐車場"
+        aria-label="駐車場を表示"
+      ></button>
+
+      <button
+        type="button"
+        class="hotspot hotspot-menu"
+        data-track="hotspot_menu_open"
+        data-modal-img="../static/img/menu.png"
+        data-modal-alt="AreaMapメニュー"
+        aria-label="メニューを表示"
+      ></button>
+    </div>
+
+    <div class="areamap-cta">
+      <a
+        id="google-map-link"
+        data-track="google_map_click"
+        href="https://www.google.com/maps/place/%E3%83%91%E3%83%BC%E3%82%BD%E3%83%8A%E3%83%AB%E3%83%88%E3%83%AC%E3%83%BC%E3%83%8B%E3%83%B3%E3%82%B0%EF%BC%86%E3%82%B3%E3%83%B3%E3%83%87%E3%82%A3%E3%82%B7%E3%83%A7%E3%83%8B%E3%83%B3%E3%82%B0%E3%82%B8%E3%83%A0+S%E3%83%BBBODY/@36.107092,136.224629,14z/data=!4m6!3m5!1s0x5ff8bf327aa10c13:0x92bcedb7ecd7e870!8m2!3d36.107092!4d136.2246294!16s%2Fg%2F11h3q6s_6s?hl=ja&entry=ttu&g_ep=EgoyMDI1MTIwOS4wIKXMDSoASAFQAw%3D%3D"
+        target="_blank"
+        rel="noopener"
+        class="btn-route"
+      >
+        GoogleMapを見る
+      </a>
+    </div>
+  </div>
+
+  <footer class="areamap-footer"></footer>
+
+  <div id="img-modal" class="img-modal" aria-hidden="true">
+    <div class="img-modal__overlay" data-close></div>
+
+    <div class="img-modal__content" role="dialog" aria-modal="true" aria-label="画像プレビュー">
+      <button class="img-modal__close" type="button" data-close aria-label="閉じる">×</button>
+      <img id="img-modal-target" src="" alt="">
+    </div>
+  </div>
+
+  <!-- モーダル表示（これは計測しない） -->
+  <script>
+    (function () {
+      const modal = document.getElementById("img-modal");
+      const modalImg = document.getElementById("img-modal-target");
+      const hotspots = document.querySelectorAll(".hotspot");
+
+      function openModal(src, alt) {
+        if (!src) return;
+        modalImg.src = src;
+        modalImg.alt = alt || "";
+        modal.classList.add("is-open");
+        modal.setAttribute("aria-hidden", "false");
+        document.body.style.overflow = "hidden";
+      }
+
+      function closeModal() {
+        modal.classList.remove("is-open");
+        modal.setAttribute("aria-hidden", "true");
+        modalImg.src = "";
+        modalImg.alt = "";
+        document.body.style.overflow = "";
+      }
+
+      hotspots.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const src = btn.getAttribute("data-modal-img");
+          const alt = btn.getAttribute("data-modal-alt");
+          openModal(src, alt);
+        });
+      });
+
+      modal.addEventListener("click", (e) => {
+        if (e.target && e.target.matches("[data-close]")) {
+          closeModal();
+        }
+      });
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && modal.classList.contains("is-open")) {
+          closeModal();
+        }
+      });
+    })();
+  </script>
+
+  <!-- ✅ 計測はこれだけ（1本化） -->
+  <script src="../static/js/areamap_metrics.js"></script>
+  <script>
+    (function () {
+      const tracker = window.AreamapMetrics.createTracker({
+        endpoint: "/api/metrics/log"
+      });
+
+      // PV（1回だけ）
+      tracker.trackPageView("areamap_page_view");
+
+      // data-track のクリックを全部計測（ホットスポット/GoogleMap/地図画像）
+      tracker.bindAutoClicks();
+    })();
+  </script>
+</body>
+</html>
