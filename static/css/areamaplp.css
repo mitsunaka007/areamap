@@ -552,3 +552,88 @@ body {
   align-items: center;
   justify-content: center;
 }
+/* =========================
+  Plans (Lite / Pro)
+========================= */
+.lp-plans .plans-grid{
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.plan-card{
+  background: #fff;
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+  border: 1px solid rgba(0,0,0,0.06);
+}
+
+.plan-badge{
+  display: inline-block;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.06);
+  margin-bottom: 10px;
+}
+
+.plan-title{
+  font-size: 20px;
+  line-height: 1.4;
+  margin: 6px 0 10px;
+}
+
+.plan-lead{
+  margin: 0 0 12px;
+  opacity: 0.9;
+}
+
+.plan-list{
+  margin: 0;
+  padding-left: 1.2em;
+  line-height: 1.8;
+}
+
+.plan-actions{
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.plan-btn{
+  display: inline-block;
+  text-align: center;
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  border: 1px solid rgba(0,0,0,0.12);
+}
+
+.plan-sub{
+  text-decoration: none;
+  font-weight: 700;
+  opacity: 0.9;
+}
+
+.plan-preview{
+  margin-top: 14px;
+}
+
+.plans-note{
+  margin-top: 18px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(0,0,0,0.08);
+}
+
+/* PC */
+@media (min-width: 920px){
+  .lp-plans .plans-grid{
+    grid-template-columns: 1fr 1fr;
+    gap: 22px;
+  }
+}
