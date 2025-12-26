@@ -309,6 +309,17 @@ def mypage_sbodymorita():
         daily=daily,
         post_stats=post_stats,            # 追加
     )
+# =========================
+# 追加：Lite / Pro ルート
+# =========================
+@app.route("/areamap-lite")
+def areamap_lite():
+    return render_template("areamap-lite.html")
+
+
+@app.route("/areamap-pro")
+def areamap_pro():
+    return render_template("areamap-pro.html")
 
 # if __name__ == "__main__":
 #     app.run(
@@ -316,6 +327,7 @@ def mypage_sbodymorita():
 #         port=5050,
 #         debug=True
 #     )
+
 
 
 
