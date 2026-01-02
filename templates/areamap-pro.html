@@ -18,8 +18,8 @@
 
   <title>AreaMap-Pro版</title>
 
-  <link rel="stylesheet" href="/static/css/areamap.css">
-  <link rel="stylesheet" href="/static/css/areamap-pro.css">
+  <!-- <link rel="stylesheet" href="/static/css/areamap.css"> -->
+  <link rel="stylesheet" href="../static/css/areamap-pro.css">
 
   <!-- Leaflet -->
   <link
@@ -184,7 +184,7 @@
       const debug = params.get("debug") === "1";
 
       // 使う画像（元の areamaplite-map.jpg をそのまま使う）
-      const imageUrl = "/static/img/areamaplite-map.jpg";
+      const imageUrl = "/static/img/areamappro-map.jpg";
 
       // ホットスポット定義（％で指定：xPct=横、yPct=縦）
       // ★ここをあなたの地図に合わせて調整（debug=1で座標拾える）
@@ -205,7 +205,7 @@
           yPct: 55.0,   // 例
           className: "is-menu",
           track: "hotspot_menu_open",
-          modalImg: "../static/img/menu.png",
+          modalImg: "../static/img/menu.jpg",
           modalAlt: "AreaMapメニュー",
           ariaLabel: "メニューを表示"
         }
