@@ -647,4 +647,7 @@ body {
   border-radius: 50%;
   background: #509b2a;
   background: linear-gradient(90deg, rgba(80, 155, 42, 1) 0%, rgba(87, 199, 133, 1) 50%, rgba(237, 221, 83, 1) 100%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
