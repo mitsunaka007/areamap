@@ -479,6 +479,7 @@
   </footer>
 
 </div>
+<div id="move-top">Topへ</div>
   <script>
     document.addEventListener("DOMContentLoaded", () => {
 
@@ -667,7 +668,13 @@
       actionList.appendChild(li);
     }
   }
-
+    const btn = document.getElementById("move-top");
+    btn.addEventListener("click", () => {
+      window.scroll({
+        top: 0,
+        behavior: "smooth",
+      });
+    });
   </script>
 </body>
 </html>
