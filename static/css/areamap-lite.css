@@ -16,8 +16,19 @@ html[data-areamap-view] #map-wrapper {
   overflow: hidden;
 
   /* デフォルト（page） */
-  height: 40vh;
-  max-height: 600px;
+  /* height: 40vh;
+  max-height: 600px; */
+}
+@media (max-width: 768px){
+  html[data-areamap-view] #map-wrapper {
+    height: 40vh;
+    max-height: 600px;
+  }
+}
+@media (min-width: 920px){
+  html[data-areamap-view] #map-wrapper {
+    height: 100vh;
+  }
 }
 
 html[data-areamap-view] .map-image-container {
