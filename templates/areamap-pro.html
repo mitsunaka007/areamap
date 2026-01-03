@@ -790,7 +790,7 @@
       toggleBtn.addEventListener("click", () => {
         const isOpen = toggleBtn.getAttribute("aria-expanded") === "true";
         setPanelOpen(!isOpen);
-        if (!isOpen) map.panBy([0, -120], { animate: true });
+        // if (!isOpen) map.panBy([0, -120], { animate: true });
       });
 
       // ───────────────────────────────
