@@ -16,7 +16,8 @@ html[data-areamap-view] #map-wrapper {
   overflow: hidden;
 
   /* デフォルト（page） */
-  height: 40vh;
+  height: 100vh;
+  /* height: 40vh; */
   max-height: 600px;
 }
 
