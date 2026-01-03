@@ -46,16 +46,6 @@
       position: relative;
     }
     .leaflet-container { background: transparent; }
-    /* @media (max-width: 768px) {
-      #areamap-leaflet{
-        height: 100vh;
-      }
-    }
-    @media (min-width: 769px) {
-      #areamap-leaflet{
-        height: 80vh;
-      }
-    } */
 
     /* ===== Direction chips (top overlay) ===== */
     .route-chip-bar {
@@ -269,8 +259,50 @@
             IC/西から
           </button>
         </div>
-      </div>
 
+        <!-- ✅ ルートパネルを開くボタン（地図上） -->
+        <button
+          id="route-panel-toggle"
+          class="route-panel-toggle"
+          type="button"
+          aria-controls="route-panel"
+          aria-expanded="false"
+          data-track="route_panel_toggle_click"
+        >
+          ルートパネルを開く
+        </button>
+
+        <!-- ✅ Pro UI Panel（地図上に重ねる / 初期は閉じる） -->
+        <section class="areamap-panel is-collapsed" id="route-panel" aria-label="アクセス案内パネル">
+          <div class="areamap-panel__head">
+            <p class="areamap-panel__title">初めての方へ：①駐車場 → ②入口 → ③受付 の順でOK</p>
+            <p class="areamap-panel__sub" id="route-hint">
+              位置情報が許可されると、来た方向に合わせてルートを自動選択します（許可なしでも手動で切替できます）
+            </p>
+          </div>
+
+          <div class="areamap-panel__body">
+            <div class="panel-actions">
+              <button class="panel-btn" type="button" id="btn-nav-start" data-track="cta_nav_start_click">
+                ナビ開始（推奨）
+              </button>
+              <a
+                id="google-map-link"
+                data-track="cta_google_open_click"
+                href="https://www.google.com/maps/dir/?api=1&destination=36.107092,136.2246294&travelmode=driving"
+                target="_blank"
+                rel="noopener"
+                class="panel-btn is-ghost"
+              >
+                Googleで開く
+              </a>
+            </div>
+            <div class="step-cards" id="step-cards">
+              <!-- JSで生成 -->
+            </div>
+          </div>
+        </section>
+      </div>
     </div>
 
     <!-- Pro UI Panel -->
@@ -754,6 +786,40 @@
       tryAutoSelectRoute();
 
     })();
+    // ===== ルートパネル開閉 =====
+    const panel = document.getElementById("route-panel");
+    const toggleBtn = document.getElementById("route-panel-toggle");
+
+    function setPanelOpen(isOpen) {
+      panel.classList.toggle("is-collapsed", !isOpen);
+      toggleBtn.setAttribute("aria-expanded", String(isOpen));
+
+      // ボタン文言
+      toggleBtn.textContent = isOpen ? "ルートパネルを閉じる" : "ルートパネルを開く";
+
+      // 開いたタイミングで計測（任意）
+      if (isOpen) {
+        if (typeof tracker.track === "function") tracker.track("route_panel_open");
+        else if (typeof tracker.trackEvent === "function") tracker.trackEvent("route_panel_open");
+      } else {
+        if (typeof tracker.track === "function") tracker.track("route_panel_close");
+        else if (typeof tracker.trackEvent === "function") tracker.trackEvent("route_panel_close");
+      }
+    }
+
+    // 初期は閉じる
+    setPanelOpen(false);
+
+    toggleBtn.addEventListener("click", () => {
+      const isOpen = toggleBtn.getAttribute("aria-expanded") === "true";
+      setPanelOpen(!isOpen);
+
+      // パネルを開いたら、ステップが見えるように少しだけ地図を上にずらす（任意）
+      if (!isOpen) {
+        map.panBy([0, -120], { animate: true });
+      }
+    });
+
   </script>
 </body>
 </html>
