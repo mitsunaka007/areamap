@@ -212,7 +212,7 @@ html[data-areamap-view] .areamap-cta a {
   z-index: 640;
   margin-top: 0; /* 地図下のレイアウト用だったので無効化 */
   max-height: 58vh; /* 地図内で暴れないように */
-  overflow: hidden;
+  overflow: scroll;
 }
 
 /* パネル内スクロール */
