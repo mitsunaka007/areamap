@@ -257,17 +257,35 @@ body[data-active-section="flyer"] .lp-flyer .lp-bg {
 
 /* Value */
 body[data-active-section="value"] .lp-value .lp-bg {
-  opacity: 1;
+  opacity: 0.3;
+  background-image: url(../img/route.jpg);
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  max-width: 100vw;
+  height: auto;
 }
 
 /* Data */
 body[data-active-section="data"] .lp-data .lp-bg {
   opacity: 1;
+  background-image: url(../img/data.jpg);
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  max-width: 100vw;
+  height: auto;
 }
 
 /* Hearing */
 body[data-active-section="hearing"] .lp-hearing .lp-bg {
-  opacity: 1;
+  opacity: 0.3;
+  background-image: url(../img/hearing.jpg);
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  max-width: 100vw;
+  height: auto;
 }
 body {
   margin: 0;
