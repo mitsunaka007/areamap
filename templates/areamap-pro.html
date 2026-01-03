@@ -7,7 +7,7 @@
   <meta property="og:title" content="AreaMap｜アクセスマップ">
   <meta property="og:description" content="初めての人でも迷わないアクセス案内（駐車場・入口あり）">
   <meta property="og:type" content="website">
-  <meta property="og:url" content="https://areamap.onrender.com/areamaplite">
+  <meta property="og:url" content="https://areamap.onrender.com/areamap-pro">
   <meta property="og:image" content="https://areamap.onrender.com/static/img/headermap.jpg">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
@@ -18,7 +18,6 @@
 
   <title>AreaMap-Pro版</title>
 
-  <!-- <link rel="stylesheet" href="/static/css/areamap.css"> -->
   <link rel="stylesheet" href="../static/css/areamap-pro.css">
 
   <!-- Leaflet -->
@@ -36,47 +35,203 @@
   </script>
 
   <style>
-    /* Leafletコンテナのサイズ（あなたの既存レイアウトに合わせて調整OK） */
+    /* ===== Map container ===== */
     #areamap-leaflet {
       width: 100%;
-      height: 520px;  /* ここは好みで。スマホなら 480〜600 あたりが無難 */
+      height: 520px;
       border-radius: 12px;
       overflow: hidden;
       background: #f3f3f3;
+      position: relative;
+    }
+    .leaflet-container { background: transparent; }
+
+    /* ===== Direction chips (top overlay) ===== */
+    .route-chip-bar {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      z-index: 600; /* over tiles */
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .route-chip {
+      flex: 0 0 auto;
+      border: 1px solid rgba(0,0,0,0.12);
+      background: rgba(255,255,255,0.92);
+      border-radius: 999px;
+      padding: 10px 12px;
+      font-size: 13px;
+      line-height: 1;
+      cursor: pointer;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+      user-select: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+    .route-chip.is-active {
+      border-color: rgba(56, 189, 248, 0.85);
+      outline: 2px solid rgba(56, 189, 248, 0.35);
+      background: rgba(255,255,255,0.98);
+      font-weight: 700;
+    }
+    .route-chip small {
+      font-weight: 600;
+      opacity: 0.75;
     }
 
-    /* Leaflet divIcon 内のボタン（既存のhotspot見た目に寄せる） */
-    .areamap-hotspot-btn {
+    /* ===== Bottom panel ===== */
+    .areamap-panel {
+      margin-top: 12px;
+      border: 1px solid rgba(0,0,0,0.08);
+      border-radius: 14px;
+      background: #fff;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+    .areamap-panel__head {
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+    }
+    .areamap-panel__title {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 800;
+    }
+    .areamap-panel__sub {
+      margin: 6px 0 0;
+      font-size: 12px;
+      color: rgba(0,0,0,0.65);
+    }
+    .areamap-panel__body {
+      padding: 12px 14px 14px;
+      display: grid;
+      gap: 10px;
+    }
+    .panel-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .panel-btn {
+      border: 0;
+      border-radius: 12px;
+      padding: 12px 14px;
+      cursor: pointer;
+      font-weight: 800;
+      font-size: 13px;
+      box-shadow: 0 8px 18px rgba(0,0,0,0.10);
+      background: #111827;
+      color: #fff;
+    }
+    .panel-btn.is-ghost {
+      background: rgba(17,24,39,0.06);
+      color: #111827;
+      box-shadow: none;
+      border: 1px solid rgba(17,24,39,0.12);
+    }
+
+    /* ===== Step cards ===== */
+    .step-cards {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    .step-card {
+      border: 1px solid rgba(0,0,0,0.08);
+      border-radius: 14px;
+      padding: 12px 12px;
+      display: grid;
+      gap: 6px;
+    }
+    .step-card__top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .step-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      background: rgba(0,0,0,0.78);
+      color: #fff;
+      font-weight: 900;
+      font-size: 13px;
+    }
+    .step-title {
+      margin: 0;
+      font-size: 13px;
+      font-weight: 900;
+    }
+    .step-desc {
+      margin: 0;
+      font-size: 12px;
+      color: rgba(0,0,0,0.70);
+    }
+    .step-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+    .step-action-btn {
+      border: 1px solid rgba(0,0,0,0.12);
+      background: rgba(0,0,0,0.04);
+      border-radius: 999px;
+      padding: 8px 10px;
+      font-size: 12px;
+      cursor: pointer;
+      font-weight: 800;
+    }
+
+    /* ===== Step marker (Leaflet divIcon) ===== */
+    .step-marker {
       width: 44px;
       height: 44px;
       border-radius: 999px;
-      border: 0;
-      cursor: pointer;
-      background: rgba(0,0,0,0.65);
-      box-shadow: 0 6px 18px rgba(0,0,0,0.25);
-    }
-    /* 種別で色やアイコンを変えたいならここで */
-    .areamap-hotspot-btn.is-parking::after {
-      content: "P";
+      background: rgba(0,0,0,0.72);
       color: #fff;
-      font-weight: 700;
-      display: inline-block;
-      line-height: 44px;
-      width: 44px;
-      text-align: center;
+      display: grid;
+      place-items: center;
+      font-weight: 900;
+      box-shadow: 0 8px 18px rgba(0,0,0,0.25);
+      border: 2px solid rgba(255,255,255,0.9);
     }
-    .areamap-hotspot-btn.is-menu::after {
-      content: "≡";
-      color: #fff;
-      font-weight: 700;
-      display: inline-block;
-      line-height: 44px;
-      width: 44px;
-      text-align: center;
+    .step-marker span {
+      font-size: 14px;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .step-marker .mini {
+      font-size: 11px;
+      opacity: 0.95;
+      font-weight: 800;
     }
 
-    /* Leafletが付ける余白を抑えたい場合 */
-    .leaflet-container { background: transparent; }
+    /* ===== Landmark marker ===== */
+    .lm-marker {
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.92);
+      border: 1px solid rgba(0,0,0,0.12);
+      box-shadow: 0 8px 18px rgba(0,0,0,0.12);
+      font-size: 12px;
+      font-weight: 800;
+      color: rgba(0,0,0,0.80);
+      white-space: nowrap;
+    }
   </style>
 </head>
 
@@ -85,27 +240,59 @@
   <div id="map-wrapper">
     <div class="map-image-container">
 
-      <!-- 画像ではなくLeaflet -->
+      <!-- Leaflet map -->
       <div
         id="areamap-leaflet"
-        data-track="map_image_click"
+        data-track="map_view"
         aria-label="AreaMap"
-      ></div>
-
-    </div>
-
-    <div class="areamap-cta">
-      <a
-        id="google-map-link"
-        data-track="google_map_click"
-        href="https://www.google.com/maps/place/%E3%83%91%E3%83%BC%E3%82%BD%E3%83%8A%E3%83%AB%E3%83%88%E3%83%AC%E3%83%BC%E3%83%8B%E3%83%B3%E3%82%B0%EF%BC%86%E3%82%B3%E3%83%B3%E3%83%87%E3%82%A3%E3%82%B7%E3%83%A7%E3%83%8B%E3%83%B3%E3%82%B0%E3%82%B8%E3%83%A0+S%E3%83%BBBODY/@36.107092,136.224629,14z/data=!4m6!3m5!1s0x5ff8bf327aa10c13:0x92bcedb7ecd7e870!8m2!3d36.107092!4d136.2246294!16s%2Fg%2F11h3q6s_6s?hl=ja&entry=ttu&g_ep=EgoyMDI1MTIwOS4wIKXMDSoASAFQAw%3D%3D"
-        target="_blank"
-        rel="noopener"
-        class="btn-route"
       >
-        GoogleMapを見る
-      </a>
+        <!-- Direction chips overlay -->
+        <div class="route-chip-bar" id="route-chip-bar">
+          <button class="route-chip" type="button" data-route="north" data-track="route_chip_north_click">
+            北から <small>おすすめ</small>
+          </button>
+          <button class="route-chip" type="button" data-route="south" data-track="route_chip_south_click">
+            南から
+          </button>
+          <button class="route-chip" type="button" data-route="ic" data-track="route_chip_ic_click">
+            IC/西から
+          </button>
+        </div>
+      </div>
+
     </div>
+
+    <!-- Pro UI Panel -->
+    <section class="areamap-panel" aria-label="アクセス案内パネル">
+      <div class="areamap-panel__head">
+        <p class="areamap-panel__title">初めての方へ：①駐車場 → ②入口 → ③受付 の順でOK</p>
+        <p class="areamap-panel__sub" id="route-hint">
+          位置情報が許可されると、来た方向に合わせてルートを自動選択します（許可なしでも手動で切替できます）
+        </p>
+      </div>
+
+      <div class="areamap-panel__body">
+        <div class="panel-actions">
+          <button class="panel-btn" type="button" id="btn-nav-start" data-track="cta_nav_start_click">
+            ナビ開始（推奨）
+          </button>
+          <a
+            id="google-map-link"
+            data-track="cta_google_open_click"
+            href="https://www.google.com/maps/dir/?api=1&destination=36.107092,136.2246294&travelmode=driving"
+            target="_blank"
+            rel="noopener"
+            class="panel-btn is-ghost"
+          >
+            Googleで開く
+          </a>
+        </div>
+
+        <div class="step-cards" id="step-cards">
+          <!-- JSで生成 -->
+        </div>
+      </div>
+    </section>
   </div>
 
   <footer class="areamap-footer"></footer>
@@ -128,7 +315,7 @@
 
   <script>
     // ───────────────────────────────
-    // 1) モーダルを “外から呼べる” 形にする
+    // 1) モーダル（外から呼べる）
     // ───────────────────────────────
     (function () {
       const modal = document.getElementById("img-modal");
@@ -159,7 +346,6 @@
         if (e.key === "Escape" && modal.classList.contains("is-open")) closeModal();
       });
 
-      // 外部から呼べるように公開
       window.AreaMapModal = { openModal, closeModal };
     })();
   </script>
@@ -177,131 +363,385 @@
 
   <script>
     // ───────────────────────────────
-    // 3) Leaflet画像オーバーレイ（タイル無し）で地図化
+    // 3) Pro版：Leaflet（通常地図） + 収束区間ルート切替 + 位置情報で自動選択
     // ───────────────────────────────
     (function () {
       const params = new URLSearchParams(location.search);
       const debug = params.get("debug") === "1";
 
-      // 使う画像（元の areamaplite-map.jpg をそのまま使う）
-      const imageUrl = "/static/img/areamappro-map.jpg";
+      // ===== 店の中心（GoogleMapリンクの座標を使用） =====
+      const STORE = {
+        name: "S・BODY",
+        lat: 36.107092,
+        lng: 136.2246294
+      };
 
-      // ホットスポット定義（％で指定：xPct=横、yPct=縦）
-      // ★ここをあなたの地図に合わせて調整（debug=1で座標拾える）
-      const hotspots = [
+      // ===== ステップ（①P/②入口/③受付） =====
+      // ※座標は例：あなたの店舗に合わせて調整
+      const STEPS = [
         {
-          key: "parking",
-          xPct: 22.0,   // 例
-          yPct: 62.0,   // 例
-          className: "is-parking",
-          track: "hotspot_parking_open",
+          id: "step1_parking",
+          stepNo: 1,
+          title: "駐車場（推奨）",
+          desc: "ここに停める → 入口へ",
+          lat: 36.107420,
+          lng: 136.223920,
+          trackFocus: "step1_focus",
+          trackPhoto: "photo_parking_open",
           modalImg: "../static/img/parking.png",
-          modalAlt: "AreaMap駐車場",
-          ariaLabel: "駐車場を表示"
+          modalAlt: "駐車場の写真"
         },
         {
-          key: "menu",
-          xPct: 70.0,   // 例
-          yPct: 55.0,   // 例
-          className: "is-menu",
-          track: "hotspot_menu_open",
-          modalImg: "../static/img/menu.jpg",
-          modalAlt: "AreaMapメニュー",
-          ariaLabel: "メニューを表示"
+          id: "step2_entrance",
+          stepNo: 2,
+          title: "入口",
+          desc: "この入口から入る",
+          lat: 36.107170,
+          lng: 136.224470,
+          trackFocus: "step2_focus",
+          trackPhoto: "photo_entrance_open",
+          modalImg: "../static/img/entrance.jpg",
+          modalAlt: "入口の写真"
+        },
+        {
+          id: "step3_reception",
+          stepNo: 3,
+          title: "受付",
+          desc: "受付で『体験です』と伝える",
+          lat: STORE.lat,
+          lng: STORE.lng,
+          trackFocus: "step3_focus",
+          trackPhoto: "photo_reception_open",
+          modalImg: "../static/img/reception.jpg",
+          modalAlt: "受付の写真"
         }
       ];
 
-      // 画像を読み込んで自然サイズを取得 → bounds を正しく作る
-      const img = new Image();
-      img.onload = () => initMap(img.naturalWidth, img.naturalHeight);
-      img.src = imageUrl;
+      // ===== ランドマーク（最大3つ推奨） =====
+      // ※座標・文言は例
+      const LANDMARKS = [
+        { id: "lm1", label: "◯◯交差点", lat: 36.10810, lng: 136.22370 },
+        { id: "lm2", label: "ローソン",   lat: 36.10670, lng: 136.22510 },
+        { id: "lm3", label: "赤い看板",   lat: 36.10760, lng: 136.22540 }
+      ];
 
-      function initMap(imgWidth, imgHeight) {
-        // CRS.Simple：座標が画像ピクセル基準になる
-        const map = L.map("areamap-leaflet", {
-          crs: L.CRS.Simple,
-          minZoom: -2,
-          maxZoom: 2,
-          zoomControl: true,
-          attributionControl: false
-        });
-
-        const bounds = [[0, 0], [imgHeight, imgWidth]];
-
-        // タイル無し：画像だけ敷く
-        L.imageOverlay(imageUrl, bounds).addTo(map);
-
-        map.fitBounds(bounds);
-        map.setMaxBounds(bounds);
-        map.on("drag", () => map.panInsideBounds(bounds, { animate: false }));
-
-        // ％ → [y, x]（Leafletは latlng という名前だけど、ここではピクセル座標）
-        const pctToLatLng = (xPct, yPct) => {
-          const x = imgWidth  * (xPct / 100);
-          const y = imgHeight * (yPct / 100);
-          return [y, x];
-        };
-
-        // ホットスポットを追加（divIcon でボタンを埋め込む）
-        hotspots.forEach((h) => {
-          const html = `
-            <button
-              type="button"
-              class="areamap-hotspot-btn ${h.className}"
-              data-track="${h.track}"
-              data-modal-img="${h.modalImg}"
-              data-modal-alt="${h.modalAlt}"
-              aria-label="${h.ariaLabel}"
-            ></button>
-          `;
-
-          const icon = L.divIcon({
-            className: "",      // Leafletデフォの枠を消す
-            html,
-            iconSize: [44, 44], // ボタンサイズに合わせる
-            iconAnchor: [22, 22] // 中心合わせ
-          });
-
-          L.marker(pctToLatLng(h.xPct, h.yPct), { icon }).addTo(map);
-        });
-
-        // Leaflet内に挿入されたボタンにモーダル動作を付与（イベント委譲）
-        const mapEl = document.getElementById("areamap-leaflet");
-        mapEl.addEventListener("click", (e) => {
-          const btn = e.target && e.target.closest && e.target.closest(".areamap-hotspot-btn");
-          if (!btn) return;
-
-          const src = btn.getAttribute("data-modal-img");
-          const alt = btn.getAttribute("data-modal-alt") || "";
-          window.AreaMapModal.openModal(src, alt);
-        });
-
-        // 「地図面クリック」を計測したい場合（APIがある時だけ）
-        map.on("click", () => {
-          if (typeof tracker.track === "function") {
-            tracker.track("map_image_click");
-          } else if (typeof tracker.trackEvent === "function") {
-            tracker.trackEvent("map_image_click");
-          }
-        });
-
-        // data-track をまとめてバインド（LeafletのボタンがDOMに入ってから実行）
-        tracker.bindAutoClicks();
-
-        // debug=1：クリック位置の％をconsoleに出す（ピン配置が超楽）
-        if (debug) {
-          map.on("click", (e) => {
-            const y = e.latlng.lat;
-            const x = e.latlng.lng;
-            const xPct = (x / imgWidth) * 100;
-            const yPct = (y / imgHeight) * 100;
-            console.log("clicked percent:", {
-              xPct: +xPct.toFixed(2),
-              yPct: +yPct.toFixed(2)
-            });
-          });
+      // ===== 収束区間ルート（最後の300〜800mだけ） =====
+      // ここがこの仕様のコア。遠方からの全ルートは描かない。
+      // ※座標は例（実際の道路に沿うように調整）
+      const ROUTES = {
+        north: {
+          key: "north",
+          label: "北から",
+          hint: "北側から来る人向け（終盤だけ表示）",
+          // 終盤だけ：曲がり角→P→入口
+          path: [
+            [36.108250, 136.224000],
+            [36.107900, 136.223930],
+            [36.107650, 136.223900],
+            [36.107460, 136.223920], // P付近
+            [36.107250, 136.224200],
+            [36.107170, 136.224470], // 入口
+            [36.107092, 136.2246294] // 店
+          ]
+        },
+        south: {
+          key: "south",
+          label: "南から",
+          hint: "南側から来る人向け（終盤だけ表示）",
+          path: [
+            [36.105900, 136.224950],
+            [36.106300, 136.224820],
+            [36.106700, 136.224720],
+            [36.107050, 136.224650],
+            [36.107170, 136.224470], // 入口
+            [36.107092, 136.2246294] // 店
+          ]
+        },
+        ic: {
+          key: "ic",
+          label: "IC/西から",
+          hint: "IC/西側から来る人向け（終盤だけ表示）",
+          path: [
+            [36.107700, 136.222900],
+            [36.107600, 136.223250],
+            [36.107520, 136.223600],
+            [36.107460, 136.223920], // P付近
+            [36.107250, 136.224200],
+            [36.107092, 136.2246294] // 店
+          ]
         }
+      };
+
+      // ===== Google Directions URL =====
+      function makeGoogleDirUrl({ originLatLng } = {}) {
+        const base = new URL("https://www.google.com/maps/dir/");
+        const u = new URLSearchParams();
+        u.set("api", "1");
+        if (originLatLng) u.set("origin", `${originLatLng.lat},${originLatLng.lng}`);
+        u.set("destination", `${STORE.lat},${STORE.lng}`);
+        u.set("travelmode", "driving");
+        base.search = u.toString();
+        return base.toString();
       }
+
+      // ===== ルート自動判定（シンプルで実用：北/南/IC） =====
+      // 実運用で十分機能する「雑でも堅い」ロジック
+      function chooseRouteByPosition(pos) {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+
+        // しきい値（これより離れてたら北/南と判断しやすい）
+        const dLat = lat - STORE.lat;
+        const dLng = lng - STORE.lng;
+
+        // まずは南北
+        if (dLat >= 0.01) return "north"; // 約1.1km北
+        if (dLat <= -0.01) return "south"; // 約1.1km南
+
+        // 東西（西・IC側）を優先
+        if (dLng <= -0.01) return "ic";   // 約0.9km西
+
+        // それ以外は north をデフォルト
+        return "north";
+      }
+
+      // ===== Leaflet init =====
+      const map = L.map("areamap-leaflet", {
+        zoomControl: true,
+        attributionControl: false
+      });
+
+      // OSM tiles
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19
+      }).addTo(map);
+
+      // 初期表示：店中心（ステップが収まる程度）
+      map.setView([STORE.lat, STORE.lng], 16);
+
+      // ===== ステップマーカー（番号＋短いラベル） =====
+      function makeStepIcon(stepNo, miniText) {
+        const html = `
+          <div class="step-marker" role="button" aria-label="ステップ${stepNo}">
+            <span>${stepNo}<span class="mini">${miniText || ""}</span></span>
+          </div>
+        `;
+        return L.divIcon({
+          className: "",
+          html,
+          iconSize: [44, 44],
+          iconAnchor: [22, 22]
+        });
+      }
+
+      const stepMarkers = new Map();
+      STEPS.forEach((s) => {
+        const mini = (s.stepNo === 1) ? "P" : (s.stepNo === 2) ? "入口" : "受付";
+        const marker = L.marker([s.lat, s.lng], { icon: makeStepIcon(s.stepNo, mini) }).addTo(map);
+        marker.on("click", () => {
+          // パネル側のフォーカス挙動と合わせる
+          focusToLatLng([s.lat, s.lng], 17);
+          if (typeof tracker.track === "function") tracker.track(s.trackFocus);
+          else if (typeof tracker.trackEvent === "function") tracker.trackEvent(s.trackFocus);
+        });
+        stepMarkers.set(s.id, marker);
+      });
+
+      // ===== ランドマーク =====
+      LANDMARKS.forEach((lm) => {
+        const icon = L.divIcon({
+          className: "",
+          html: `<div class="lm-marker">${lm.label}</div>`,
+          iconSize: null
+        });
+        L.marker([lm.lat, lm.lng], { icon }).addTo(map);
+      });
+
+      // ===== ルート（太線） =====
+      let routeLine = null;
+      const routeHintEl = document.getElementById("route-hint");
+
+      function drawRoute(routeKey) {
+        const r = ROUTES[routeKey] || ROUTES.north;
+
+        if (routeLine) {
+          map.removeLayer(routeLine);
+          routeLine = null;
+        }
+
+        routeLine = L.polyline(r.path, {
+          weight: 8,
+          opacity: 0.9,
+          lineCap: "round",
+          lineJoin: "round"
+        }).addTo(map);
+
+        // 収束区間が見える範囲へ
+        map.fitBounds(routeLine.getBounds(), { padding: [40, 40] });
+
+        // ヒント更新
+        routeHintEl.textContent = `${r.label}：${r.hint}（必要なら上のチップで切替）`;
+
+        // チップの見た目更新
+        document.querySelectorAll(".route-chip").forEach((b) => {
+          b.classList.toggle("is-active", b.getAttribute("data-route") === r.key);
+        });
+
+        // ナビ開始ボタンのURL更新（origin不明なので destinationのみ）
+        document.getElementById("google-map-link").href = makeGoogleDirUrl();
+      }
+
+      function focusToLatLng(latlng, zoom) {
+        if (zoom) map.setView(latlng, zoom, { animate: true });
+        else map.panTo(latlng, { animate: true });
+      }
+
+      // ===== 方角チップ（手動切替） =====
+      const chipBar = document.getElementById("route-chip-bar");
+      chipBar.addEventListener("click", (e) => {
+        const btn = e.target && e.target.closest && e.target.closest(".route-chip");
+        if (!btn) return;
+        const routeKey = btn.getAttribute("data-route");
+
+        drawRoute(routeKey);
+
+        // クリック計測（data-trackは bindAutoClicks でも拾う想定だが、念のため）
+        const t = btn.getAttribute("data-track");
+        if (t) {
+          if (typeof tracker.track === "function") tracker.track(t);
+          else if (typeof tracker.trackEvent === "function") tracker.trackEvent(t);
+        }
+      });
+
+      // ===== UIパネル：ステップカード生成 =====
+      const stepCardsEl = document.getElementById("step-cards");
+
+      function renderStepCards() {
+        stepCardsEl.innerHTML = "";
+        STEPS.forEach((s) => {
+          const el = document.createElement("div");
+          el.className = "step-card";
+          el.innerHTML = `
+            <div class="step-card__top">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <div class="step-badge">${s.stepNo}</div>
+                <div>
+                  <p class="step-title">${escapeHtml(s.title)}</p>
+                  <p class="step-desc">${escapeHtml(s.desc || "")}</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="step-actions">
+              <button type="button" class="step-action-btn" data-action="focus" data-step-id="${s.id}" data-track="${s.trackFocus}">
+                この地点へフォーカス
+              </button>
+              <button type="button" class="step-action-btn" data-action="photo" data-step-id="${s.id}" data-track="${s.trackPhoto}">
+                写真を見る
+              </button>
+            </div>
+          `;
+          stepCardsEl.appendChild(el);
+        });
+      }
+
+      function escapeHtml(str) {
+        return (str || "").replace(/[&<>"']/g, (c) => ({
+          "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"
+        }[c]));
+      }
+
+      stepCardsEl.addEventListener("click", (e) => {
+        const btn = e.target && e.target.closest && e.target.closest("button");
+        if (!btn) return;
+
+        const action = btn.getAttribute("data-action");
+        const stepId = btn.getAttribute("data-step-id");
+        const step = STEPS.find((x) => x.id === stepId);
+        if (!step) return;
+
+        const t = btn.getAttribute("data-track");
+        if (t) {
+          if (typeof tracker.track === "function") tracker.track(t);
+          else if (typeof tracker.trackEvent === "function") tracker.trackEvent(t);
+        }
+
+        if (action === "focus") {
+          focusToLatLng([step.lat, step.lng], 17);
+        } else if (action === "photo") {
+          window.AreaMapModal.openModal(step.modalImg, step.modalAlt);
+        }
+      });
+
+      renderStepCards();
+
+      // ===== ナビ開始（位置情報あれば origin 付きで開く） =====
+      const navBtn = document.getElementById("btn-nav-start");
+      navBtn.addEventListener("click", async () => {
+        // まずは位置情報を試す（失敗しても destination-only で開く）
+        const fallbackUrl = makeGoogleDirUrl();
+
+        if (!navigator.geolocation) {
+          window.open(fallbackUrl, "_blank", "noopener");
+          return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const origin = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+            const url = makeGoogleDirUrl({ originLatLng: origin });
+            window.open(url, "_blank", "noopener");
+          },
+          () => {
+            window.open(fallbackUrl, "_blank", "noopener");
+          },
+          { enableHighAccuracy: true, timeout: 6000, maximumAge: 60000 }
+        );
+      });
+
+      // ===== 位置情報でルートを自動選択（許可されない場合は north を表示） =====
+      function tryAutoSelectRoute() {
+        if (!navigator.geolocation) {
+          drawRoute("north");
+          return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const routeKey = chooseRouteByPosition(pos);
+            drawRoute(routeKey);
+
+            // ナビ用リンクも origin 付きに更新（許可が取れた場合）
+            const origin = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+            document.getElementById("google-map-link").href = makeGoogleDirUrl({ originLatLng: origin });
+
+            if (typeof tracker.track === "function") tracker.track("geolocation_ok");
+            else if (typeof tracker.trackEvent === "function") tracker.trackEvent("geolocation_ok");
+
+            if (debug) console.log("auto route:", routeKey, "origin:", origin);
+          },
+          (err) => {
+            drawRoute("north"); // フォールバック
+            if (typeof tracker.track === "function") tracker.track("geolocation_denied");
+            else if (typeof tracker.trackEvent === "function") tracker.trackEvent("geolocation_denied");
+            if (debug) console.log("geolocation error:", err);
+          },
+          { enableHighAccuracy: false, timeout: 5000, maximumAge: 600000 }
+        );
+      }
+
+      // 地図クリック計測
+      map.on("click", () => {
+        if (typeof tracker.track === "function") tracker.track("map_click");
+        else if (typeof tracker.trackEvent === "function") tracker.trackEvent("map_click");
+      });
+
+      // data-track をまとめてバインド
+      tracker.bindAutoClicks();
+
+      // 初期ルート表示（自動選択）
+      tryAutoSelectRoute();
+
     })();
   </script>
 </body>
