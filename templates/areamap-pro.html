@@ -38,13 +38,24 @@
     /* ===== Map container ===== */
     #areamap-leaflet {
       width: 100%;
-      height: 520px;
+      /* height: 520px; */
+      height: 100vh;
       border-radius: 12px;
       overflow: hidden;
       background: #f3f3f3;
       position: relative;
     }
     .leaflet-container { background: transparent; }
+    /* @media (max-width: 768px) {
+      #areamap-leaflet{
+        height: 100vh;
+      }
+    }
+    @media (min-width: 769px) {
+      #areamap-leaflet{
+        height: 80vh;
+      }
+    } */
 
     /* ===== Direction chips (top overlay) ===== */
     .route-chip-bar {
