@@ -18,7 +18,8 @@ html[data-areamap-view] #map-wrapper {
   /* デフォルト（page） */
   height: 100vh;
   /* height: 40vh; */
-  max-height: 600px;
+  /* max-height: 600px; */
+  max-height: 100vh;
 }
 
 html[data-areamap-view] .map-image-container {
@@ -231,4 +232,37 @@ html[data-areamap-view] .areamap-cta a {
     border-radius: 16px;
     max-height: 62vh;
   }
+}
+/* ===== Help toggle button ===== */
+.areamap-help-btn{
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-weight: 900;
+  font-size: 14px;
+  text-align: left;
+}
+
+.areamap-help-btn__icon{
+  display: inline-block;
+  transition: transform 160ms ease;
+  opacity: 0.75;
+}
+
+.areamap-help-btn[aria-expanded="true"] .areamap-help-btn__icon{
+  transform: rotate(180deg);
+}
+
+.areamap-help-body{
+  padding: 0 14px 12px;
+}
+
+.areamap-help-body.is-collapsed{
+  display: none;
 }
