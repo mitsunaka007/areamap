@@ -217,7 +217,7 @@ html[data-areamap-view] .areamap-cta a {
 
 /* パネル内スクロール */
 .areamap-panel__body {
-  overflow: auto;
+  overflow: scroll;
   -webkit-overflow-scrolling: touch;
 }
 
