@@ -275,10 +275,24 @@
         <!-- ✅ Pro UI Panel（地図上に重ねる / 初期は閉じる） -->
         <section class="areamap-panel is-collapsed" id="route-panel" aria-label="アクセス案内パネル">
           <div class="areamap-panel__head">
-            <p class="areamap-panel__title">初めての方へ：①駐車場 → ②入口 → ③受付 の順でOK</p>
-            <p class="areamap-panel__sub" id="route-hint">
-              位置情報が許可されると、来た方向に合わせてルートを自動選択します（許可なしでも手動で切替できます）
-            </p>
+            <button
+              type="button"
+              class="areamap-help-btn"
+              id="areamap-help-btn"
+              aria-expanded="false"
+              aria-controls="areamap-help-body"
+              data-track="help_toggle_click"
+            >
+              初めての方へ
+              <span class="areamap-help-btn__icon" aria-hidden="true">▾</span>
+            </button>
+
+            <div class="areamap-help-body is-collapsed" id="areamap-help-body">
+              <p class="areamap-panel__title">①駐車場 → ②入口 → ③受付 の順でOK</p>
+              <p class="areamap-panel__sub" id="route-hint">
+                位置情報が許可されると、来た方向に合わせてルートを自動選択します（許可なしでも手動で切替できます）
+              </p>
+            </div>
           </div>
 
           <div class="areamap-panel__body">
@@ -817,6 +831,28 @@
       // パネルを開いたら、ステップが見えるように少しだけ地図を上にずらす（任意）
       if (!isOpen) {
         map.panBy([0, -120], { animate: true });
+      }
+    });
+    // ===== 「初めての方へ」開閉 =====
+    const helpBtn = document.getElementById("areamap-help-btn");
+    const helpBody = document.getElementById("areamap-help-body");
+
+    function setHelpOpen(isOpen) {
+      helpBody.classList.toggle("is-collapsed", !isOpen);
+      helpBtn.setAttribute("aria-expanded", String(isOpen));
+    }
+
+    setHelpOpen(false);
+
+    helpBtn.addEventListener("click", () => {
+      const isOpen = helpBtn.getAttribute("aria-expanded") === "true";
+      setHelpOpen(!isOpen);
+
+      // 計測（任意。data-trackはbindAutoClicksでも拾う想定）
+      if (typeof tracker?.track === "function") {
+        tracker.track(!isOpen ? "help_open" : "help_close");
+      } else if (typeof tracker?.trackEvent === "function") {
+        tracker.trackEvent(!isOpen ? "help_open" : "help_close");
       }
     });
 
