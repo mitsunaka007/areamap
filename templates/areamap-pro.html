@@ -389,6 +389,8 @@
   <script>
     // ───────────────────────────────
     // 3) Pro版：Leaflet（通常地図） + 収束区間ルート切替 + 位置情報で自動選択
+    //    + ルートパネル開閉（mapと同スコープ）
+    //    + 「初めての方へ」開閉
     // ───────────────────────────────
     (function () {
       const params = new URLSearchParams(location.search);
@@ -401,8 +403,7 @@
         lng: 136.2246294
       };
 
-      // ===== ステップ（①P/②入口/③受付） =====
-      // ※座標は例：あなたの店舗に合わせて調整
+      // ===== ステップ =====
       const STEPS = [
         {
           id: "step1_parking",
@@ -442,31 +443,27 @@
         }
       ];
 
-      // ===== ランドマーク（最大3つ推奨） =====
-      // ※座標・文言は例
+      // ===== ランドマーク =====
       const LANDMARKS = [
         { id: "lm1", label: "◯◯交差点", lat: 36.10810, lng: 136.22370 },
-        { id: "lm2", label: "ローソン",   lat: 36.10670, lng: 136.22510 },
-        { id: "lm3", label: "赤い看板",   lat: 36.10760, lng: 136.22540 }
+        { id: "lm2", label: "ローソン", lat: 36.10670, lng: 136.22510 },
+        { id: "lm3", label: "赤い看板", lat: 36.10760, lng: 136.22540 }
       ];
 
-      // ===== 収束区間ルート（最後の300〜800mだけ） =====
-      // ここがこの仕様のコア。遠方からの全ルートは描かない。
-      // ※座標は例（実際の道路に沿うように調整）
+      // ===== 収束区間ルート =====
       const ROUTES = {
         north: {
           key: "north",
           label: "北から",
           hint: "北側から来る人向け（終盤だけ表示）",
-          // 終盤だけ：曲がり角→P→入口
           path: [
             [36.108250, 136.224000],
             [36.107900, 136.223930],
             [36.107650, 136.223900],
-            [36.107460, 136.223920], // P付近
+            [36.107460, 136.223920],
             [36.107250, 136.224200],
-            [36.107170, 136.224470], // 入口
-            [36.107092, 136.2246294] // 店
+            [36.107170, 136.224470],
+            [36.107092, 136.2246294]
           ]
         },
         south: {
@@ -478,8 +475,8 @@
             [36.106300, 136.224820],
             [36.106700, 136.224720],
             [36.107050, 136.224650],
-            [36.107170, 136.224470], // 入口
-            [36.107092, 136.2246294] // 店
+            [36.107170, 136.224470],
+            [36.107092, 136.2246294]
           ]
         },
         ic: {
@@ -490,14 +487,13 @@
             [36.107700, 136.222900],
             [36.107600, 136.223250],
             [36.107520, 136.223600],
-            [36.107460, 136.223920], // P付近
+            [36.107460, 136.223920],
             [36.107250, 136.224200],
-            [36.107092, 136.2246294] // 店
+            [36.107092, 136.2246294]
           ]
         }
       };
 
-      // ===== Google Directions URL =====
       function makeGoogleDirUrl({ originLatLng } = {}) {
         const base = new URL("https://www.google.com/maps/dir/");
         const u = new URLSearchParams();
@@ -509,24 +505,15 @@
         return base.toString();
       }
 
-      // ===== ルート自動判定（シンプルで実用：北/南/IC） =====
-      // 実運用で十分機能する「雑でも堅い」ロジック
       function chooseRouteByPosition(pos) {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
-
-        // しきい値（これより離れてたら北/南と判断しやすい）
         const dLat = lat - STORE.lat;
         const dLng = lng - STORE.lng;
 
-        // まずは南北
-        if (dLat >= 0.01) return "north"; // 約1.1km北
-        if (dLat <= -0.01) return "south"; // 約1.1km南
-
-        // 東西（西・IC側）を優先
-        if (dLng <= -0.01) return "ic";   // 約0.9km西
-
-        // それ以外は north をデフォルト
+        if (dLat >= 0.01) return "north";
+        if (dLat <= -0.01) return "south";
+        if (dLng <= -0.01) return "ic";
         return "north";
       }
 
@@ -536,15 +523,12 @@
         attributionControl: false
       });
 
-      // OSM tiles
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19
       }).addTo(map);
 
-      // 初期表示：店中心（ステップが収まる程度）
       map.setView([STORE.lat, STORE.lng], 16);
 
-      // ===== ステップマーカー（番号＋短いラベル） =====
       function makeStepIcon(stepNo, miniText) {
         const html = `
           <div class="step-marker" role="button" aria-label="ステップ${stepNo}">
@@ -559,12 +543,16 @@
         });
       }
 
+      function focusToLatLng(latlng, zoom) {
+        if (zoom) map.setView(latlng, zoom, { animate: true });
+        else map.panTo(latlng, { animate: true });
+      }
+
       const stepMarkers = new Map();
       STEPS.forEach((s) => {
         const mini = (s.stepNo === 1) ? "P" : (s.stepNo === 2) ? "入口" : "受付";
         const marker = L.marker([s.lat, s.lng], { icon: makeStepIcon(s.stepNo, mini) }).addTo(map);
         marker.on("click", () => {
-          // パネル側のフォーカス挙動と合わせる
           focusToLatLng([s.lat, s.lng], 17);
           if (typeof tracker.track === "function") tracker.track(s.trackFocus);
           else if (typeof tracker.trackEvent === "function") tracker.trackEvent(s.trackFocus);
@@ -572,7 +560,6 @@
         stepMarkers.set(s.id, marker);
       });
 
-      // ===== ランドマーク =====
       LANDMARKS.forEach((lm) => {
         const icon = L.divIcon({
           className: "",
@@ -582,17 +569,13 @@
         L.marker([lm.lat, lm.lng], { icon }).addTo(map);
       });
 
-      // ===== ルート（太線） =====
       let routeLine = null;
       const routeHintEl = document.getElementById("route-hint");
 
       function drawRoute(routeKey) {
         const r = ROUTES[routeKey] || ROUTES.north;
 
-        if (routeLine) {
-          map.removeLayer(routeLine);
-          routeLine = null;
-        }
+        if (routeLine) map.removeLayer(routeLine);
 
         routeLine = L.polyline(r.path, {
           weight: 8,
@@ -601,36 +584,29 @@
           lineJoin: "round"
         }).addTo(map);
 
-        // 収束区間が見える範囲へ
         map.fitBounds(routeLine.getBounds(), { padding: [40, 40] });
 
-        // ヒント更新
-        routeHintEl.textContent = `${r.label}：${r.hint}（必要なら上のチップで切替）`;
+        // routeHint は helpBody の中にあるが、更新はできる（閉じててもOK）
+        if (routeHintEl) {
+          routeHintEl.textContent = `${r.label}：${r.hint}（必要なら上のチップで切替）`;
+        }
 
-        // チップの見た目更新
         document.querySelectorAll(".route-chip").forEach((b) => {
           b.classList.toggle("is-active", b.getAttribute("data-route") === r.key);
         });
 
-        // ナビ開始ボタンのURL更新（origin不明なので destinationのみ）
         document.getElementById("google-map-link").href = makeGoogleDirUrl();
       }
 
-      function focusToLatLng(latlng, zoom) {
-        if (zoom) map.setView(latlng, zoom, { animate: true });
-        else map.panTo(latlng, { animate: true });
-      }
-
-      // ===== 方角チップ（手動切替） =====
+      // ===== 方角チップ =====
       const chipBar = document.getElementById("route-chip-bar");
       chipBar.addEventListener("click", (e) => {
         const btn = e.target && e.target.closest && e.target.closest(".route-chip");
         if (!btn) return;
-        const routeKey = btn.getAttribute("data-route");
 
+        const routeKey = btn.getAttribute("data-route");
         drawRoute(routeKey);
 
-        // クリック計測（data-trackは bindAutoClicks でも拾う想定だが、念のため）
         const t = btn.getAttribute("data-track");
         if (t) {
           if (typeof tracker.track === "function") tracker.track(t);
@@ -638,8 +614,14 @@
         }
       });
 
-      // ===== UIパネル：ステップカード生成 =====
+      // ===== ステップカード生成 =====
       const stepCardsEl = document.getElementById("step-cards");
+
+      function escapeHtml(str) {
+        return (str || "").replace(/[&<>"']/g, (c) => ({
+          "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"
+        }[c]));
+      }
 
       function renderStepCards() {
         stepCardsEl.innerHTML = "";
@@ -670,12 +652,6 @@
         });
       }
 
-      function escapeHtml(str) {
-        return (str || "").replace(/[&<>"']/g, (c) => ({
-          "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"
-        }[c]));
-      }
-
       stepCardsEl.addEventListener("click", (e) => {
         const btn = e.target && e.target.closest && e.target.closest("button");
         if (!btn) return;
@@ -700,10 +676,9 @@
 
       renderStepCards();
 
-      // ===== ナビ開始（位置情報あれば origin 付きで開く） =====
+      // ===== ナビ開始 =====
       const navBtn = document.getElementById("btn-nav-start");
-      navBtn.addEventListener("click", async () => {
-        // まずは位置情報を試す（失敗しても destination-only で開く）
+      navBtn.addEventListener("click", () => {
         const fallbackUrl = makeGoogleDirUrl();
 
         if (!navigator.geolocation) {
@@ -724,7 +699,7 @@
         );
       });
 
-      // ===== 位置情報でルートを自動選択（許可されない場合は north を表示） =====
+      // ===== 位置情報で自動選択 =====
       function tryAutoSelectRoute() {
         if (!navigator.geolocation) {
           drawRoute("north");
@@ -736,7 +711,6 @@
             const routeKey = chooseRouteByPosition(pos);
             drawRoute(routeKey);
 
-            // ナビ用リンクも origin 付きに更新（許可が取れた場合）
             const origin = { lat: pos.coords.latitude, lng: pos.coords.longitude };
             document.getElementById("google-map-link").href = makeGoogleDirUrl({ originLatLng: origin });
 
@@ -746,7 +720,7 @@
             if (debug) console.log("auto route:", routeKey, "origin:", origin);
           },
           (err) => {
-            drawRoute("north"); // フォールバック
+            drawRoute("north");
             if (typeof tracker.track === "function") tracker.track("geolocation_denied");
             else if (typeof tracker.trackEvent === "function") tracker.trackEvent("geolocation_denied");
             if (debug) console.log("geolocation error:", err);
@@ -755,7 +729,7 @@
         );
       }
 
-      // 地図クリック計測
+      // ===== 地図クリック計測 =====
       map.on("click", () => {
         if (typeof tracker.track === "function") tracker.track("map_click");
         else if (typeof tracker.trackEvent === "function") tracker.trackEvent("map_click");
@@ -764,101 +738,87 @@
       // data-track をまとめてバインド
       tracker.bindAutoClicks();
 
-      // 初期ルート表示（自動選択）
+      // 初期ルート表示
       tryAutoSelectRoute();
 
-    })();
-    // ===== ルートパネル開閉 =====
-    const panel = document.getElementById("route-panel");
-    const toggleBtn = document.getElementById("route-panel-toggle");
+      // ───────────────────────────────
+      // ✅ ここから：パネル開閉（mapと同スコープ）
+      // ───────────────────────────────
+      const panel = document.getElementById("route-panel");
+      const toggleBtn = document.getElementById("route-panel-toggle");
 
-    function setPanelOpen(isOpen) {
-      panel.classList.toggle("is-collapsed", !isOpen);
-      toggleBtn.setAttribute("aria-expanded", String(isOpen));
-
-      // ボタン文言
-      toggleBtn.textContent = isOpen ? "ルートパネルを閉じる" : "ルートパネルを開く";
-
-      // 開いたタイミングで計測（任意）
-      if (isOpen) {
-        if (typeof tracker.track === "function") tracker.track("route_panel_open");
-        else if (typeof tracker.trackEvent === "function") tracker.trackEvent("route_panel_open");
-      } else {
-        if (typeof tracker.track === "function") tracker.track("route_panel_close");
-        else if (typeof tracker.trackEvent === "function") tracker.trackEvent("route_panel_close");
-      }
-    }
-
-    // 初期は閉じる
-    setPanelOpen(false);
-
-    toggleBtn.addEventListener("click", () => {
-      const isOpen = toggleBtn.getAttribute("aria-expanded") === "true";
-      setPanelOpen(!isOpen);
-
-      // パネルを開いたら、ステップが見えるように少しだけ地図を上にずらす（任意）
-      if (!isOpen) {
-        map.panBy([0, -120], { animate: true });
-      }
-    });
-    // ===== 「初めての方へ」開閉 =====
-    const helpBtn = document.getElementById("areamap-help-btn");
-    const helpBody = document.getElementById("areamap-help-body");
-
-    function setHelpOpen(isOpen) {
-      helpBody.classList.toggle("is-collapsed", !isOpen);
-      helpBtn.setAttribute("aria-expanded", String(isOpen));
-    }
-
-    setHelpOpen(false);
-
-    helpBtn.addEventListener("click", () => {
-      const isOpen = helpBtn.getAttribute("aria-expanded") === "true";
-      setHelpOpen(!isOpen);
-
-      // 計測（任意。data-trackはbindAutoClicksでも拾う想定）
-      if (typeof tracker?.track === "function") {
-        tracker.track(!isOpen ? "help_open" : "help_close");
-      } else if (typeof tracker?.trackEvent === "function") {
-        tracker.trackEvent(!isOpen ? "help_open" : "help_close");
-      }
-    });
-    // ===== ルートパネル開閉 =====
-    const mapElement = document.getElementById("areamap-leaflet");
-
-    function setPanelOpen(isOpen) {
-      panel.classList.toggle("is-collapsed", !isOpen);
-      toggleBtn.setAttribute("aria-expanded", String(isOpen));
-
-      // ボタン文言
-      toggleBtn.textContent = isOpen ? "ルートパネルを閉じる" : "ルートパネルを開く";
-
-      // 地図のスクロール制御
-      if (isOpen) {
-        // パネルを開いたら地図のスクロール/ドラッグを無効化
+      function lockMap() {
         map.dragging.disable();
         map.scrollWheelZoom.disable();
         map.doubleClickZoom.disable();
         map.touchZoom.disable();
-        mapElement.style.pointerEvents = 'none';
-      } else {
-        // パネルを閉じたら地図のスクロール/ドラッグを有効化
+        map.boxZoom.disable();
+        map.keyboard.disable();
+        if (map.tap) map.tap.disable();
+      }
+
+      function unlockMap() {
         map.dragging.enable();
         map.scrollWheelZoom.enable();
         map.doubleClickZoom.enable();
         map.touchZoom.enable();
-        mapElement.style.pointerEvents = '';
+        map.boxZoom.enable();
+        map.keyboard.enable();
+        if (map.tap) map.tap.enable();
       }
 
-      // 開いたタイミングで計測（任意）
-      if (isOpen) {
-        if (typeof tracker.track === "function") tracker.track("route_panel_open");
-        else if (typeof tracker.trackEvent === "function") tracker.trackEvent("route_panel_open");
-      } else {
-        if (typeof tracker.track === "function") tracker.track("route_panel_close");
-        else if (typeof tracker.trackEvent === "function") tracker.trackEvent("route_panel_close");
+      function setPanelOpen(isOpen) {
+        panel.classList.toggle("is-collapsed", !isOpen);
+        toggleBtn.setAttribute("aria-expanded", String(isOpen));
+        toggleBtn.textContent = isOpen ? "ルートパネルを閉じる" : "ルートパネルを開く";
+
+        if (isOpen) lockMap();
+        else unlockMap();
+
+        if (isOpen) {
+          if (typeof tracker.track === "function") tracker.track("route_panel_open");
+          else if (typeof tracker.trackEvent === "function") tracker.trackEvent("route_panel_open");
+        } else {
+          if (typeof tracker.track === "function") tracker.track("route_panel_close");
+          else if (typeof tracker.trackEvent === "function") tracker.trackEvent("route_panel_close");
+        }
       }
-    }
+
+      // 初期は閉じる
+      setPanelOpen(false);
+
+      toggleBtn.addEventListener("click", () => {
+        const isOpen = toggleBtn.getAttribute("aria-expanded") === "true";
+        setPanelOpen(!isOpen);
+        if (!isOpen) map.panBy([0, -120], { animate: true });
+      });
+
+      // ───────────────────────────────
+      // ✅ 「初めての方へ」開閉（同じIIFE内）
+      // ───────────────────────────────
+      const helpBtn = document.getElementById("areamap-help-btn");
+      const helpBody = document.getElementById("areamap-help-body");
+
+      function setHelpOpen(isOpen) {
+        helpBody.classList.toggle("is-collapsed", !isOpen);
+        helpBtn.setAttribute("aria-expanded", String(isOpen));
+      }
+
+      setHelpOpen(false);
+
+      helpBtn.addEventListener("click", () => {
+        const isOpen = helpBtn.getAttribute("aria-expanded") === "true";
+        setHelpOpen(!isOpen);
+
+        if (typeof tracker?.track === "function") {
+          tracker.track(!isOpen ? "help_open" : "help_close");
+        } else if (typeof tracker?.trackEvent === "function") {
+          tracker.trackEvent(!isOpen ? "help_open" : "help_close");
+        }
+      });
+
+    })();
   </script>
+
 </body>
 </html>
