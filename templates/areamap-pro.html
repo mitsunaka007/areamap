@@ -823,7 +823,44 @@
         tracker.trackEvent(!isOpen ? "help_open" : "help_close");
       }
     });
+    // ===== ルートパネル開閉 =====
+    const panel = document.getElementById("route-panel");
+    const toggleBtn = document.getElementById("route-panel-toggle");
+    const mapElement = document.getElementById("areamap-leaflet");
 
+    function setPanelOpen(isOpen) {
+      panel.classList.toggle("is-collapsed", !isOpen);
+      toggleBtn.setAttribute("aria-expanded", String(isOpen));
+
+      // ボタン文言
+      toggleBtn.textContent = isOpen ? "ルートパネルを閉じる" : "ルートパネルを開く";
+
+      // 地図のスクロール制御
+      if (isOpen) {
+        // パネルを開いたら地図のスクロール/ドラッグを無効化
+        map.dragging.disable();
+        map.scrollWheelZoom.disable();
+        map.doubleClickZoom.disable();
+        map.touchZoom.disable();
+        mapElement.style.pointerEvents = 'none';
+      } else {
+        // パネルを閉じたら地図のスクロール/ドラッグを有効化
+        map.dragging.enable();
+        map.scrollWheelZoom.enable();
+        map.doubleClickZoom.enable();
+        map.touchZoom.enable();
+        mapElement.style.pointerEvents = '';
+      }
+
+      // 開いたタイミングで計測（任意）
+      if (isOpen) {
+        if (typeof tracker.track === "function") tracker.track("route_panel_open");
+        else if (typeof tracker.trackEvent === "function") tracker.trackEvent("route_panel_open");
+      } else {
+        if (typeof tracker.track === "function") tracker.track("route_panel_close");
+        else if (typeof tracker.trackEvent === "function") tracker.trackEvent("route_panel_close");
+      }
+    }
   </script>
 </body>
 </html>
