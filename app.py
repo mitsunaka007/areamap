@@ -3,6 +3,7 @@ import os
 import hashlib
 from sqlalchemy import func, case
 from werkzeug.middleware.proxy_fix import ProxyFix
+from flask_mail import Mail
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -10,6 +11,18 @@ load_dotenv()
 from models import  AreamapClickEvent
 from extensions import db
 app = Flask(__name__)
+
+# ----------------------------
+# Mail 設定
+# ----------------------------
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USE_SSL'] = False
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
+app.config['MAIL_DEFAULT_SENDER'] = ('FukuiSta.', 'mitsunaka007@gmail.com')
+mail = Mail(app)
 
 # ----------------------------
 # DB 設定
@@ -316,10 +329,16 @@ def mypage_sbodymorita():
 def areamap_lite():
     return render_template("areamap-lite.html")
 
-
 @app.route("/areamap-pro")
 def areamap_pro():
     return render_template("areamap-pro.html")
+
+# =========================
+# Ask：問い合わせページ
+# =========================
+# @app.route("/ask")
+# def asi():
+#     return render_template("ask.html")
 
 # if __name__ == "__main__":
 #     app.run(
