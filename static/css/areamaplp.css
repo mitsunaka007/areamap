@@ -151,6 +151,43 @@ body {
   justify-content: center;
   font-weight: 600;
   color: #666;
+  position: relative;
+  overflow: hidden;
+}
+.areamap-placeholder img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+.map-purpose {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+.map-purpose ul {
+  list-style: none;
+  margin: 0;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 12px;
+  backdrop-filter: blur(4px);
+}
+.map-purpose ul li {
+  color: #111;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
 }
 
 /* =========================
