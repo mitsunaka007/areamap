@@ -709,3 +709,135 @@ body {
   justify-content: center;
   align-items: center;
 }
+/* =========================
+  Ask Page
+========================= */
+.lp-ask .lp-content { max-width: 980px; }
+
+.ask-topbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:16px;
+}
+.ask-back{
+  text-decoration:none;
+  opacity:.8;
+}
+.ask-brand{
+  font-weight:700;
+  letter-spacing:.04em;
+  opacity:.9;
+}
+
+.ask-heading{ margin-top: 8px; }
+.ask-lead{ margin-bottom: 18px; }
+
+.ask-grid{
+  display:grid;
+  grid-template-columns: 1fr;
+  gap:16px;
+}
+
+@media (min-width: 900px){
+  .ask-grid{ grid-template-columns: 1fr 1fr; gap:18px; }
+}
+
+.ask-card{
+  border: 1px solid rgba(148,163,184,.35);
+  border-radius: 16px;
+  padding: 16px;
+  background: rgba(255,255,255,.75);
+  backdrop-filter: blur(6px);
+}
+
+.ask-card-title{
+  margin: 0 0 10px;
+  font-size: 16px;
+}
+
+.ask-list{
+  margin: 0;
+  padding-left: 18px;
+  line-height: 1.7;
+}
+
+.ask-divider{
+  height:1px;
+  background: rgba(148,163,184,.35);
+  margin: 14px 0;
+}
+
+.ask-mini{
+  margin: 0;
+  opacity: .85;
+  line-height: 1.7;
+}
+
+.ask-note{
+  margin-top: 10px;
+  font-size: 12px;
+  opacity: .75;
+  line-height: 1.6;
+}
+
+.ask-notices{ margin: 12px 0 16px; display:grid; gap:8px; }
+.ask-notice{
+  border-radius: 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(148,163,184,.35);
+  background: rgba(2,6,23,.04);
+}
+.ask-notice-success{ background: rgba(34,197,94,.08); }
+.ask-notice-danger{ background: rgba(239,68,68,.08); }
+
+.ask-form-inner{ display:grid; gap:12px; }
+
+.ask-label{
+  display:block;
+  font-size: 13px;
+  opacity: .85;
+  margin-bottom: 6px;
+}
+
+.ask-input,
+.ask-textarea{
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid rgba(148,163,184,.45);
+  padding: 10px 12px;
+  background: rgba(255,255,255,.9);
+  outline: none;
+}
+
+.ask-textarea{ resize: vertical; }
+
+.is-error{
+  border-color: rgba(239,68,68,.65);
+}
+
+.ask-error{
+  margin-top: 6px;
+  font-size: 12px;
+  opacity: .85;
+}
+
+.ask-actions{
+  margin-top: 6px;
+  display:grid;
+  gap:10px;
+}
+
+.ask-submit{
+  display: inline-flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.ask-privacy{
+  margin: 0;
+  font-size: 12px;
+  opacity: .7;
+  line-height: 1.6;
+}
