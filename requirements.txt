@@ -28,7 +28,7 @@ pytz==2025.2
 dotenv==0.9.9
 psycopg2==2.9.11
 
-Flask-WTF=1.2.2
-WTForms=3.2.1
+Flask-WTF==1.2.2
+WTForms==3.2.1
 # python-dotenv
-psycopg2-binary=2.9.11
+psycopg2-binary==2.9.11
