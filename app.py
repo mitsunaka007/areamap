@@ -1,16 +1,20 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, flash, url_for, redirect
 import os
 import hashlib
 from sqlalchemy import func, case
 from werkzeug.middleware.proxy_fix import ProxyFix
-from flask_mail import Mail
+from flask_mail import Mail, Message
+from models import  AreamapClickEvent, ContactInquiry
+from forms import AskForm
+from extensions import db
 from dotenv import load_dotenv
 load_dotenv()
-
-# models.py に db / AreamapClickEvent がある前提
-from models import  AreamapClickEvent
-from extensions import db
 app = Flask(__name__)
+
+# ----------------------------
+# Flask/WTForms (CSRF) 設定
+# ----------------------------
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 
 # ----------------------------
 # Mail 設定
@@ -21,7 +25,9 @@ app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USE_SSL'] = False
 app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
-app.config['MAIL_DEFAULT_SENDER'] = ('FukuiSta.', 'mitsunaka007@gmail.com')
+app.config['MAIL_DEFAULT_SENDER'] = ('AreaMap', os.environ.get('MAIL_DEFAULT_SENDER_EMAIL', 'mitsunaka007@gmail.com'))
+# 管理者の受信先（あなた宛にしたいなら同じでOK）
+app.config['MAIL_ADMIN_TO'] = os.environ.get('MAIL_ADMIN_TO', 'mitsunaka007@gmail.com')
 mail = Mail(app)
 
 # ----------------------------
@@ -333,12 +339,69 @@ def areamap_lite():
 def areamap_pro():
     return render_template("areamap-pro.html")
 
-# =========================
-# Ask：問い合わせページ
-# =========================
-# @app.route("/ask")
-# def asi():
-#     return render_template("ask.html")
+# ----------------------------
+# お問い合わせ
+# ----------------------------
+@app.route("/ask", methods=["GET", "POST"])
+def ask():
+    form = AskForm()
+
+    if form.validate_on_submit():
+        name = form.contactname.data.strip()
+        email = form.contactemail.data.strip()
+        detail = form.contactdetail.data.strip()
+
+        inquiry = ContactInquiry(
+            name=name,
+            email=email,
+            detail=detail,
+            ip=(request.headers.get("X-Forwarded-For", request.remote_addr) or "")[:64],
+            user_agent=(request.headers.get("User-Agent") or "")[:255],
+            mail_status="pending",
+        )
+
+        db.session.add(inquiry)
+        db.session.commit()
+
+        # --- 管理者宛メール ---
+        subject = f"[AreaMap お問い合わせ] {name} さん"
+        body = (
+            "AreaMap お問い合わせが届きました。\n\n"
+            f"ID: {inquiry.id}\n"
+            f"お名前: {name}\n"
+            f"メール: {email}\n"
+            f"IP: {inquiry.ip}\n"
+            f"UA: {inquiry.user_agent}\n"
+            "--------------------\n"
+            f"{detail}\n"
+        )
+
+        try:
+            msg = Message(
+                subject=subject,
+                recipients=[app.config["MAIL_ADMIN_TO"]],
+                body=body,
+                reply_to=email,  # 返信するとユーザーに返る
+            )
+            mail.send(msg)
+
+            inquiry.mail_status = "sent"
+            inquiry.mail_error = None
+            db.session.commit()
+
+            flash("送信しました。お問い合わせありがとうございます。", "success")
+            return redirect(url_for("ask"))
+
+        except Exception as e:
+            inquiry.mail_status = "failed"
+            inquiry.mail_error = str(e)
+            db.session.commit()
+
+            flash("送信に失敗しました。時間をおいて再度お試しください。", "danger")
+            return redirect(url_for("ask"))
+
+    # GET またはバリデーションエラー
+    return render_template("ask.html", form=form)
 
 # if __name__ == "__main__":
 #     app.run(
