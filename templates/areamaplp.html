@@ -68,6 +68,7 @@
       </div>
     </div>
   </section>
+
   <!-- =========================
     Public AreaMap Gallery
   ========================= -->
@@ -220,13 +221,13 @@
       </p>
 
       <p class="lp-text">
-        Liteなら「まず整える」。<br>
-        Proなら「数字を見て改善する」。<br>
+        Entrance Packなら「まず整える」。<br>
+        Last30 Navigatorなら「最後の30mで迷わせない」。<br>
+        Event Navigatorなら「複数店舗の探索・分岐を迷わせない」。<br>
         <strong>作って終わり</strong>にしません。
       </p>
     </div>
   </section>
-
 
   <!-- =========================
     Data & Flow
@@ -254,27 +255,29 @@
       </p>
     </div>
   </section>
-    <!-- =========================
-    Plans: AreaMap Lite / Pro
+
+  <!-- =========================
+    Plans: Entrance Pack / Last30 Navigator / Event Navigator
   ========================= -->
   <section class="lp-section lp-plans" data-section="plans">
     <div class="lp-bg lp-bg-white"></div>
     <div class="lp-content">
       <h2 class="lp-heading">
         あなたの状況に合わせて、<br>
-        Lite / Pro を選べます
+        3つのプランを選べます
       </h2>
 
       <p class="lp-text">
-        Liteは「既存イラスト地図を“行ける導線”にする」。<br>
-        Proは「迷わせない導線＋数字で改善」まで。
+        Entrance Packは「入口・駐車場・料金など、迷いポイントを固定導線で整える」。<br>
+        Last30 Navigatorは「最後の30m（敷地内・入口のズレ）で迷わせない」。<br>
+        Event Navigatorは「複数店舗・複数導線の探索と分岐を迷わせない（AI対応）」です。
       </p>
 
       <div class="plans-grid">
-        <!-- Lite -->
+        <!-- Entrance Pack（旧 Lite） -->
         <div class="plan-card plan-lite">
-          <div class="plan-badge">Lite</div>
-          <h3 class="plan-title">イラスト地図を“行ける導線”に変える</h3>
+          <div class="plan-badge">Entrance Pack</div>
+          <h3 class="plan-title">迷わない“固定導線”（入口/駐車場/料金）を作る</h3>
           <p class="plan-lead">
             既存のイラスト地図に、迷いポイントと見せたい情報を整理。<br>
             流入元別URL＋最低限の計測で、まずは反応を作ります。
@@ -294,10 +297,10 @@
 
           <div class="plan-actions">
             <a class="plan-btn" href="https://areamap.onrender.com/areamap-lite" target="_blank" rel="noopener">
-              Liteを体験する
+              Entrance Packを体験する
             </a>
-            <a class="plan-sub" href="https://areamap.onrender.com/ask" id="ask-lite">
-              どっちが合うか相談する →
+            <a class="plan-sub" href="https://areamap.onrender.com/ask" id="ask-entrance">
+              どのプランが合うか相談する →
             </a>
           </div>
 
@@ -312,19 +315,19 @@
           </div>
         </div>
 
-        <!-- Pro -->
+        <!-- Last30 Navigator（旧 Pro） -->
         <div class="plan-card plan-pro">
-          <div class="plan-badge">Pro</div>
-          <h3 class="plan-title">迷わせない＋数字で改善して来店率を上げる</h3>
+          <div class="plan-badge">Last30 Navigator</div>
+          <h3 class="plan-title">迷うのは最後の30m。入口まで“現地目線”で案内</h3>
           <p class="plan-lead">
             Leaflet＋イラスト地図オーバーレイ＋ルート表示。<br>
-            さらに月次ミニレポートで、改善を止めません。
+            「敷地内/入口のズレ/裏口」など、Google Mapが弱い部分を補います。
           </p>
 
           <ul class="plan-list">
             <li>ホットスポット：最大10点（クリックで全面モーダル）</li>
             <li>Leaflet地図＋イラスト地図オーバーレイ</li>
-            <li>現在地→お店のルート表示（迷いポイントは文章でも補強）</li>
+            <li>現在地→お店のルート表示（最後の30mは目印/入口情報で補強）</li>
             <li>計測：PV/UU・URL別・CTA・画像/スポット反応（改善前提）</li>
             <li>月1回ミニレポート＋改善提案（最大3つ）</li>
             <li>初回修正2回＋月2回まで軽微更新（画像差替え等）</li>
@@ -336,10 +339,10 @@
 
           <div class="plan-actions">
             <a class="plan-btn" href="https://areamap.onrender.com/areamap-pro" target="_blank" rel="noopener">
-              Proを体験する
+              Last30 Navigatorを体験する
             </a>
-            <a class="plan-sub" href="https://areamap.onrender.com/ask" id="ask-pro">
-              Pro前提で相談する →
+            <a class="plan-sub" href="https://areamap.onrender.com/ask" id="ask-last30">
+              Last30 Navigator前提で相談する →
             </a>
           </div>
 
@@ -353,12 +356,53 @@
             </div>
           </div>
         </div>
+
+        <!-- Event Navigator（新規） -->
+        <div class="plan-card plan-event">
+          <div class="plan-badge">Event Navigator</div>
+          <h3 class="plan-title">複数店舗の「探索＆分岐」を迷わせない（AI対応）</h3>
+          <p class="plan-lead">
+            商店街イベント・マルシェ・複合施設など、<br>
+            「どの店に行く？」から「どう行く？」までを一気に短縮します。
+          </p>
+
+          <ul class="plan-list">
+            <li>複数店舗/出店リストの掲載（カテゴリ/タグ/価格帯など）</li>
+            <li>目的別ナビ（例：子連れ/甘いもの/500円以内/辛くない 等）</li>
+            <li>候補は最大3つに絞って提案＋地図上で誘導</li>
+            <li>当日情報の反映（混雑/売切れ/通行止め等 ※運営入力ベース）</li>
+            <li>多言語案内（必要な会場のみ）</li>
+            <li>計測：閲覧/タップ/誘導の反応を見て改善</li>
+          </ul>
+
+          <p class="lp-text">
+            <strong>価格：要相談（会場規模・出店数で変動）</strong>
+          </p>
+
+          <div class="plan-actions">
+            <a class="plan-btn" href="https://areamap.onrender.com/ask" id="ask-event">
+              Event Navigatorを相談する
+            </a>
+            <a class="plan-sub" href="https://areamap.onrender.com/ask">
+              商店街イベント向けに作ってみたい →
+            </a>
+          </div>
+
+          <div class="plan-preview">
+            <div class="areamap-frame">
+              <div class="areamap-placeholder small" style="height:380px;border-radius:12px;">
+                Event Navigator<br>（商店街・イベント）- Coming Soon!
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="plans-note">
         <p class="lp-text">
           迷ったら：<br>
-          <strong>「まずLiteで導線を整える → 反応が出たらProで改善」</strong>が一番失敗しにくいです。
+          <strong>「まずEntrance Packで導線を整える → 迷いが残るならLast30 Navigator → 複数店舗ならEvent Navigator」</strong><br>
+          が一番失敗しにくいです。
         </p>
       </div>
     </div>
@@ -439,8 +483,8 @@
           <div class="proposal-card">
             <h5>① 迷いポイントを減らす（入口・駐車場・目印）</h5>
             <p>
-              Liteはイラスト地図に必要最小限のスポット。<br>
-              Proは複数スポット＋全面モーダルで整理します。
+              Entrance Packは必要最小限のスポットで整理。<br>
+              Last30 Navigatorは「最後の30m」を目印/入口情報で補強します。
             </p>
           </div>
 
@@ -456,7 +500,8 @@
             <h5>③ 押された所から改善する（作って終わりにしない）</h5>
             <p>
               PV/UU・CTAクリック・画像タップを見て改善。<br>
-              Proは月次ミニレポートで改善提案まで出します。
+              Last30 Navigatorは月次ミニレポートで改善提案まで出します。<br>
+              Event Navigatorは会場の探索データを使って導線を最適化します。
             </p>
           </div>
         </div>
@@ -484,97 +529,101 @@
   </footer>
 
 </div>
-  <button id="move-top">Topへ</div>
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
 
-      const sections = document.querySelectorAll(".lp-section");
+<button id="move-top">Topへ</button>
 
-      const observer = new IntersectionObserver(
-        entries => {
-          entries.forEach(entry => {
-            if (entry.isIntersecting) {
-              const sectionName = entry.target.dataset.section;
-              document.body.setAttribute(
-                "data-active-section",
-                sectionName
-              );
-            }
-          });
-        },
-        {
-          root: null,
-          rootMargin: "-40% 0px -40% 0px",
-          threshold: 0
-        }
-      );
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
 
-      sections.forEach(section => observer.observe(section));
-    });
-    const questions = [
-      {
-        id: "map_visibility",
-        text: "お店の場所は、初めての人でも迷わず分かると思いますか？"
+    const sections = document.querySelectorAll(".lp-section");
+
+    const observer = new IntersectionObserver(
+      entries => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const sectionName = entry.target.dataset.section;
+            document.body.setAttribute(
+              "data-active-section",
+              sectionName
+            );
+          }
+        });
       },
       {
-        id: "map_click",
-        text: "ホームページやSNSから、地図は実際に押されていると思いますか？"
-      },
-      {
-        id: "route_action",
-        text: "地図を見た人は、そのまま来店行動に移れていると思いますか？"
+        root: null,
+        rootMargin: "-40% 0px -40% 0px",
+        threshold: 0
       }
-    ];
+    );
 
-    let currentIndex = 0;
-    const answers = {};
+    sections.forEach(section => observer.observe(section));
+  });
 
-    const questionText = document.getElementById("question-text");
-    const currentStep = document.getElementById("current-step");
-    const totalStep = document.getElementById("total-step");
+  const questions = [
+    {
+      id: "map_visibility",
+      text: "お店の場所は、初めての人でも迷わず分かると思いますか？"
+    },
+    {
+      id: "map_click",
+      text: "ホームページやSNSから、地図は実際に押されていると思いますか？"
+    },
+    {
+      id: "route_action",
+      text: "地図を見た人は、そのまま来店行動に移れていると思いますか？"
+    }
+  ];
 
-    totalStep.textContent = questions.length;
+  let currentIndex = 0;
+  const answers = {};
 
-    document.querySelectorAll(".hearing-actions button").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const answer = btn.dataset.answer;
-        answers[questions[currentIndex].id] = answer;
+  const questionText = document.getElementById("question-text");
+  const currentStep = document.getElementById("current-step");
+  const totalStep = document.getElementById("total-step");
 
-        currentIndex++;
+  totalStep.textContent = questions.length;
 
-        if (currentIndex < questions.length) {
-          updateQuestion();
-        } else {
-          goToResult();
-        }
-      });
+  document.querySelectorAll(".hearing-actions button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const answer = btn.dataset.answer;
+      answers[questions[currentIndex].id] = answer;
+
+      currentIndex++;
+
+      if (currentIndex < questions.length) {
+        updateQuestion();
+      } else {
+        goToResult();
+      }
     });
+  });
 
-    function updateQuestion() {
-      questionText.textContent = questions[currentIndex].text;
-      currentStep.textContent = currentIndex + 1;
+  function updateQuestion() {
+    questionText.textContent = questions[currentIndex].text;
+    currentStep.textContent = currentIndex + 1;
+  }
+
+  function goToResult() {
+    sessionStorage.setItem("hearingResult", JSON.stringify(answers));
+
+    const hearingMain = document.querySelector(".hearing-main");
+    const resultEl = document.getElementById("before-after-result");
+
+    if (hearingMain) {
+      hearingMain.style.display = "none";
     }
 
-    function goToResult() {
-      sessionStorage.setItem("hearingResult", JSON.stringify(answers));
-
-      const hearingMain = document.querySelector(".hearing-main");
-      const resultEl = document.getElementById("before-after-result");
-
-      if (hearingMain) {
-        hearingMain.style.display = "none";
-      }
-
-      if (!resultEl) {
-        console.error("before-after-result が見つかりません");
-        return;
-      }
-
-      resultEl.hidden = false;
-
-      renderBeforeAfter();
+    if (!resultEl) {
+      console.error("before-after-result が見つかりません");
+      return;
     }
-    function renderBeforeAfter() {
+
+    resultEl.hidden = false;
+
+    renderBeforeAfter();
+  }
+
+  function renderBeforeAfter() {
     const result = JSON.parse(
       sessionStorage.getItem("hearingResult") || "{}"
     );
@@ -673,14 +722,14 @@
       actionList.appendChild(li);
     }
   }
-    const btn = document.getElementById("move-top");
-    btn.addEventListener("click", () => {
-      window.scroll({
-        top: 0,
-        behavior: "smooth",
-      });
+
+  const btn = document.getElementById("move-top");
+  btn.addEventListener("click", () => {
+    window.scroll({
+      top: 0,
+      behavior: "smooth",
     });
-  </script>
+  });
+</script>
 </body>
 </html>
-
