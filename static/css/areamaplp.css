@@ -35,12 +35,9 @@ body {
   inset: 0;
   z-index: 0;
   transition: background-color 0.6s ease;
-}
-.lp-bg {
   opacity: 0;
   transition: opacity 0.6s ease;
 }
-
 
 /* 背景バリエーション */
 .lp-bg-neutral {
@@ -124,6 +121,26 @@ body {
 }
 
 /* =========================
+  Hero Section レイアウト
+========================= */
+.lp-hero {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+}
+
+.lp-hero .lp-content {
+  flex: 1;
+  max-width: 580px;
+}
+
+.lp-hero .lp-map-stage {
+  flex: 0 0 480px;
+  position: sticky;
+  top: 80px;
+}
+
+/* =========================
   Sticky Map Stage
 ========================= */
 .lp-map-stage {
@@ -154,6 +171,7 @@ body {
   position: relative;
   overflow: hidden;
 }
+
 .areamap-placeholder img {
   position: absolute;
   inset: 0;
@@ -163,6 +181,7 @@ body {
   object-position: center;
   display: block;
 }
+
 .map-purpose {
   position: absolute;
   inset: 0;
@@ -171,6 +190,7 @@ body {
   place-items: center;
   padding: 16px;
 }
+
 .map-purpose ul {
   list-style: none;
   margin: 0;
@@ -183,6 +203,7 @@ body {
   border-radius: 12px;
   backdrop-filter: blur(4px);
 }
+
 .map-purpose ul li {
   color: #111;
   font-size: 15px;
@@ -237,103 +258,136 @@ body {
 }
 
 /* =========================
-  Responsive
+  AreaMap Gallery (個人店/商店街/イベント)
 ========================= */
-@media (max-width: 768px) {
+.lp-areamap-gallery {
+  background: #fff;
+}
 
-  .lp-section {
-    padding: 80px 16px;
-  }
+.areamap-gallery {
+  display: flex;
+  gap: 24px;
+  margin-top: 32px;
+  overflow-x: visible;
+  padding-bottom: 8px;
+}
 
-  .lp-map-stage {
-    top: 60px;
-    max-width: 100%;
-  }
+.areamap-demo {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 16px;
+  background: #fafafa;
+}
 
-  .areamap-placeholder {
-    height: 260px;
-  }
+.demo-title {
+  font-size: 16px;
+  margin-bottom: 4px;
 }
-/* Hero */
-body[data-active-section="hero"] .lp-hero .lp-bg {
-  opacity: 0.3;
-  background-image: url(../img/headermap.jpg);
-  background-position: center center;
-  background-repeat: no-repeat;
-  background-size: cover;
-  max-width: 100vw;
-  height: auto;
+
+.demo-desc {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 12px;
 }
-/* Login */
-body[data-active-section="login"] .lp-areamap-gallery .lp-bg {
-  opacity: 0.3;
-  background-image: url(../img/login.jpg);
-  background-position: center center;
-  background-repeat: no-repeat;
-  background-size: cover;
-  max-width: 100vw;
-  height: auto;
+
+.areamap-frame {
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f0f0f0;
 }
-/* Website */
-body[data-active-section="website"] .lp-website .lp-bg {
-  opacity: 0.3;
-  background-image: url(../img/homepage.jpg);
-  background-position: center center;
-  background-repeat: no-repeat;
-  background-size: cover;
-  max-width: 100vw;
-  height: auto;
+
+/* 既存 placeholder の縮小版 */
+.areamap-placeholder.small {
+  height: 180px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-/* Instagram */
-body[data-active-section="instagram"] .lp-instagram .lp-bg {
-  opacity: 1;
+
+/* =========================
+  Plans (Lite / Pro / Event)
+========================= */
+.lp-plans .plans-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+  margin-top: 18px;
 }
-/* Flyer */
-body[data-active-section="flyer"] .lp-flyer .lp-bg {
-  opacity: 0.3;
-  background-image: url(../img/flyer.jpg);
-  background-position: center center;
-  background-repeat: no-repeat;
-  background-size: cover;
-  max-width: 100vw;
-  height: auto;
+
+.plan-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+  border: 1px solid rgba(0,0,0,0.06);
 }
-/* Value */
-body[data-active-section="value"] .lp-value .lp-bg {
-  opacity: 0.3;
-  background-image: url(../img/value.jpg);
-  background-position: center center;
-  background-repeat: no-repeat;
-  background-size: cover;
-  max-width: 100vw;
-  height: auto;
+
+.plan-badge {
+  display: inline-block;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.06);
+  margin-bottom: 10px;
 }
-/* Data */
-body[data-active-section="data"] .lp-data .lp-bg {
-  opacity: 0.3;
-  background-image: url(../img/data.jpg);
-  background-position: center center;
-  background-repeat: no-repeat;
-  background-size: cover;
-  max-width: 100vw;
-  height: auto;
+
+.plan-title {
+  font-size: 20px;
+  line-height: 1.4;
+  margin: 6px 0 10px;
 }
-/* Hearing */
-body[data-active-section="hearing"] .lp-hearing .lp-bg {
-  opacity: 0.3;
-  background-image: url(../img/hearing.jpg);
-  background-position: center center;
-  background-repeat: no-repeat;
-  background-size: cover;
-  max-width: 100vw;
-  height: auto;
+
+.plan-lead {
+  margin: 0 0 12px;
+  opacity: 0.9;
 }
-body {
+
+.plan-list {
   margin: 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont;
-  background: #f5f5f5;
-  color: #111;
+  padding-left: 1.2em;
+  line-height: 1.8;
 }
+
+.plan-actions {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.plan-btn {
+  display: inline-block;
+  text-align: center;
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  border: 1px solid rgba(0,0,0,0.12);
+}
+
+.plan-sub {
+  text-decoration: none;
+  font-weight: 700;
+  opacity: 0.9;
+}
+
+.plan-preview {
+  margin-top: 14px;
+}
+
+.plans-note {
+  margin-top: 18px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(0,0,0,0.08);
+}
+
+/* =========================
+  Hearing Section
+========================= */
 .hearing-wrapper {
   min-height: 100vh;
   display: flex;
@@ -402,13 +456,10 @@ body {
   font-size: 14px;
   color: #666;
 }
-body {
-  margin: 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont;
-  background: #f5f5f5;
-  color: #111;
-}
 
+/* =========================
+  Before/After Section
+========================= */
 .ba-wrapper {
   max-width: 720px;
   margin: 0 auto;
@@ -478,6 +529,7 @@ body {
   border-radius: 999px;
   font-weight: 600;
 }
+
 /* =========================
   AreaMap Proposal
 ========================= */
@@ -493,7 +545,6 @@ body {
   border: 1px solid #e5e7eb;
 }
 
-/* Header */
 .proposal-header h4 {
   font-size: 18px;
   margin-bottom: 8px;
@@ -509,7 +560,6 @@ body {
   line-height: 1.6;
 }
 
-/* Cards */
 .proposal-cards {
   display: grid;
   grid-template-columns: 1fr;
@@ -534,7 +584,6 @@ body {
   line-height: 1.5;
 }
 
-/* Footer */
 .proposal-footer {
   text-align: center;
 }
@@ -556,152 +605,16 @@ body {
   text-decoration: none;
 }
 
-/* Responsive */
-@media (min-width: 640px) {
-  .proposal-cards {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
 /* =========================
-  AreaMap Gallery
+  Move to Top Button
 ========================= */
-.lp-areamap-gallery {
-  background: #fff;
-}
-
-.areamap-gallery {
-  display: flex;
-  gap: 24px;
-  margin-top: 32px;
-  overflow-x: auto;
-  padding-bottom: 8px;
-}
-
-.areamap-demo {
-  flex: 0 0 280px;
-  border: 1px solid #e5e7eb;
-  border-radius: 16px;
-  padding: 16px;
-  background: #fafafa;
-}
-
-.demo-title {
-  font-size: 16px;
-  margin-bottom: 4px;
-}
-
-.demo-desc {
-  font-size: 13px;
-  color: #666;
-  margin-bottom: 12px;
-}
-
-.areamap-frame {
-  border-radius: 12px;
-  overflow: hidden;
-  background: #f0f0f0;
-}
-
-/* 既存 placeholder の縮小版 */
-.areamap-placeholder.small {
-  height: 180px;
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-/* =========================
-  Plans (Lite / Pro)
-========================= */
-.lp-plans .plans-grid{
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 18px;
-  margin-top: 18px;
-}
-
-.plan-card{
-  background: #fff;
-  border-radius: 16px;
-  padding: 18px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.06);
-  border: 1px solid rgba(0,0,0,0.06);
-}
-
-.plan-badge{
-  display: inline-block;
-  font-weight: 700;
-  font-size: 12px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: rgba(0,0,0,0.06);
-  margin-bottom: 10px;
-}
-
-.plan-title{
-  font-size: 20px;
-  line-height: 1.4;
-  margin: 6px 0 10px;
-}
-
-.plan-lead{
-  margin: 0 0 12px;
-  opacity: 0.9;
-}
-
-.plan-list{
-  margin: 0;
-  padding-left: 1.2em;
-  line-height: 1.8;
-}
-
-.plan-actions{
-  margin-top: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.plan-btn{
-  display: inline-block;
-  text-align: center;
-  padding: 12px 14px;
-  border-radius: 12px;
-  font-weight: 700;
-  text-decoration: none;
-  border: 1px solid rgba(0,0,0,0.12);
-}
-
-.plan-sub{
-  text-decoration: none;
-  font-weight: 700;
-  opacity: 0.9;
-}
-
-.plan-preview{
-  margin-top: 14px;
-}
-
-.plans-note{
-  margin-top: 18px;
-  padding-top: 10px;
-  border-top: 1px solid rgba(0,0,0,0.08);
-}
-
-/* PC */
-@media (min-width: 920px){
-  .lp-plans .plans-grid{
-    grid-template-columns: 1fr 1fr;
-    gap: 22px;
-  }
-}
-#move-top{
-  position:fixed;
-  bottom:30px;
-  right:30px;
-  cursor:pointer;
-  width:60px;
-  height:60px;
+#move-top {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  cursor: pointer;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   background: #509b2a;
   background: linear-gradient(90deg, rgba(80, 155, 42, 1) 0%, rgba(87, 199, 133, 1) 50%, rgba(237, 221, 83, 1) 100%);
@@ -709,42 +622,48 @@ body {
   justify-content: center;
   align-items: center;
 }
+
 /* =========================
   Ask Page
 ========================= */
-.lp-ask .lp-content { max-width: 980px; }
-
-.ask-topbar{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:12px;
-  margin-bottom:16px;
-}
-.ask-back{
-  text-decoration:none;
-  opacity:.8;
-}
-.ask-brand{
-  font-weight:700;
-  letter-spacing:.04em;
-  opacity:.9;
+.lp-ask .lp-content {
+  max-width: 980px;
 }
 
-.ask-heading{ margin-top: 8px; }
-.ask-lead{ margin-bottom: 18px; }
+.ask-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
 
-.ask-grid{
-  display:grid;
+.ask-back {
+  text-decoration: none;
+  opacity: .8;
+}
+
+.ask-brand {
+  font-weight: 700;
+  letter-spacing: .04em;
+  opacity: .9;
+}
+
+.ask-heading {
+  margin-top: 8px;
+}
+
+.ask-lead {
+  margin-bottom: 18px;
+}
+
+.ask-grid {
+  display: grid;
   grid-template-columns: 1fr;
-  gap:16px;
+  gap: 16px;
 }
 
-@media (min-width: 900px){
-  .ask-grid{ grid-template-columns: 1fr 1fr; gap:18px; }
-}
-
-.ask-card{
+.ask-card {
   border: 1px solid rgba(148,163,184,.35);
   border-radius: 16px;
   padding: 16px;
@@ -752,57 +671,71 @@ body {
   backdrop-filter: blur(6px);
 }
 
-.ask-card-title{
+.ask-card-title {
   margin: 0 0 10px;
   font-size: 16px;
 }
 
-.ask-list{
+.ask-list {
   margin: 0;
   padding-left: 18px;
   line-height: 1.7;
 }
 
-.ask-divider{
-  height:1px;
+.ask-divider {
+  height: 1px;
   background: rgba(148,163,184,.35);
   margin: 14px 0;
 }
 
-.ask-mini{
+.ask-mini {
   margin: 0;
   opacity: .85;
   line-height: 1.7;
 }
 
-.ask-note{
+.ask-note {
   margin-top: 10px;
   font-size: 12px;
   opacity: .75;
   line-height: 1.6;
 }
 
-.ask-notices{ margin: 12px 0 16px; display:grid; gap:8px; }
-.ask-notice{
+.ask-notices {
+  margin: 12px 0 16px;
+  display: grid;
+  gap: 8px;
+}
+
+.ask-notice {
   border-radius: 12px;
   padding: 10px 12px;
   border: 1px solid rgba(148,163,184,.35);
   background: rgba(2,6,23,.04);
 }
-.ask-notice-success{ background: rgba(34,197,94,.08); }
-.ask-notice-danger{ background: rgba(239,68,68,.08); }
 
-.ask-form-inner{ display:grid; gap:12px; }
+.ask-notice-success {
+  background: rgba(34,197,94,.08);
+}
 
-.ask-label{
-  display:block;
+.ask-notice-danger {
+  background: rgba(239,68,68,.08);
+}
+
+.ask-form-inner {
+  display: grid;
+  gap: 12px;
+}
+
+.ask-label {
+  display: block;
   font-size: 13px;
   opacity: .85;
   margin-bottom: 6px;
 }
 
 .ask-input,
-.ask-textarea{
+.ask-textarea {
   width: 100%;
   border-radius: 12px;
   border: 1px solid rgba(148,163,184,.45);
@@ -811,33 +744,303 @@ body {
   outline: none;
 }
 
-.ask-textarea{ resize: vertical; }
+.ask-textarea {
+  resize: vertical;
+}
 
-.is-error{
+.is-error {
   border-color: rgba(239,68,68,.65);
 }
 
-.ask-error{
+.ask-error {
   margin-top: 6px;
   font-size: 12px;
   opacity: .85;
 }
 
-.ask-actions{
+.ask-actions {
   margin-top: 6px;
-  display:grid;
-  gap:10px;
+  display: grid;
+  gap: 10px;
 }
 
-.ask-submit{
+.ask-submit {
   display: inline-flex;
   justify-content: center;
   width: 100%;
 }
 
-.ask-privacy{
+.ask-privacy {
   margin: 0;
   font-size: 12px;
   opacity: .7;
   line-height: 1.6;
+}
+
+/* =========================
+  Section Background Images
+========================= */
+/* Hero */
+body[data-active-section="hero"] .lp-hero .lp-bg {
+  opacity: 0.3;
+  background-image: url(../img/headermap.jpg);
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+/* Login */
+body[data-active-section="login"] .lp-areamap-gallery .lp-bg {
+  opacity: 0.3;
+  background-image: url(../img/login.jpg);
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+/* Website */
+body[data-active-section="website"] .lp-website .lp-bg {
+  opacity: 0.3;
+  background-image: url(../img/homepage.jpg);
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+/* Instagram */
+body[data-active-section="instagram"] .lp-instagram .lp-bg {
+  opacity: 1;
+}
+
+/* Flyer */
+body[data-active-section="flyer"] .lp-flyer .lp-bg {
+  opacity: 0.3;
+  background-image: url(../img/flyer.jpg);
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+/* Value */
+body[data-active-section="value"] .lp-value .lp-bg {
+  opacity: 0.3;
+  background-image: url(../img/value.jpg);
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+/* Data */
+body[data-active-section="data"] .lp-data .lp-bg {
+  opacity: 0.3;
+  background-image: url(../img/data.jpg);
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+/* Hearing */
+body[data-active-section="hearing"] .lp-hearing .lp-bg {
+  opacity: 0.3;
+  background-image: url(../img/hearing.jpg);
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+/* =========================
+  Responsive - PC (769px以上)
+========================= */
+@media (min-width: 769px) {
+  .proposal-cards {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .ask-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+  }
+
+  .lp-plans .plans-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 22px;
+  }
+}
+
+@media (min-width: 920px) {
+  .lp-plans .plans-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 22px;
+  }
+}
+
+/* =========================
+  Responsive - Mobile (768px以下)
+========================= */
+@media (max-width: 768px) {
+  /* Section Base */
+  .lp-section {
+    padding: 80px 20px;
+  }
+
+  .lp-section:not(.lp-hero):not(.lp-hearing) .lp-content {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  /* Hero Section - 縦並び */
+  .lp-hero {
+    flex-direction: column;
+    gap: 32px;
+    padding-top: 60px;
+    padding-bottom: 40px;
+  }
+
+  .lp-hero .lp-content {
+    max-width: 100%;
+    text-align: center;
+  }
+
+  .lp-hero .lp-map-stage {
+    position: relative;
+    top: 0;
+    flex: 0 0 auto;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .lp-hero .lp-title {
+    font-size: 24px;
+  }
+
+  .lp-hero .lp-lead {
+    font-size: 16px;
+  }
+
+  /* Map Stage */
+  .lp-map-stage {
+    top: 60px;
+    max-width: 100%;
+  }
+
+  .areamap-placeholder {
+    height: 260px;
+  }
+
+  /* AreaMap Gallery - 縦並び */
+  .areamap-gallery {
+    flex-direction: column;
+    gap: 20px;
+    overflow-x: visible;
+  }
+
+  .areamap-demo {
+    flex: 0 0 auto;
+    width: 100%;
+  }
+
+  /* Plans */
+  .plans-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .plan-card {
+    padding: 20px;
+  }
+
+  /* Hearing Section - 左右20px余白 */
+  .lp-hearing .lp-content {
+    max-width: 100%;
+    margin: 0 auto;
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .lp-hearing {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .hearing-wrapper {
+    padding: 24px 0;
+  }
+
+  .hearing-main {
+    padding: 24px 20px;
+  }
+
+  .ba-wrapper {
+    padding: 40px 0;
+  }
+
+  .areamap-proposal {
+    padding: 24px 16px;
+  }
+}
+
+/* =========================
+  Responsive - iPhone SE (375px以下)
+========================= */
+@media (max-width: 375px) {
+  /* Section */
+  .lp-section {
+    padding: 60px 16px;
+  }
+
+  /* Hero */
+  .lp-hero {
+    gap: 24px;
+    padding: 40px 16px;
+  }
+
+  .lp-hero .lp-title {
+    font-size: 22px;
+    margin-bottom: 16px;
+  }
+
+  .lp-hero .lp-lead {
+    font-size: 15px;
+  }
+
+  .areamap-placeholder {
+    height: 240px;
+  }
+
+  .map-purpose ul {
+    padding: 10px 12px;
+    gap: 6px;
+  }
+
+  .map-purpose ul li {
+    font-size: 13px;
+  }
+
+  /* Hearing */
+  .lp-hearing .lp-content {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .hearing-main {
+    padding: 20px 16px;
+  }
+
+  .hearing-question {
+    font-size: 18px;
+  }
+
+  .hearing-actions button {
+    min-width: 100px;
+    padding: 12px 0;
+    font-size: 15px;
+  }
+
+  .areamap-proposal {
+    padding: 20px 12px;
+  }
+
+  .proposal-cards {
+    gap: 12px;
+  }
 }
