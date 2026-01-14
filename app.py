@@ -26,7 +26,6 @@ app.config['MAIL_USE_SSL'] = False
 app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
 app.config['MAIL_DEFAULT_SENDER'] = ('AreaMap', os.environ.get('MAIL_DEFAULT_SENDER_EMAIL', 'mitsunaka007@gmail.com'))
-# 管理者の受信先（あなた宛にしたいなら同じでOK）
 app.config['MAIL_ADMIN_TO'] = os.environ.get('MAIL_ADMIN_TO', 'mitsunaka007@gmail.com')
 mail = Mail(app)
 
@@ -342,9 +341,76 @@ def areamap_pro():
 # ----------------------------
 # お問い合わせ
 # ----------------------------
+# ----------------------------
+# お問い合わせ (自動補完機能付き)
+# ----------------------------
 @app.route("/ask", methods=["GET", "POST"])
 def ask():
     form = AskForm()
+    
+    # クエリパラメータから plan を取得
+    plan_type = request.args.get('plan', '').strip()
+    
+    # 初期値設定用の辞書
+    initial_values = {
+        'entrance': {
+            'detail': '''【Entrance Pack についての相談】
+
+現在の状況:
+・お店/施設名: 
+・業種: 
+・場所: 
+
+相談内容:
+□ 入口が分かりにくいと言われることがある
+□ 駐車場の場所を案内したい
+□ 初めて来る人が迷わないようにしたい
+□ HP/Instagram/チラシQRのどこから見られているか知りたい
+
+その他、気になっていること:
+'''
+        },
+        'last30': {
+            'detail': '''【Last30 Navigator についての相談】
+
+現在の状況:
+・お店/施設名: 
+・業種: 
+・場所: 
+
+相談内容:
+□ Google Mapで来ても最後の数十メートルで迷う人がいる
+□ 敷地内/建物内の入口のズレを解消したい
+□ 裏口や駐車場入口など、複数の入口を案内したい
+□ ルート検索からの来店率を上げたい
+□ アクセスデータを見て改善したい
+
+その他、気になっていること:
+'''
+        },
+        'event': {
+            'detail': '''【Event Navigator についての相談】
+
+現在の状況:
+・イベント/施設名: 
+・規模(出店数など): 
+・開催場所: 
+
+相談内容:
+□ 複数店舗の探索を簡単にしたい
+□ 目的別のナビゲーション(子連れ向け/価格帯など)が欲しい
+□ 当日情報(混雑/売切れ)を反映したい
+□ 多言語対応が必要
+□ 来場者の行動データを見たい
+
+その他、気になっていること:
+'''
+        }
+    }
+    
+    # GETリクエストでプランタイプが指定されている場合、初期値をセット
+    if request.method == 'GET' and plan_type in initial_values:
+        form.contactdetail.data = initial_values[plan_type]['detail']
 
     if form.validate_on_submit():
         name = form.contactname.data.strip()
@@ -381,7 +447,7 @@ def ask():
                 subject=subject,
                 recipients=[app.config["MAIL_ADMIN_TO"]],
                 body=body,
-                reply_to=email,  # 返信するとユーザーに返る
+                reply_to=email,
             )
             mail.send(msg)
 
@@ -400,7 +466,6 @@ def ask():
             flash("送信に失敗しました。時間をおいて再度お試しください。", "danger")
             return redirect(url_for("ask"))
 
-    # GET またはバリデーションエラー
     return render_template("ask.html", form=form)
 
 # if __name__ == "__main__":
