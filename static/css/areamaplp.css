@@ -162,7 +162,6 @@ body {
 
 /* ダミー表示（後で iframe / div に置換） */
 .areamap-placeholder {
-  height: 360px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -180,6 +179,47 @@ body {
   object-fit: cover;
   object-position: center;
   display: block;
+}
+/* =========================
+  Responsive - iframe height adjustment
+========================= */
+
+/* デフォルト（PC） */
+.areamap-placeholder {
+  height: 320px;
+}
+
+/* タブレット（768px以下） */
+@media (max-width: 768px) {
+  .areamap-placeholder {
+    height: 280px;
+  }
+  
+  .areamap-frame iframe {
+    height: 280px !important;
+  }
+}
+
+/* モバイル（480px以下） */
+@media (max-width: 480px) {
+  .areamap-placeholder {
+    height: 240px;
+  }
+  
+  .areamap-frame iframe {
+    height: 240px !important;
+  }
+}
+
+/* 小型スマホ（375px以下） */
+@media (max-width: 375px) {
+  .areamap-placeholder {
+    height: 220px;
+  }
+  
+  .areamap-frame iframe {
+    height: 220px !important;
+  }
 }
 
 .map-purpose {
