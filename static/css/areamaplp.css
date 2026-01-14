@@ -162,7 +162,7 @@ body {
 
 /* ダミー表示（後で iframe / div に置換） */
 .areamap-placeholder {
-  height: 320px;
+  height: 360px;
   display: flex;
   align-items: center;
   justify-content: center;
