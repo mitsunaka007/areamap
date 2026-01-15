@@ -198,6 +198,9 @@ body {
   .areamap-frame iframe {
     height: 280px !important;
   }
+  .areamap-frame iframe body {
+    height: 280px !important;
+  }
 }
 
 /* モバイル（480px以下） */
@@ -209,6 +212,9 @@ body {
   .areamap-frame iframe {
     height: 240px !important;
   }
+  .areamap-frame iframe body {
+    height: 240px !important;
+  }
 }
 
 /* 小型スマホ（375px以下） */
@@ -218,6 +224,9 @@ body {
   }
   
   .areamap-frame iframe {
+    height: 220px !important;
+  }
+  .areamap-frame iframe body {
     height: 220px !important;
   }
 }
