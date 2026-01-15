@@ -649,16 +649,17 @@ body {
   Move to Top Button
 ========================= */
 #move-top {
-  position: fixed;
-  bottom: 30px;
-  right: 30px;
-  cursor: pointer;
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background: #509b2a;
-  background: linear-gradient(90deg, rgba(80, 155, 42, 1) 0%, rgba(87, 199, 133, 1) 50%, rgba(237, 221, 83, 1) 100%);
-  display: flex;
+  position      : fixed;
+  bottom        : 30px;
+  right         : 30px;
+  cursor        : pointer;
+  width         : 50px;
+  height        : 50px;
+  border-radius : 50%;
+  border        : none;
+  background    : #509b2a;
+  background    : linear-gradient(90deg, rgba(80, 155, 42, 1) 0%, rgba(87, 199, 133, 1) 50%, rgba(237, 221, 83, 1) 100%);
+  display       : flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
