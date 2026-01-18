@@ -347,14 +347,13 @@ def areamap_pro():
 @app.route("/ask", methods=["GET", "POST"])
 def ask():
     form = AskForm()
-    
+
     # クエリパラメータから plan を取得
-    plan_type = request.args.get('plan', '').strip()
-    
-    # 初期値設定用の辞書
+    plan_type = request.args.get("plan", "").strip()
+
     initial_values = {
-        'entrance': {
-            'detail': '''【Entrance Pack についての相談】
+        "entrance": {
+            "detail": """【Entrance Pack についての相談】
 
 現在の状況:
 ・お店/施設名: 
@@ -368,10 +367,10 @@ def ask():
 □ HP/Instagram/チラシQRのどこから見られているか知りたい
 
 その他、気になっていること:
-'''
+"""
         },
-        'last30': {
-            'detail': '''【Last30 Navigator についての相談】
+        "last30": {
+            "detail": """【Last30 Navigator についての相談】
 
 現在の状況:
 ・お店/施設名: 
@@ -386,10 +385,10 @@ def ask():
 □ アクセスデータを見て改善したい
 
 その他、気になっていること:
-'''
+"""
         },
-        'event': {
-            'detail': '''【Event Navigator についての相談】
+        "event": {
+            "detail": """【Event Navigator についての相談】
 
 現在の状況:
 ・イベント/施設名: 
@@ -404,19 +403,20 @@ def ask():
 □ 来場者の行動データを見たい
 
 その他、気になっていること:
-'''
-        }
+"""
+        },
     }
-    
-    # GETリクエストでプランタイプが指定されている場合、初期値をセット
-    if request.method == 'GET' and plan_type in initial_values:
-        form.contactdetail.data = initial_values[plan_type]['detail']
+
+    # GETで plan が来ていたら初期値をセット（表示用）
+    if request.method == "GET" and plan_type in initial_values:
+        form.contactdetail.data = initial_values[plan_type]["detail"]
 
     if form.validate_on_submit():
         name = form.contactname.data.strip()
         email = form.contactemail.data.strip()
         detail = form.contactdetail.data.strip()
 
+        # 1) まずDB保存（ここが成功したら「送信成功」扱いにする）
         inquiry = ContactInquiry(
             name=name,
             email=email,
@@ -426,10 +426,20 @@ def ask():
             mail_status="pending",
         )
 
-        db.session.add(inquiry)
-        db.session.commit()
+        try:
+            db.session.add(inquiry)
+            db.session.commit()
+        except Exception:
+            # DB保存そのものが失敗した場合は、ユーザーにも失敗表示
+            db.session.rollback()
+            current_app.logger.exception("ContactInquiry DB save failed")
+            flash("送信に失敗しました。時間をおいて再度お試しください。", "danger")
+            return redirect(url_for("ask"))
 
-        # --- 管理者宛メール ---
+        # 2) DB保存が成功したので、ユーザーには成功表示（メール失敗でもここは変えない）
+        flash("送信しました。お問い合わせありがとうございます。", "success")
+
+        # 3) 管理者宛メール送信（失敗してもユーザー表示は成功のまま）
         subject = f"[AreaMap お問い合わせ] {name} さん"
         body = (
             "AreaMap お問い合わせが届きました。\n\n"
@@ -453,18 +463,19 @@ def ask():
 
             inquiry.mail_status = "sent"
             inquiry.mail_error = None
-            db.session.commit()
-
-            flash("送信しました。お問い合わせありがとうございます。", "success")
-            return redirect(url_for("ask"))
-
         except Exception as e:
+            # 内部には失敗を残す（DBにもログにも）
             inquiry.mail_status = "failed"
-            inquiry.mail_error = str(e)
-            db.session.commit()
+            inquiry.mail_error = str(e)[:4000]  # 念のため長すぎ対策
+            current_app.logger.exception("Admin mail send failed (ContactInquiry id=%s)", inquiry.id)
+        finally:
+            try:
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+                current_app.logger.exception("Failed to update mail_status for ContactInquiry id=%s", inquiry.id)
 
-            flash("送信に失敗しました。時間をおいて再度お試しください。", "danger")
-            return redirect(url_for("ask"))
+        return redirect(url_for("ask"))
 
     return render_template("ask.html", form=form)
 
