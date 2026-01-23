@@ -171,3 +171,10 @@ class ContactInquiry(db.Model):
     user_agent                  = db.Column(db.String(255), nullable=True)
     mail_status                 = db.Column(db.String(20), nullable=False, default="pending")  # pending/sent/failed
     mail_error                  = db.Column(db.Text, nullable=True)
+    
+class Shop(db.Model):
+    __tablename__ = "shops"
+    id = db.Column(db.BigInteger, primary_key=True)
+    # name / category 等はDBにはある前提。APIでは返さない。
+    lat = db.Column(db.Float, nullable=False)
+    lng = db.Column(db.Float, nullable=False)

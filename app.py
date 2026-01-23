@@ -4,7 +4,7 @@ import hashlib
 from sqlalchemy import func, case
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_mail import Mail, Message
-from models import  AreamapClickEvent, ContactInquiry
+from models import  AreamapClickEvent, ContactInquiry, Shop
 from forms import AskForm
 from extensions import db
 from dotenv import load_dotenv
@@ -478,6 +478,17 @@ def ask():
         return redirect(url_for("ask"))
 
     return render_template("ask.html", form=form)
+
+@app.get("/tilemap")
+def tilemap():
+    return render_template("tilemap.html")
+
+@app.get("/api/shops")
+def api_shops():
+    # 店名等を返さず、座標だけ返す（匿名表示）
+    shops = Shop.query.with_entities(Shop.lat, Shop.lng).all()
+    payload = [{"lat": float(s.lat), "lng": float(s.lng)} for s in shops]
+    return jsonify({"shops": payload})
 
 # if __name__ == "__main__":
 #     app.run(
