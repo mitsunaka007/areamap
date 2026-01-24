@@ -351,20 +351,6 @@ from flask import (
 
 # 既存の app / db / mail / Message / AskForm / ContactInquiry は定義済み前提
 
-@app.get("/thanks")
-def thanks():
-    """
-    サンクス画面
-    /thanks?plan=entrance|last30|event
-    """
-    plan = (request.args.get("plan") or "entrance").strip()
-    if plan not in ("entrance", "last30", "event"):
-        plan = "entrance"
-    # ここはあなたが作ったサンクスHTMLのファイル名に合わせてください
-    # 例: templates/areamap_thanks_v1.html を置いた場合
-    return render_template("areamap_thanks_v1.html", plan=plan)
-
-
 @app.route("/ask", methods=["GET", "POST"])
 def ask():
     form = AskForm()
