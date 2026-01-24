@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>AreaMap | 迷いを減らして選ばれやすくするデモ</title>
+  <title>AreaMap | 37%ルールで“選ばれ方”を変える（秘書問題デモ）</title>
 
   <!-- Leaflet -->
   <link
@@ -190,6 +190,33 @@
 
     .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace; }
 
+    input, select{
+      padding: 10px 10px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.95);
+      font-size: 13px;
+      font-weight: 750;
+      color: var(--text);
+      outline: none;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    label{ font-size: 11.5px; color: var(--muted); font-weight: 800; }
+    .resultBadge{
+      display:inline-flex; align-items:center; gap:8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(0,0,0,0.10);
+      font-size: 12px;
+      font-weight: 900;
+      background: rgba(255,255,255,0.75);
+    }
+    .resultBadge.ok{ border-color: rgba(19,115,51,0.25); color: var(--ok); background: rgba(19,115,51,0.08); }
+    .resultBadge.warn{ border-color: rgba(138,90,0,0.25); color: var(--amber); background: rgba(138,90,0,0.08); }
+    .resultBadge.bad{ border-color: rgba(179,38,30,0.25); color: var(--warn); background: rgba(179,38,30,0.08); }
+    .hint{ font-size: 12px; color: var(--muted); line-height: 1.6; }
+
     /* Markers */
     .dot{
       width: 12px; height: 12px;
@@ -261,22 +288,45 @@
     }
 
     .leaflet-container a{ color: var(--accent); }
+  
+    /* Embed mode (iframeなど) */
+    body.is-embed .badge{ display:none; }
+    body.is-embed .panel{ width: min(520px, calc(100vw - 24px)); }
+    .panel-toggle{
+      position:absolute; top:12px; right:12px; z-index:1100;
+      display:none;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 10px 12px;
+      box-shadow: var(--shadow);
+      font-family: system-ui, -apple-system, "Noto Sans JP", sans-serif;
+      cursor: pointer;
+      user-select:none;
+    }
+    body.is-embed .panel-toggle{ display:block; }
+    body.is-embed .panel.is-collapsed{
+      transform: translateX(calc(100% - 56px));
+      transition: transform .22s ease;
+    }
+    body.is-embed .panel{ transition: transform .22s ease; }
+
   </style>
 </head>
 
 <body>
   <div class="badge">
-    <div class="ttl">迷いを減らして「選ばれやすくする」デモ</div>
+    <div class="ttl">秘書問題（37%ルール）で見る："選ばれ方"を変えるデモ</div>
     <div class="sub">
-      立地は変えられない。だから <b>迷い（入口/駐車場/目印）</b> を減らして、比較の段階で“候補に残る”確率を上げます。
+      立地は変えられない。だから <b>迷い（入口/駐車場/目印）</b> を減らして、比較の段階で“候補に残る”確率を上げます。<br><span style="color:var(--muted)">※37%は「最初に比較して基準を作る目安」。街の候補数が多いほど“分かりやすい店”が有利になります。</span>
     </div>
   </div>
 
-  <div class="panel">
+  <div class="panel" id="panel">
     <h1>お店向け：60秒で分かる「AreaMapの必要性」</h1>
     <div class="lead">
-      ここで伝えたいのは「あなたのお店がダメ」ではなく、<b>候補が多いほど、お客さんは迷いやすい</b>という構造。<br>
-      その中で <b>“迷わせない店”</b> は選ばれやすくなります。
+      ここで伝えたいのは「あなたのお店がダメ」ではなく、<b>候補が多いほど、お客さんは“比較→疲れ→確実な店”を選びがち</b>という構造。<br>
+      だから AreaMap は、立地そのものではなく <b>“迷いと不安”を潰して、候補に残る順番を早める</b> ためのツールです。
     </div>
 
     <div class="row" style="margin-top:10px;">
@@ -336,6 +386,78 @@
 
     <div class="divider"></div>
 
+    <div class="card" id="calcCard">
+      <div class="cttl">自動計算：回収判定（Entrance Pack / Last30 Navigator）</div>
+      <div class="ctext">
+        「うちの店は選ばれないの？」ではなく、<b>立地の不利を“迷いの削減”で相殺</b>できるかを数字で見ます。<br>
+        時間ロス＋取りこぼし（任意）を足して、<b>費用を回収できるか</b>をその場で判定します。
+      </div>
+
+      <div class="row" style="margin-top:10px;">
+        <div style="flex:1 1 220px;">
+          <label>プラン</label><br>
+          <select id="calc_plan">
+            <option value="entrance">Entrance Pack（初期10,000円 / 月3,000円）</option>
+            <option value="last30">Last30 Navigator（初期29,800円 / 月10,000円）</option>
+          </select>
+        </div>
+        <div style="flex:1 1 160px;">
+          <label>初期費用の回収期間（ヶ月）</label><br>
+          <input id="calc_amort_months" type="number" min="1" step="1" value="6" />
+        </div>
+        <div style="flex:1 1 160px;">
+          <label>AreaMapで減る割合（%）</label><br>
+          <input id="calc_reduce_pct" type="number" min="0" max="100" step="5" value="50" />
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:10px;">
+        <div>
+          <label>迷い電話/DM（週）</label><br>
+          <input id="calc_weekly" type="number" min="0" step="1" value="5" />
+        </div>
+        <div>
+          <label>1回の対応（分）</label><br>
+          <input id="calc_min_per" type="number" min="1" step="1" value="3" />
+        </div>
+        <div>
+          <label>人件費/機会損失（円/時）</label><br>
+          <input id="calc_yen_per_hour" type="number" min="0" step="100" value="2000" />
+        </div>
+      </div>
+
+      <div class="divider"></div>
+      <div class="cttl" style="margin-bottom:4px;">任意：取りこぼし（迷って来店しなかった分）も入れる</div>
+      <div class="hint">※電話/DMが少ない業種でも、こっちを入れると回収判定が現実に寄ります。</div>
+
+      <div class="row" style="margin-top:10px;">
+        <div>
+          <label>月の取りこぼし（人）</label><br>
+          <input id="calc_lost_customers" type="number" min="0" step="1" value="1" />
+        </div>
+        <div>
+          <label>1人あたり粗利（円）</label><br>
+          <input id="calc_profit_per" type="number" min="0" step="100" value="5000" />
+        </div>
+        <div>
+          <label>回収できる割合（%）</label><br>
+          <input id="calc_recover_pct" type="number" min="0" max="100" step="5" value="20" />
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:10px;">
+        <button class="primary" id="calc_applyBtn" type="button">この条件で再計算</button>
+        <span id="calc_badge" class="resultBadge warn">判定：入力してください</span>
+      </div>
+
+      <div class="status" id="calc_out" style="margin-top:10px;"></div>
+
+      <div class="hint" style="margin-top:8px;">
+        コツ：まず “今の現実” を入れて、2週間テストで「迷い電話/DM」または「迷いが理由のキャンセル/未予約」が減ったかで更新します。
+      </div>
+    </div>
+
+
     <div class="cta" id="ctaBox">
       <div class="ttl">次の一手：2週間「迷い削減テスト」</div>
       <div class="ctext" style="color: var(--muted); line-height: 1.6; font-size: 12.5px;">
@@ -367,37 +489,43 @@
     <div class="card">
       <div class="cttl">※補足（言い換え）</div>
       <div class="ctext">
-        「候補が多いと最適を選びにくい」という研究（秘書問題）があります。<br>
-        このデモは “怖がらせる” のではなく、<b>改善できる変数（迷いと不安）</b> に集中するためのものです。
+        「候補が多いと最適を選びにくい」最適停止の有名問題（秘書問題／37%ルール）があります。<br>
+        重要なのは “37%に入る/入らない” の烙印ではなく、<b>改善できる変数（迷いと不安）で“選ばれる順番”を前にずらす</b>こと。
       </div>
     </div>
   </div>
 
+  <button class="panel-toggle" id="panelToggle" type="button" aria-controls="panel" aria-expanded="true">説明/計算</button>
+
   <div id="tilemap"></div>
 
-  <!-- 初回ガイド（モーダル） -->
-  <div class="overlay" id="overlay">
-    <div class="modal">
-      <h2>60秒ガイド：これを見るだけでOK</h2>
-      <p>
-        この地図は「店名なし」の匿名点群です。<br>
-        <b>候補が多いほど</b> お客さんは比較に疲れて「確実に行ける店」を選びがち。<br>
-        AreaMapは <b>入口/駐車場/目印</b> を1タップで示して、迷いを減らします。
-      </p>
+    <!-- 初回ガイド（モーダル） -->
+    <div class="overlay" id="overlay">
+      <div class="modal">
+        <h2>60秒ガイド：これを見るだけでOK</h2>
+        <p>
+          この地図は「店名なし」の匿名点群です。<br>
+          <b>候補が多いほど</b> お客さんは比較に疲れて「確実に行ける店」を選びがち。秘書問題では、最初に約<b>37%</b>を“比較用に見る”のが合理的という話が出てきます。<br>
+          だから AreaMap は、立地ではなく <b>入口/駐車場/目印</b> を1タップで示して“迷い”を潰し、<b>比較の早い段階で候補に残る</b>ための仕組みです。
+        </p>
 
-      <div class="steps">
-        <div class="step">
-          <div class="st">Step1：点を順に見ます（「次へ」）</div>
-          <div class="sd">比較中は、入口や駐車場が分かりにくい店ほど「保留→別の店」になりやすい</div>
-        </div>
-        <div class="step">
-          <div class="st">Step2：お店の位置を置けます（任意）</div>
-          <div class="sd">立地は変えられない。だから「迷いを減らす」ことで不利を相殺します</div>
-        </div>
-        <div class="step">
-          <div class="st">Step3：2週間テストで数字を確認</div>
-          <div class="sd">迷い電話/DM/道案内テンプレ回数が減れば、導入価値が“数字”で分かります</div>
-        </div>
+        <div class="steps">
+          <div class="step">
+            <div class="st">Step1：点を順に見ます（「次へ」）</div>
+            <div class="sd">比較中は、入口や駐車場が分かりにくい店ほど「保留→別の店」になりやすい</div>
+          </div>
+          <div class="step">
+            <div class="st">Step2：お店の位置を置けます（任意）</div>
+            <div class="sd">立地は変えられない。だから「迷いを減らす」ことで不利を相殺します</div>
+          </div>
+          <div class="step">
+            <div class="st">Step3：2週間テストで数字を確認</div>
+            <div class="divider"></div>
+            <div class="hint">
+              右パネルの <b>「自動計算：回収判定」</b> で、迷い電話/DMや取りこぼしが減った場合の回収見込みをその場で確認できます。
+            </div>
+
+          </div>
       </div>
 
       <div class="actions">
@@ -408,6 +536,27 @@
   </div>
 
   <script>
+
+    // ===== 埋め込みモード（LP内iframe） =====
+    (function(){
+      const p = new URLSearchParams(location.search);
+      const mode = p.get("mode") || "page"; // page | embed
+      if (mode === "embed") {
+        document.body.classList.add("is-embed");
+        const panel = document.getElementById("panel");
+        const toggle = document.getElementById("panelToggle");
+        if (panel && toggle){
+          // 初期は畳む（地図を見せる）
+          panel.classList.add("is-collapsed");
+          toggle.setAttribute("aria-expanded", "false");
+          toggle.addEventListener("click", () => {
+            const collapsed = panel.classList.toggle("is-collapsed");
+            toggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
+          });
+        }
+      }
+    })();
+
     // =========================
     // 設定（あなたの導線に合わせて変更OK）
     // =========================
@@ -803,6 +952,166 @@
     }
 
     loadShops();
+
+    // =========================
+    // 自動計算：回収判定（料金込み）
+    // =========================
+    const PLANS = {
+      entrance: { key:"entrance", name:"Entrance Pack", initial: 10000, monthly: 3000, sampleUrl: "https://areamap.onrender.com/areamap-lite", askUrl: "https://areamap.onrender.com/ask?plan=entrance" },
+      last30:   { key:"last30",   name:"Last30 Navigator", initial: 29800, monthly: 10000, sampleUrl: "https://areamap.onrender.com/areamap-pro",  askUrl: "https://areamap.onrender.com/ask?plan=last30" }
+    };
+
+    function fmtYen(n){
+      if (!Number.isFinite(n)) return "0";
+      return Math.round(n).toLocaleString("ja-JP");
+    }
+    function fmtNum(n, digits=1){
+      if (!Number.isFinite(n)) return "0";
+      return n.toFixed(digits);
+    }
+    function clamp(n, a, b){ return Math.min(b, Math.max(a, n)); }
+
+    function setPlanLinks(planKey){
+      const p = PLANS[planKey] || PLANS.entrance;
+
+      // 右下CTAのリンクも（可能なら）プランに寄せる
+      const sampleBtn = document.getElementById("sampleBtn");
+      if (sampleBtn) sampleBtn.href = p.sampleUrl;
+
+      const contactBtn = document.getElementById("contactBtn");
+      if (contactBtn) contactBtn.href = p.askUrl;
+    }
+
+    function setBadge(kind, text){
+      const badge = document.getElementById("calc_badge");
+      if (!badge) return;
+      badge.classList.remove("ok","warn","bad");
+      badge.classList.add(kind);
+      badge.textContent = text;
+    }
+
+    function calcPayback(){
+      const planKey = (document.getElementById("calc_plan")?.value ?? "entrance");
+      const plan = PLANS[planKey] || PLANS.entrance;
+
+      const amortMonths = Math.max(1, Number(document.getElementById("calc_amort_months")?.value ?? 6));
+      const reducePct = clamp(Number(document.getElementById("calc_reduce_pct")?.value ?? 0), 0, 100);
+
+      const weekly = Math.max(0, Number(document.getElementById("calc_weekly")?.value ?? 0));
+      const minPer = Math.max(0, Number(document.getElementById("calc_min_per")?.value ?? 0));
+      const yenPerHour = Math.max(0, Number(document.getElementById("calc_yen_per_hour")?.value ?? 0));
+
+      const lostCustomers = Math.max(0, Number(document.getElementById("calc_lost_customers")?.value ?? 0));
+      const profitPer = Math.max(0, Number(document.getElementById("calc_profit_per")?.value ?? 0));
+      const recoverPct = clamp(Number(document.getElementById("calc_recover_pct")?.value ?? 0), 0, 100);
+
+      // 月あたり概算：週×4.3
+      const weeklyMinutes = weekly * minPer;
+      const monthlyMinutes = weeklyMinutes * 4.3;
+      const monthlyHours = monthlyMinutes / 60;
+
+      // 迷い対応のロス（現状）
+      const monthlyTimeCost = monthlyHours * yenPerHour;
+
+      // AreaMapで減った分（時間ロス回収）
+      const savedTimeYen = monthlyTimeCost * (reducePct / 100);
+      const savedTimeMin = monthlyMinutes * (reducePct / 100);
+
+      // 取りこぼし回収（任意）
+      const recoveredYen = (lostCustomers * profitPer) * (recoverPct / 100);
+
+      // 総回収（= 効果の金額換算）
+      const totalGain = savedTimeYen + recoveredYen;
+
+      // コスト：月額＋（初期/回収期間）
+      const amortizedInitial = plan.initial / amortMonths;
+      const effectiveMonthlyCost = plan.monthly + amortizedInitial;
+
+      // 判定（ざっくり3段階）
+      // - totalGain >= effectiveMonthlyCost → ほぼ回収
+      // - totalGain >= plan.monthly → 運用費は回収、初期は時間が必要
+      // - else → 数字が弱い（入力の見直し or 別価値を足す）
+      if (totalGain >= effectiveMonthlyCost){
+        setBadge("ok", `判定：回収できそう（${plan.name}）`);
+      } else if (totalGain >= plan.monthly){
+        setBadge("warn", `判定：月額は回収、初期は要工夫（${plan.name}）`);
+      } else {
+        setBadge("bad", `判定：この条件だけだと弱い（${plan.name}）`);
+      }
+
+      // 初期の回収に必要な期間（= totalGain - monthly が正なら算出）
+      let paybackMonths = null;
+      const netAfterMonthly = totalGain - plan.monthly;
+      if (netAfterMonthly > 0){
+        paybackMonths = plan.initial / netAfterMonthly;
+      }
+
+      const out = document.getElementById("calc_out");
+      if (!out) return;
+
+      out.innerHTML = `
+        <b>入力結果（${plan.name}）</b><br>
+        <span class="small">
+          【料金】初期 <b>${fmtYen(plan.initial)}</b> 円 / 月額 <b>${fmtYen(plan.monthly)}</b> 円<br>
+          【初期の回収期間】<b>${fmtNum(amortMonths,0)}</b> ヶ月で見た場合 → 実質コスト：<b>${fmtYen(effectiveMonthlyCost)}</b> 円/月（= 月額 ${fmtYen(plan.monthly)} + 初期/ ${fmtNum(amortMonths,0)}）<br><br>
+
+          <b>① 迷い対応（電話/DM）</b><br>
+          ・週 <b>${fmtNum(weekly,0)}</b> 回 × ${fmtNum(minPer,0)}分 → 月 <b>${fmtNum(monthlyMinutes,0)}</b> 分（${fmtNum(monthlyHours,1)}時間）<br>
+          ・ロス換算：<b>${fmtYen(monthlyTimeCost)}</b> 円/月（円/時 ${fmtYen(yenPerHour)}）<br>
+          ・AreaMapで ${fmtNum(reducePct,0)}% 減 → 回収：<b>${fmtYen(savedTimeYen)}</b> 円/月（削減 ${fmtNum(savedTimeMin,0)}分）<br><br>
+
+          <b>② 取りこぼし回収（任意）</b><br>
+          ・月 ${fmtNum(lostCustomers,0)} 人 × 粗利 ${fmtYen(profitPer)} 円 × 回収 ${fmtNum(recoverPct,0)}% → <b>${fmtYen(recoveredYen)}</b> 円/月<br><br>
+
+          <b>総回収（①＋②）</b>：<b>${fmtYen(totalGain)}</b> 円/月<br>
+          <b>月額だけの損益</b>：回収 ${fmtYen(totalGain)} − 月額 ${fmtYen(plan.monthly)} ＝ <b>${fmtYen(netAfterMonthly)}</b> 円/月<br>
+          ${
+            paybackMonths !== null
+              ? `初期 ${fmtYen(plan.initial)} 円は、目安 <b>${fmtNum(paybackMonths,1)}</b> ヶ月で回収見込み（※入力前提）`
+              : `初期回収は、現状入力だと “月額を払っても余剰が出る” 状態になっていません。<b>取りこぼし（②）</b> か <b>削減率</b> の見直しが必要です。`
+          }
+        </span>
+      `;
+
+      // CTA文言もプラン×数字で調整
+      const impactText = document.getElementById("impactText");
+      if (impactText){
+        if (totalGain >= effectiveMonthlyCost){
+          impactText.innerHTML = `✅ この条件なら <b>${plan.name}</b> は回収できそう。まずは <b>2週間テスト</b>で「迷い電話/DM」or「取りこぼし」を実測しましょう。`;
+        } else if (totalGain >= plan.monthly){
+          impactText.innerHTML = `✅ 月額は回収できそう。初期は <b>${fmtNum(amortMonths,0)}ヶ月</b> の運用で回収する設計にすると現実的です。`;
+        } else {
+          impactText.innerHTML = `✅ “迷い電話/DM” だけで弱い業種は <b>取りこぼし（②）</b> を入れると現実の回収が見えます。`;
+        }
+      }
+
+      setPlanLinks(planKey);
+    }
+
+    function wireCalcUI(){
+      const ids = [
+        "calc_plan","calc_amort_months","calc_reduce_pct",
+        "calc_weekly","calc_min_per","calc_yen_per_hour",
+        "calc_lost_customers","calc_profit_per","calc_recover_pct"
+      ];
+      ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener("input", calcPayback);
+      });
+
+      const btn = document.getElementById("calc_applyBtn");
+      if (btn) btn.addEventListener("click", calcPayback);
+
+      calcPayback();
+    }
+
+    if (document.readyState === "loading"){
+      document.addEventListener("DOMContentLoaded", wireCalcUI);
+    } else {
+      wireCalcUI();
+    }
+
+
   </script>
 </body>
 </html>

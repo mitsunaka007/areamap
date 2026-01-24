@@ -1,757 +1,405 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AreaMap｜初回来店客を迷わせない。入口/駐車場/目印を1タップで</title>
 
-  <!-- Canonical（同じ内容のURLゆれ対策） -->
-  <link rel="canonical" href="https://areamap.onrender.com/" />
-
-  <!-- Open Graph -->
-  <meta property="og:title" content="AreaMap｜行動につながるアクセスマップ" />
-  <meta property="og:description" content="見られる → 押される → 来てもらう。タップからルート検索までできるアクセスマップ。" />
+  <!-- OGP -->
+  <meta property="og:title" content="AreaMap｜初回来店客を迷わせないアクセス案内" />
+  <meta property="og:description" content="入口/駐車場/目印を1タップ。『最後の30m』の迷いを減らして、来店につなげる。" />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://areamap.onrender.com/" />
-  <meta property="og:image" content="https://raw.githubusercontent.com/mitsunaka007/areamap/main/static/img/areamap.png" />
+  <meta property="og:image" content="https://areamap.onrender.com/static/img/headermap.jpg" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
-
-  <!-- Twitter Card（X） -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="AreaMap｜行動につながるアクセスマップ" />
-  <meta name="twitter:description" content="見られる → 押される → 来てもらう。タップからルート検索までできるアクセスマップ。" />
-  <meta name="twitter:image" content="https://raw.githubusercontent.com/mitsunaka007/areamap/main/static/img/areamap.png" />
 
-  <link rel="stylesheet" href="../static/css/areamaplp.css">
-  <title>AreaMap｜行動につながるアクセスマップ</title>
+  <style>
+    :root{
+      --bg:#0b0f17;
+      --panel:#0f1624;
+      --card:#101a2b;
+      --txt:rgba(255,255,255,.92);
+      --muted:rgba(255,255,255,.68);
+      --border:rgba(255,255,255,.12);
+      --accent:#4da3ff;
+      --accent2:#7cf2c5;
+      --danger:#ff6b6b;
+      --shadow:0 12px 34px rgba(0,0,0,.35);
+      --r:16px;
+    }
+    html,body{height:100%;}
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+      color:var(--txt);
+      background: radial-gradient(1200px 800px at 20% -10%, rgba(77,163,255,.18), transparent 55%),
+                  radial-gradient(900px 600px at 90% 10%, rgba(124,242,197,.12), transparent 50%),
+                  var(--bg);
+    }
+    a{color:inherit;}
+    .wrap{max-width:1080px;margin:0 auto;padding:0 18px;}
+    .topbar{
+      position:sticky;top:0;z-index:50;
+      backdrop-filter: blur(10px);
+      background: rgba(11,15,23,.72);
+      border-bottom:1px solid var(--border);
+    }
+    .topbar .inner{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 0;}
+    .brand{display:flex;align-items:center;gap:10px;text-decoration:none;}
+    .logo{
+      width:34px;height:34px;border-radius:10px;
+      background: linear-gradient(135deg, rgba(77,163,255,.95), rgba(124,242,197,.85));
+      box-shadow: var(--shadow);
+    }
+    .brand b{letter-spacing:.2px;}
+    .nav{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+    .nav a{
+      text-decoration:none;
+      color:var(--muted);
+      border:1px solid transparent;
+      padding:8px 10px;border-radius:999px;
+    }
+    .nav a:hover{border-color:var(--border);color:var(--txt);}
+    .btn{
+      display:inline-flex;align-items:center;justify-content:center;gap:8px;
+      border-radius:12px;
+      padding:12px 14px;
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.04);
+      color:var(--txt);
+      text-decoration:none;
+      box-shadow: 0 10px 24px rgba(0,0,0,.18);
+    }
+    .btn.primary{
+      border-color: rgba(77,163,255,.55);
+      background: linear-gradient(135deg, rgba(77,163,255,.22), rgba(124,242,197,.12));
+    }
+    .btn.primary:hover{filter:brightness(1.05);}
+    .btn.ghost{background:transparent;}
+    .hero{padding:46px 0 22px;}
+    .hero-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:18px;align-items:stretch;}
+    @media (max-width: 920px){.hero-grid{grid-template-columns:1fr;}}
+    .hero h1{font-size:clamp(26px, 3.5vw, 42px);line-height:1.12;margin:0 0 10px;}
+    .hero .lead{color:var(--muted);font-size:16px;line-height:1.7;margin:0 0 16px;}
+    .kpis{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0 0;}
+    .pill{border:1px solid var(--border);background:rgba(255,255,255,.03);border-radius:999px;padding:8px 10px;font-size:12.5px;color:var(--muted);}
+    .card{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow);}
+    .hero-card{padding:16px;}
+    .hero-card .mini{color:var(--muted);font-size:13px;line-height:1.6;}
+    .hero-card .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;}
+    .section{padding:28px 0;}
+    .section h2{font-size:20px;margin:0 0 10px;}
+    .section p{margin:0;color:var(--muted);line-height:1.75;}
+    .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px;}
+    @media (max-width: 920px){.grid3{grid-template-columns:1fr;}}
+    .feature{padding:14px;}
+    .feature .t{font-weight:700;margin-bottom:6px;}
+    .feature ul{margin:8px 0 0;padding-left:18px;color:var(--muted);line-height:1.7;}
+    .demo{padding:14px;}
+    .demo .demo-head{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
+    .demo iframe{width:100%;height:min(78vh,760px);border:0;border-radius:14px;background:#fff;}
+    .plans{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px;}
+    @media (max-width: 920px){.plans{grid-template-columns:1fr;}}
+    .plan{padding:16px;}
+    .badge{display:inline-flex;border:1px solid var(--border);background:rgba(255,255,255,.04);border-radius:999px;padding:6px 10px;font-size:12px;color:var(--muted);}
+    .price{font-size:18px;font-weight:800;margin:10px 0 10px;}
+    .plan ul{margin:8px 0 0;padding-left:18px;color:var(--muted);line-height:1.75;}
+    .plan .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;}
+    .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px;}
+    @media (max-width: 920px){.steps{grid-template-columns:1fr;}}
+    .step{padding:14px;}
+    .step .n{color:rgba(124,242,197,.9);font-weight:800;}
+    .faq{margin-top:14px;}
+    details{border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.03);padding:12px 14px;}
+    details+details{margin-top:10px;}
+    summary{cursor:pointer;font-weight:700;}
+    summary::-webkit-details-marker{display:none;}
+    .footer{padding:26px 0 38px;border-top:1px solid var(--border);color:var(--muted);font-size:13px;}
+    .sticky{position:fixed;left:14px;right:14px;bottom:12px;display:none;gap:10px;z-index:80;}
+    .sticky a{flex:1;}
+    @media (max-width: 920px){.sticky{display:flex;}}
+  </style>
 </head>
-
-
-<body data-active-section="hero">
-
-<!-- =========================
-  Global Wrapper
-========================= -->
-<div id="lp-root">
-  <!-- =========================
-    Hero / First View
-  ========================= -->
-  <section class="lp-section lp-hero" data-section="hero">
-    <div class="lp-bg lp-bg-neutral"></div>
-    <div class="lp-content">
-      <h1 class="lp-title">
-        その地図、<br>
-        「置いただけ」で終わっていませんか？
-      </h1>
-
-      <p class="lp-lead">
-        見られる → 押される → 来てもらう<br>
-        行動につながるアクセスマップ
-      </p>
+<body>
+  <div class="topbar">
+    <div class="wrap">
+      <div class="inner">
+        <a class="brand" href="#top">
+          <span class="logo" aria-hidden="true"></span>
+          <b>AreaMap</b>
+        </a>
+        <nav class="nav">
+          <a href="#what">概要</a>
+          <a href="#why">なぜ必要？</a>
+          <a href="#plans">料金</a>
+          <a class="btn primary" href="/ask">無料で相談</a>
+        </nav>
+      </div>
     </div>
+  </div>
 
-    <!-- Central Map (Fixed / Sticky想定) -->
-    <div class="lp-map-stage">
-      <div class="lp-areamap">
-        <div class="areamap-placeholder">
-          <img src="../static/img/AOSSA_bw.jpg" alt="置いただけ地図">
+  <main id="top">
+    <section class="hero">
+      <div class="wrap">
+        <div class="hero-grid">
+          <div class="card hero-card">
+            <h1>初回来店客を迷わせない。<br>「最後の30m」を1タップで案内。</h1>
+            <p class="lead">
+              Google Mapだけでは伝わりにくい <b>入口/駐車場/目印</b> を、店側がコントロールできる形で提示します。<br>
+              迷い電話・迷いDM・当日キャンセル・取りこぼしを減らし、来店につなげます。
+            </p>
+            <div class="actions">
+              <a class="btn primary" href="#why">▶ 60秒デモで「必要性」を確認</a>
+              <a class="btn" href="#plans">料金を見る</a>
+              <a class="btn ghost" href="/ask">無料で相談</a>
+            </div>
+            <div class="kpis">
+              <span class="pill">入口/駐車場/目印を整理</span>
+              <span class="pill">流入元別URLで計測</span>
+              <span class="pill">改善して“迷い”を減らす</span>
+            </div>
+          </div>
 
-          <!-- 画像の上に重ねる -->
-          <div class="map-purpose">
+          <div class="card hero-card">
+            <div class="badge">まずはここだけ見ればOK</div>
+            <p class="mini" style="margin-top:10px;">
+              <b>① なぜ必要？</b> → デモ（秘書問題×回収判定）<br>
+              <b>② どれを導入？</b> → 2つのプラン<br>
+              <b>③ 相談する</b> → 30秒フォーム
+            </p>
+            <div class="actions">
+              <a class="btn primary" href="#why">デモを見る</a>
+              <a class="btn" href="https://areamap.onrender.com/areamap-lite" target="_blank" rel="noopener">サンプル（Entrance）</a>
+              <a class="btn" href="https://areamap.onrender.com/areamap-pro" target="_blank" rel="noopener">サンプル（Last30）</a>
+            </div>
+            <p class="mini" style="margin-top:12px;color:var(--muted);">
+              ※お店名や住所は未入力でもOK。まずは「迷いポイント」だけ共有してください。
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="what">
+      <div class="wrap">
+        <h2>AreaMapとは</h2>
+        <p>
+          店舗の「分かりにくい」を、<b>一枚の案内（＋計測）</b>に落とし込むサービスです。<br>
+          “地図”というより、<b>来店の不安を潰すUI</b>を作ります。
+        </p>
+
+        <div class="grid3">
+          <div class="card feature">
+            <div class="t">入口/駐車場/目印を“現地目線”で</div>
             <ul>
-              <li>置いただけ地図</li>
-              <li>ピンなし・入口なし・駐車場なし</li>
-              <li>ルートが出ても迷う原因が残る</li>
+              <li>裏口・共同駐車場・建物の奥…を前提に説明</li>
+              <li>写真/矢印/注意点をセットで提示</li>
+              <li>電話・DMでの説明コストを削減</li>
+            </ul>
+          </div>
+
+          <div class="card feature">
+            <div class="t">流入元別URLで“どこが詰まるか”を見る</div>
+            <ul>
+              <li>HP/Instagram/チラシQR…導線ごとにURL発行</li>
+              <li>PV/UU・画像タップ・CTAクリックを計測</li>
+              <li>詰まりポイントを改善→次月の成果へ</li>
+            </ul>
+          </div>
+
+          <div class="card feature">
+            <div class="t">作って終わりじゃない（改善前提）</div>
+            <ul>
+              <li>「迷い」が減るほど“選ばれやすい”</li>
+              <li>軽微更新で現場の変化に追従</li>
+              <li>月次の小さな改善提案（Last30）</li>
             </ul>
           </div>
         </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- =========================
-    Public AreaMap Gallery
-  ========================= -->
-  <section class="lp-section lp-areamap-gallery" data-section="login">
-    <div class="lp-bg"></div>
-    <div class="lp-content">
-      <h2 class="lp-heading">
-        ログイン不要で、<br>
-        AreaMapを触ってみてください
-      </h2>
+    <section class="section" id="why">
+      <div class="wrap">
+        <h2>なぜAreaMapが必要？（デモで体感）</h2>
+        <p>
+          お客さんは「店が悪い」から離脱するのではなく、<b>候補が多くて比較に疲れる</b>と、<b>確実に行けそうな店</b>を選びがちです。<br>
+          AreaMapは “立地そのもの” を変えるのではなく、<b>迷いと不安を減らして、比較の早い段階で候補に残る</b> ための施策です。
+        </p>
 
-      <p class="lp-text">
-        実際に使われる地図です。<br>
-        タップして、ルート検索まで体験できます。
-      </p>
-
-      <div class="areamap-gallery">
-        <!-- 個人店 -->
-        <div class="areamap-demo">
-          <h3 class="demo-title">個人店向け</h3>
-          <p class="demo-desc">初めての人でも迷わない</p>
-
-          <div class="areamap-frame">
-            <iframe
-              src="https://areamap.onrender.com/areamap_sbodymorita?mode=embed"
-              style="width:100%;height:200px;border:0;border-radius:12px;"
-              loading="lazy"
-            ></iframe>
-          </div>
-        </div>
-
-        <!-- 商店街 -->
-        <div class="areamap-demo">
-          <h3 class="demo-title">商店街向け</h3>
-          <p class="demo-desc">全体が一瞬で分かる</p>
-          <div class="areamap-frame">
-            <div class="areamap-placeholder small">
-              AreaMap<br>（商店街）- Coming Soon!
-            </div>
-          </div>
-        </div>
-
-        <!-- イベント -->
-        <div class="areamap-demo">
-          <h3 class="demo-title">イベント向け</h3>
-          <p class="demo-desc">今日・今行ける</p>
-
-          <div class="areamap-frame">
-            <div class="areamap-placeholder small">
-              AreaMap<br>（イベント）- Coming Soon!
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- =========================
-    Section: Website
-  ========================= -->
-  <section class="lp-section lp-website" data-section="website">
-    <div class="lp-bg lp-bg-website"></div>
-    <div class="lp-content">
-      <h2 class="lp-heading">
-        ホームページでは<br>
-        「迷わない」＋「押される」が大事
-      </h2>
-
-      <p class="lp-text">
-        Google Mapは情報が多すぎる。<br>
-        画像地図は更新できない。<br>
-        そして、リンクが1本だと「どこから来たか」も分かりません。
-      </p>
-
-      <p class="lp-text">
-        AreaMapは<br>
-        <strong>行くために必要な情報だけ</strong>に絞り、<br>
-        <strong>流入元別URL</strong>で反応も見える化します。
-      </p>
-
-      <ul class="lp-points">
-        <li>迷いポイント（入口/駐車場/目印）を最小化</li>
-        <li>ワンタップでルート検索（Google Map）</li>
-        <li>HP用/Instagram用/チラシQR用などURLを分けて計測</li>
-      </ul>
-    </div>
-  </section>
-
-  <!-- =========================
-    Section: Instagram
-  ========================= -->
-  <section class="lp-section lp-instagram" data-section="instagram">
-    <div class="lp-bg lp-bg-instagram"></div>
-    <div class="lp-content">
-      <h2 class="lp-heading">
-        Instagramでは<br>
-        「保存」より「そのまま行ける」
-      </h2>
-
-      <p class="lp-text">
-        投稿は見られている。<br>
-        でも、来店につながらないのは「迷う」「動けない」から。
-      </p>
-
-      <p class="lp-text">
-        プロフィールリンク用のURLを作って、<br>
-        <strong>そのままルート検索</strong>へ。
-      </p>
-
-      <p class="lp-emphasis">
-        見た → 押した → 行ける（しかも計測できる）
-      </p>
-    </div>
-  </section>
-
-  <!-- =========================
-    Section: Flyer
-  ========================= -->
-  <section class="lp-section lp-flyer" data-section="flyer">
-    <div class="lp-bg lp-bg-flyer"></div>
-    <div class="lp-content">
-      <h2 class="lp-heading">
-        チラシでは<br>
-        「後で調べる」を「今行く」に
-      </h2>
-
-      <p class="lp-text">
-        QRを読み込む。<br>
-        迷わず確認する。<br>
-        そのままルート検索へ。
-      </p>
-
-      <p class="lp-text">
-        さらに、チラシ専用URLにしておけば<br>
-        <strong>「QRは何回読まれた？」</strong>まで分かります。
-      </p>
-    </div>
-  </section>
-
-  <!-- =========================
-    Value Shift
-  ========================= -->
-  <section class="lp-section lp-value" data-section="value">
-    <div class="lp-bg lp-bg-white"></div>
-    <div class="lp-content lp-center">
-      <p class="lp-quote">
-        画像でも“案内”はできます。<br>
-        でもAreaMapは<br>
-        <strong>“来店につながる導線”を作れて、反応も見えます。</strong>
-      </p>
-
-      <p class="lp-text">
-        Entrance Packなら「まず整える」。<br>
-        Last30 Navigatorなら「最後の30mで迷わせない」。<br>
-        Event Navigatorなら「複数店舗の探索・分岐を迷わせない」。<br>
-        <strong>作って終わり</strong>にしません。
-      </p>
-    </div>
-  </section>
-
-  <!-- =========================
-    Data & Flow
-  ========================= -->
-  <section class="lp-section lp-data" data-section="data">
-    <div class="lp-bg lp-bg-neutral"></div>
-    <div class="lp-content">
-      <h2 class="lp-heading">
-        データは、難しくありません
-      </h2>
-
-      <div class="lp-flow">
-        <div class="lp-flow-step">どこから来た？（HP / Instagram / チラシQR）</div>
-        <div class="lp-flow-arrow">↓</div>
-        <div class="lp-flow-step">見られた？（PV / UU）</div>
-        <div class="lp-flow-arrow">↓</div>
-        <div class="lp-flow-step">押された？（ルート / 電話 / 予約 / 公式サイト）</div>
-        <div class="lp-flow-arrow">↓</div>
-        <div class="lp-flow-step">どこが見られた？（画像タップ・駐車場/入口など）</div>
-      </div>
-
-      <p class="lp-text">
-        見るのは「流入元」「閲覧」「行動」「注目ポイント」。<br>
-        だから、次に直す場所がすぐ分かります。
-      </p>
-    </div>
-  </section>
-
-  <!-- =========================
-    Plans: Entrance Pack / Last30 Navigator / Event Navigator
-  ========================= -->
-  <section class="lp-section lp-plans" data-section="plans">
-    <div class="lp-bg lp-bg-white"></div>
-    <div class="lp-content">
-      <h2 class="lp-heading">
-        あなたの状況に合わせて、<br>
-        3つのプランを選べます
-      </h2>
-
-      <p class="lp-text">
-        Entrance Packは「入口・駐車場・料金など、迷いポイントを固定導線で整える」。<br>
-        Last30 Navigatorは「最後の30m（敷地内・入口のズレ）で迷わせない」。<br>
-        Event Navigatorは「複数店舗・複数導線の探索と分岐を迷わせない（AI対応）」です。
-      </p>
-
-      <div class="plans-grid">
-        <!-- Entrance Pack（旧 Lite） -->
-        <div class="plan-card plan-lite">
-          <div class="plan-badge">Entrance Pack</div>
-          <h3 class="plan-title">迷わない“固定導線”（入口/駐車場/料金）を作る</h3>
-          <p class="plan-lead">
-            既存のイラスト地図に、迷いポイントと見せたい情報を整理。<br>
-            流入元別URL＋最低限の計測で、まずは反応を作ります。
-          </p>
-
-          <ul class="plan-list">
-            <li>イラスト地図にホットスポット：最大3点</li>
-            <li>重点画像：最大3枚（タップで拡大）</li>
-            <li>HP/Instagram/チラシQRなど URL発行：最大5本</li>
-            <li>mypageで確認：PV/UU・URL別アクセス・画像タップ・CTAクリック（最大3）</li>
-            <li>初回修正1回＋月1回まで軽微更新（画像差替え等）</li>
-          </ul>
-
-          <p class="lp-text">
-            <strong>初期：10,000円 / 月額：3,000円</strong>
-          </p>
-
-          <div class="plan-actions">
-            <a class="plan-btn" href="https://areamap.onrender.com/areamap-lite" target="_blank" rel="noopener">
-              Entrance Packを体験する
-            </a>
-            <a class="plan-sub" href="https://areamap.onrender.com/ask?plan=entrance" id="ask-entrance">
-              Entrance Packについて相談する →
-            </a>
-          </div>
-
-          <div class="plan-preview">
-            <div class="areamap-frame">
-              <iframe
-                src="https://areamap.onrender.com/areamap-lite?mode=embed"
-                style="width:100%;height:380px;border:0;border-radius:12px;object-fit:cover;"
-                loading="lazy"
-              ></iframe>
-            </div>
-          </div>
-        </div>
-
-        <!-- Last30 Navigator（旧 Pro） -->
-        <div class="plan-card plan-pro">
-          <div class="plan-badge">Last30 Navigator</div>
-          <h3 class="plan-title">迷うのは最後の30m。入口まで“現地目線”で案内</h3>
-          <p class="plan-lead">
-            Leaflet＋イラスト地図オーバーレイ＋ルート表示。<br>
-            「敷地内/入口のズレ/裏口」など、Google Mapが弱い部分を補います。
-          </p>
-
-          <ul class="plan-list">
-            <li>ホットスポット：最大10点（クリックで全面モーダル）</li>
-            <li>Leaflet地図＋イラスト地図オーバーレイ</li>
-            <li>現在地→お店のルート表示（最後の30mは目印/入口情報で補強）</li>
-            <li>計測：PV/UU・URL別・CTA・画像/スポット反応（改善前提）</li>
-            <li>月1回ミニレポート＋改善提案（最大3つ）</li>
-            <li>初回修正2回＋月2回まで軽微更新（画像差替え等）</li>
-          </ul>
-
-          <p class="lp-text">
-            <strong>初期：29,800円 / 月額：10,000円</strong>
-          </p>
-
-          <div class="plan-actions">
-            <a class="plan-btn" href="https://areamap.onrender.com/areamap-pro" target="_blank" rel="noopener">
-              Last30 Navigatorを体験する
-            </a>
-            <a class="plan-sub" href="https://areamap.onrender.com/ask?plan=last30" id="ask-last30">
-              Last30 Navigatorについて相談する →
-            </a>
-          </div>
-
-          <div class="plan-preview">
-            <div class="areamap-frame">
-              <iframe
-                src="https://areamap.onrender.com/areamap-pro?mode=embed"
-                style="width:100%;height:320px;border:0;border-radius:12px;object-fit:cover;"
-                loading="lazy"
-              ></iframe>
-            </div>
-          </div>
-        </div>
-
-        <!-- Event Navigator（新規） -->
-        <div class="plan-card plan-event">
-          <div class="plan-badge">Event Navigator</div>
-          <h3 class="plan-title">複数店舗の「探索＆分岐」を迷わせない（AI対応）</h3>
-          <p class="plan-lead">
-            商店街イベント・マルシェ・複合施設など、<br>
-            「どの店に行く？」から「どう行く？」までを一気に短縮します。
-          </p>
-
-          <ul class="plan-list">
-            <li>複数店舗/出店リストの掲載（カテゴリ/タグ/価格帯など）</li>
-            <li>目的別ナビ（例：子連れ/甘いもの/500円以内/辛くない 等）</li>
-            <li>候補は最大3つに絞って提案＋地図上で誘導</li>
-            <li>当日情報の反映（混雑/売切れ/通行止め等 ※運営入力ベース）</li>
-            <li>多言語案内（必要な会場のみ）</li>
-            <li>計測：閲覧/タップ/誘導の反応を見て改善</li>
-          </ul>
-
-          <p class="lp-text">
-            <strong>価格：要相談（会場規模・出店数で変動）</strong>
-          </p>
-
-          <div class="plan-actions">
-            <a class="plan-btn" href="https://areamap.onrender.com/ask?plan=event" id="ask-event">
-              Event Navigatorを相談する
-            </a>
-            <a class="plan-sub" href="https://areamap.onrender.com/ask?plan=event">
-              商店街イベント向けに作ってみたい →
-            </a>
-          </div>
-
-          <div class="plan-preview">
-            <div class="areamap-frame">
-              <div class="areamap-placeholder small" style="height:380px;border-radius:12px;">
-                Event Navigator<br>（商店街・イベント）- Coming Soon!
+        <div class="card demo" style="margin-top:14px;">
+          <div class="demo-head">
+            <div>
+              <div class="badge">60秒デモ：秘書問題×回収判定</div>
+              <div style="margin-top:8px;color:var(--muted);font-size:13px;line-height:1.6;">
+                右上の「説明/計算」を開いて、<b>お店の位置</b>を置いてみてください。<br>
+                その場で「迷い削減がどれだけ回収につながるか」を自動計算できます。
               </div>
             </div>
+            <a class="btn" href="/tilemap" target="_blank" rel="noopener">デモを別タブで開く</a>
+          </div>
+          <iframe src="/tilemap?mode=embed" title="秘書問題デモ（AreaMap Tilemap）" loading="lazy"></iframe>
+        </div>
+
+        <div class="grid3" style="margin-top:12px;">
+          <div class="card feature">
+            <div class="t">「で？」への答え</div>
+            <ul>
+              <li>選ばれない“運命”ではなく、<b>選ばれる順番</b>を前にずらす</li>
+              <li>迷いを潰す＝説明コスト削減＋取りこぼし減</li>
+              <li>数字で回収判定 → 迷わず意思決定</li>
+            </ul>
+          </div>
+          <div class="card feature">
+            <div class="t">場所を動かせない店ほど効く</div>
+            <ul>
+              <li>大通りから奥・共同駐車場・入口が分かりにくい</li>
+              <li>Google Mapの“最後の30m”の弱点を補う</li>
+              <li>写真/目印/注意点で不安を減らす</li>
+            </ul>
+          </div>
+          <div class="card feature">
+            <div class="t">売上に直結する使い方</div>
+            <ul>
+              <li>初回来店の離脱を減らす</li>
+              <li>予約前の不安を減らす（美容/整体/ジム）</li>
+              <li>イベント時の混雑/誘導にも使える</li>
+            </ul>
           </div>
         </div>
       </div>
+    </section>
 
-      <div class="plans-note">
-        <p class="lp-text">
-          迷ったら：<br>
-          <strong>「まずEntrance Packで導線を整える → 迷いが残るならLast30 Navigator → 複数店舗ならEvent Navigator」</strong><br>
-          が一番失敗しにくいです。
+    <section class="section" id="plans">
+      <div class="wrap">
+        <h2>料金プラン（まずは2択）</h2>
+        <p>
+          まずは <b>Entrance Pack</b> で「迷いポイント」を潰して反応を作り、必要なら <b>Last30 Navigator</b> で改善を回します。<br>
+          迷ったら、デモ内の <b>回収判定</b> を使ってください。
         </p>
-      </div>
-    </div>
-  </section>
 
-  <!-- =========================
-    Hearing CTA
-  ========================= -->
-  <section class="lp-section lp-hearing" data-section="hearing">
-
-    <div class="lp-bg lp-bg-white"></div>
-
-    <div class="lp-content lp-center">
-      <h2 class="lp-heading">
-        まずは今の状態を<br>
-        一緒に整理しませんか？
-      </h2>
-
-      <p class="lp-text">
-        YES / NOで答えるだけの<br>
-        無料ヒアリングです。
-      </p>
-      <div class="hearing-wrapper">
-        <h3>今の状況を整理しましょう</h3>
-        <p>YES / NOで答えるだけです</p>
-        <!-- =========================
-          Question Area
-        ========================= -->
-        <div class="hearing-main">
-
-          <div class="hearing-question" id="question-text">
-            お店の場所は、初めての人でも迷わず分かると思いますか？
+        <div class="plans">
+          <div class="card plan">
+            <div class="badge">Entrance Pack</div>
+            <h3 style="margin:10px 0 0;">迷わない“固定導線”（入口/駐車場/料金）を作る</h3>
+            <div class="price">初期：10,000円 / 月額：3,000円</div>
+            <ul>
+              <li>イラスト地図にホットスポット：最大3点</li>
+              <li>重点画像：最大3枚（タップで拡大）</li>
+              <li>流入元別URL：最大5本（HP/Instagram/チラシQRなど）</li>
+              <li>mypageで確認：PV/UU・URL別アクセス・画像タップ・CTAクリック</li>
+              <li>初回修正1回＋月1回まで軽微更新</li>
+            </ul>
+            <div class="actions">
+              <a class="btn primary" href="https://areamap.onrender.com/areamap-lite" target="_blank" rel="noopener">Entranceを体験</a>
+              <a class="btn" href="/ask?plan=entrance">相談する</a>
+            </div>
           </div>
 
-          <div class="hearing-actions">
-            <button class="btn-yes" data-answer="yes">YES</button>
-            <button class="btn-no" data-answer="no">NO</button>
-          </div>
-
-          <div class="hearing-progress">
-            <span id="current-step">1</span> / <span id="total-step">3</span>
+          <div class="card plan">
+            <div class="badge">Last30 Navigator</div>
+            <h3 style="margin:10px 0 0;">迷うのは最後の30m。入口まで“現地目線”で案内</h3>
+            <div class="price">初期：29,800円 / 月額：10,000円</div>
+            <ul>
+              <li>ホットスポット：最大10点（クリックでモーダル）</li>
+              <li>Leaflet地図＋イラスト地図オーバーレイ</li>
+              <li>現在地→お店のルート表示（最後の30mを補強）</li>
+              <li>計測：PV/UU・URL別・CTA・画像/スポット反応</li>
+              <li>月1回ミニレポート＋改善提案（最大3つ）</li>
+              <li>初回修正2回＋月2回まで軽微更新</li>
+            </ul>
+            <div class="actions">
+              <a class="btn primary" href="https://areamap.onrender.com/areamap-pro" target="_blank" rel="noopener">Last30を体験</a>
+              <a class="btn" href="/ask?plan=last30">相談する</a>
+            </div>
           </div>
         </div>
       </div>
-      <div class="ba-wrapper" id="before-after-result" hidden>
-        <div class="ba-main">
-          <section class="ba-block ba-before">
-            <h4>Before（今の状態）</h4>
-            <p id="before-text"></p>
-          </section>
+    </section>
 
-          <section class="ba-block ba-after">
-            <h4>After（改善後）</h4>
-            <p id="after-text"></p>
-          </section>
+    <section class="section" id="flow">
+      <div class="wrap">
+        <h2>導入までの流れ（最短）</h2>
+        <p>「まず反応を作る」→「必要なら改善を回す」。これだけです。</p>
 
-          <section class="ba-block ba-action">
-            <h4>改善のポイント</h4>
-            <ul id="action-list"></ul>
-          </section>
+        <div class="steps">
+          <div class="card step">
+            <div class="n">Step 1</div>
+            <div style="font-weight:700;margin-top:6px;">15分ヒアリング</div>
+            <p style="margin-top:6px;">迷い電話/DMの頻度、迷いポイント、流入元（HP/Instagram/チラシ）を確認。</p>
+          </div>
+          <div class="card step">
+            <div class="n">Step 2</div>
+            <div style="font-weight:700;margin-top:6px;">素材をもらう</div>
+            <p style="margin-top:6px;">入口/駐車場/目印の写真、注意点、料金/予約導線を共有（スマホ撮影でOK）。</p>
+          </div>
+          <div class="card step">
+            <div class="n">Step 3</div>
+            <div style="font-weight:700;margin-top:6px;">初版を作成</div>
+            <p style="margin-top:6px;">店側が説明しなくても伝わる形に整理。流入元別URLも発行。</p>
+          </div>
+          <div class="card step">
+            <div class="n">Step 4</div>
+            <div style="font-weight:700;margin-top:6px;">計測→軽微改善</div>
+            <p style="margin-top:6px;">反応（クリック/タップ）を見て迷いポイントを潰す。必要ならLast30へ。</p>
+          </div>
         </div>
-      </div>
-      <!-- =========================
-        AreaMap Proposal
-      ========================= -->
-      <div class="areamap-proposal">
 
-        <div class="proposal-header">
-          <h4>この改善に使えるのが <span>AreaMap</span> です</h4>
-          <p>
-            今の課題に合わせて、<br>
-            「迷わせない地図」を一緒に作れます。
-          </p>
+        <div class="card" style="padding:16px;margin-top:14px;">
+          <h3 style="margin:0 0 6px;">無料で相談（30秒）</h3>
+          <p style="margin:0 0 12px;">「うちの場合、どれが一番効く？」だけ聞きに来てください。</p>
+          <a class="btn primary" href="/ask">相談フォームへ</a>
         </div>
 
-        <!-- Proposal Cards -->
-        <div class="proposal-cards">
-          <div class="proposal-card">
-            <h5>① 迷いポイントを減らす（入口・駐車場・目印）</h5>
-            <p>
-              Entrance Packは必要最小限のスポットで整理。<br>
-              Last30 Navigatorは「最後の30m」を目印/入口情報で補強します。
+        <div class="faq">
+          <h2 style="margin-top:22px;">よくある質問</h2>
+          <details>
+            <summary>「うちの店、立地が悪い＝選ばれない？」</summary>
+            <p style="margin-top:8px;">
+              立地は変えづらいですが、<b>迷い（入口/駐車場/目印）があると“不利が増幅”</b>します。AreaMapはここを削って、比較の段階で候補に残りやすくします。
             </p>
-          </div>
-
-          <div class="proposal-card">
-            <h5>② 流入元別URLで「どこから来たか」を見える化</h5>
-            <p>
-              HP用 / Instagram用 / チラシQR用…<br>
-              URLを分けるだけで、反応の差が分かります。
+          </details>
+          <details>
+            <summary>Google Mapがあるのに必要？</summary>
+            <p style="margin-top:8px;">
+              Google Mapは万能ですが、<b>敷地内/共同駐車場/裏口/入口のズレ</b>は説明が難しいことがあります。AreaMapは“最後の30m”を店側がコントロールできます。
             </p>
-          </div>
-
-          <div class="proposal-card">
-            <h5>③ 押された所から改善する（作って終わりにしない）</h5>
-            <p>
-              PV/UU・CTAクリック・画像タップを見て改善。<br>
-              Last30 Navigatorは月次ミニレポートで改善提案まで出します。<br>
-              Event Navigatorは会場の探索データを使って導線を最適化します。
+          </details>
+          <details>
+            <summary>まずどっちを選べばいい？</summary>
+            <p style="margin-top:8px;">
+              迷い電話/DMが少なくても、初回来店が多い業種はEntranceから。敷地内や入口が複雑ならLast30。迷ったらデモ内の<b>回収判定</b>を使うのが早いです。
             </p>
-          </div>
-        </div>
-
-        <!-- Soft CTA -->
-        <div class="proposal-footer">
-          <p class="proposal-note">
-            これはテンプレではありません。<br>
-            あなたの状況に合わせて設計します。
-          </p>
-
-          <a href="https://areamap.onrender.com/ask" class="proposal-cta">
-            AreaMapでどう変わるか聞いてみる
-          </a>
+          </details>
         </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- =========================
-    Footer
-  ========================= -->
-  <footer class="lp-footer">
-    <small>© AreaMap</small>
-  </footer>
+    <section class="footer">
+      <div class="wrap">
+        <div>© AreaMap / areamap.onrender.com</div>
+        <div style="margin-top:6px;">※掲載の内容・価格は想定。詳細は相談時に確定します。</div>
+      </div>
+    </section>
+  </main>
 
-</div>
+  <div class="sticky">
+    <a class="btn primary" href="#why">デモ</a>
+    <a class="btn" href="/ask">相談</a>
+  </div>
 
-<button id="move-top">Topへ</button>
-
-<script>
-  document.addEventListener("DOMContentLoaded", () => {
-
-    const sections = document.querySelectorAll(".lp-section");
-
-    const observer = new IntersectionObserver(
-      entries => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            const sectionName = entry.target.dataset.section;
-            document.body.setAttribute(
-              "data-active-section",
-              sectionName
-            );
-          }
-        });
-      },
-      {
-        root: null,
-        rootMargin: "-40% 0px -40% 0px",
-        threshold: 0
-      }
-    );
-
-    sections.forEach(section => observer.observe(section));
-  });
-
-  const questions = [
-    {
-      id: "map_visibility",
-      text: "お店の場所は、初めての人でも迷わず分かると思いますか？"
-    },
-    {
-      id: "map_click",
-      text: "ホームページやSNSから、地図は実際に押されていると思いますか？"
-    },
-    {
-      id: "route_action",
-      text: "地図を見た人は、そのまま来店行動に移れていると思いますか？"
-    }
-  ];
-
-  let currentIndex = 0;
-  const answers = {};
-
-  const questionText = document.getElementById("question-text");
-  const currentStep = document.getElementById("current-step");
-  const totalStep = document.getElementById("total-step");
-
-  totalStep.textContent = questions.length;
-
-  document.querySelectorAll(".hearing-actions button").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const answer = btn.dataset.answer;
-      answers[questions[currentIndex].id] = answer;
-
-      currentIndex++;
-
-      if (currentIndex < questions.length) {
-        updateQuestion();
-      } else {
-        goToResult();
-      }
+  <script>
+    document.querySelectorAll('a[href^="#"]').forEach(a=>{
+      a.addEventListener('click', (e)=>{
+        const id = a.getAttribute('href');
+        const el = document.querySelector(id);
+        if(!el) return;
+        e.preventDefault();
+        el.scrollIntoView({behavior:'smooth', block:'start'});
+      });
     });
-  });
-
-  function updateQuestion() {
-    questionText.textContent = questions[currentIndex].text;
-    currentStep.textContent = currentIndex + 1;
-  }
-
-  function goToResult() {
-    sessionStorage.setItem("hearingResult", JSON.stringify(answers));
-
-    const hearingMain = document.querySelector(".hearing-main");
-    const resultEl = document.getElementById("before-after-result");
-
-    if (hearingMain) {
-      hearingMain.style.display = "none";
-    }
-
-    if (!resultEl) {
-      console.error("before-after-result が見つかりません");
-      return;
-    }
-
-    resultEl.hidden = false;
-
-    renderBeforeAfter();
-  }
-
-  function renderBeforeAfter() {
-    const result = JSON.parse(
-      sessionStorage.getItem("hearingResult") || "{}"
-    );
-
-    const beforeText = document.getElementById("before-text");
-    const afterText  = document.getElementById("after-text");
-    const actionList = document.getElementById("action-list");
-
-    // 初期化
-    beforeText.innerHTML = "";
-    afterText.innerHTML  = "";
-    actionList.innerHTML = "";
-
-    /* =========================
-      シナリオ定義
-    ========================= */
-    const scenarios = [
-      {
-        id: "map_visibility",
-        label: "場所の分かりやすさ",
-        condition: r => r.map_visibility === "no",
-        before: "初めて来る人にとって、場所が分かりにくい状態です。目印や構図が足りず、迷いやすくなっています。",
-        after: "目的地1点に絞ったシンプルな地図で、初めての人でも迷わず来られる状態になります。",
-        actions: [
-          "目的地を1点に絞る",
-          "目印（交差点・建物）を追加",
-          "構図を固定して迷いを減らす"
-        ]
-      },
-      {
-        id: "map_click",
-        label: "地図が押されているか",
-        condition: r => r.map_click === "no",
-        before: "地図は置いてあるものの、あまり押されていません。場所の情報が目に入りづらい可能性があります。",
-        after: "ホームページやSNSで、地図が自然に目に入り、押される状態になります。",
-        actions: [
-          "地図の配置を目立つ位置に変更",
-          "『地図はこちら』の導線を明確に",
-          "Instagramプロフィールから直接開けるようにする"
-        ]
-      },
-      {
-        id: "route_action",
-        label: "来店行動につながっているか",
-        condition: r => r.route_action === "no",
-        before: "地図を見た人が、そのまま来店行動に移りづらい状態です。",
-        after: "地図を見た流れで、そのままGoogle Mapを開き、行動に移れる状態になります。",
-        actions: [
-          "ワンタップでGoogle Mapを開けるようにする",
-          "徒歩◯分・駐車場情報を強調",
-          "『今行ける』訴求を追加"
-        ]
-      }
-    ];
-
-    let hasIssue = false;
-
-    /* =========================
-      回答ごとに表示
-    ========================= */
-    scenarios.forEach(s => {
-      if (s.condition(result)) {
-        hasIssue = true;
-
-        // Before
-        const beforeBlock = document.createElement("p");
-        beforeBlock.innerHTML = `<strong>【${s.label}】</strong><br>${s.before}`;
-        beforeText.appendChild(beforeBlock);
-
-        // After
-        const afterBlock = document.createElement("p");
-        afterBlock.innerHTML = `<strong>【${s.label}】</strong><br>${s.after}`;
-        afterText.appendChild(afterBlock);
-
-        // Actions
-        s.actions.forEach(action => {
-          const li = document.createElement("li");
-          li.textContent = action;
-          actionList.appendChild(li);
-        });
-      }
-    });
-
-    /* =========================
-      問題なしの場合
-    ========================= */
-    if (!hasIssue) {
-      beforeText.textContent =
-        "現状、大きな問題は見当たりません。導線はうまく機能している可能性があります。";
-
-      afterText.textContent =
-        "今の導線を維持しつつ、数字を見ながら微調整することで、さらに来店率を高められます。";
-
-      const li = document.createElement("li");
-      li.textContent = "現状の導線を数値で確認し、微改善を続ける";
-      actionList.appendChild(li);
-    }
-  }
-
-  const btn = document.getElementById("move-top");
-  btn.addEventListener("click", () => {
-    window.scroll({
-      top: 0,
-      behavior: "smooth",
-    });
-  });
-</script>
-
-<script>
-  window.fbAsyncInit = function() {
-    FB.init({
-      appId      : '{your-app-id}',
-      cookie     : true,
-      xfbml      : true,
-      version    : '{api-version}'
-    });
-      
-    FB.AppEvents.logPageView();   
-      
-  };
-
-  (function(d, s, id){
-     var js, fjs = d.getElementsByTagName(s)[0];
-     if (d.getElementById(id)) {return;}
-     js = d.createElement(s); js.id = id;
-     js.src = "https://connect.facebook.net/en_US/sdk.js";
-     fjs.parentNode.insertBefore(js, fjs);
-   }(document, 'script', 'facebook-jssdk'));
-</script>
+  </script>
 </body>
 </html>
