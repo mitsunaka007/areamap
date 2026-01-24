@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>AreaMap | 秘書問題デモ（自動営業）</title>
+  <title>AreaMap | 迷いを減らして選ばれやすくするデモ</title>
 
   <!-- Leaflet -->
   <link
@@ -21,97 +21,86 @@
   <style>
     :root{
       --bg: rgba(255,255,255,0.92);
+      --panel: rgba(255,255,255,0.94);
       --border: rgba(0,0,0,0.10);
-      --shadow: 0 8px 22px rgba(0,0,0,0.14);
+      --shadow: 0 10px 26px rgba(0,0,0,0.16);
       --text: rgba(0,0,0,0.86);
-      --muted: rgba(0,0,0,0.58);
+      --muted: rgba(0,0,0,0.60);
       --accent: #0b57d0;
-      --warn: #b3261e;
       --ok: #137333;
+      --warn: #b3261e;
       --amber: #8a5a00;
     }
     html, body { height: 100%; margin: 0; }
     #tilemap { height: 100%; width: 100%; }
 
-    .map-badge{
-      position: absolute;
-      top: 12px;
-      left: 12px;
-      z-index: 1000;
+    /* Top-left badge */
+    .badge{
+      position:absolute; top:12px; left:12px; z-index:1000;
       background: var(--bg);
-      padding: 10px 12px;
-      border-radius: 12px;
-      font-family: system-ui, -apple-system, "Noto Sans JP", sans-serif;
-      font-size: 13px;
-      line-height: 1.45;
-      box-shadow: var(--shadow);
       border: 1px solid var(--border);
-      max-width: 380px;
-      color: var(--text);
-      backdrop-filter: blur(6px);
-    }
-    .map-badge b{ font-weight: 800; }
-    .map-badge .muted{ color: var(--muted); }
-
-    .panel{
-      position: absolute;
-      top: 12px;
-      right: 12px;
-      z-index: 1000;
-      width: min(460px, calc(100vw - 24px));
-      background: var(--bg);
       border-radius: 14px;
       box-shadow: var(--shadow);
-      border: 1px solid var(--border);
-      padding: 12px;
+      padding: 10px 12px;
+      max-width: 420px;
+      backdrop-filter: blur(6px);
       font-family: system-ui, -apple-system, "Noto Sans JP", sans-serif;
       color: var(--text);
+      line-height: 1.45;
+    }
+    .badge .ttl{ font-weight: 900; font-size: 13px; }
+    .badge .sub{ font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .badge .sub b{ color: var(--text); }
+
+    /* Right panel */
+    .panel{
+      position:absolute; top:12px; right:12px; z-index:1000;
+      width: min(480px, calc(100vw - 24px));
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      padding: 12px;
       backdrop-filter: blur(6px);
+      font-family: system-ui, -apple-system, "Noto Sans JP", sans-serif;
+      color: var(--text);
       max-height: calc(100vh - 24px);
       overflow: auto;
     }
     .panel h1{
-      font-size: 14px;
-      margin: 0 0 8px 0;
-      font-weight: 900;
+      margin:0; font-size: 15px; font-weight: 950;
       letter-spacing: .02em;
     }
-    .row{ display:flex; gap:10px; align-items:center; flex-wrap: wrap; }
+    .panel .lead{
+      margin-top: 6px;
+      font-size: 12.5px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .panel .lead b{ color: var(--text); }
+
+    .row{ display:flex; gap:10px; flex-wrap: wrap; align-items: center; }
     .row + .row{ margin-top: 10px; }
 
     .pill{
-      display:inline-flex;
-      gap:6px;
-      align-items:center;
+      display:inline-flex; align-items:center; gap:8px;
       padding: 6px 10px;
       border-radius: 999px;
       border: 1px solid var(--border);
-      background: rgba(255,255,255,0.65);
+      background: rgba(255,255,255,0.70);
       font-size: 12px;
       color: var(--muted);
     }
     .pill b{ color: var(--text); }
 
-    label{ font-size: 12px; color: var(--muted); }
-    input[type="number"]{
-      width: 110px;
-      padding: 8px 10px;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      font-size: 13px;
-      outline: none;
-      background: rgba(255,255,255,0.85);
-    }
-    input[type="number"]:focus{ border-color: rgba(11,87,208,0.55); }
-
     button{
-      padding: 9px 12px;
-      border-radius: 12px;
+      padding: 10px 12px;
+      border-radius: 14px;
       border: 1px solid var(--border);
-      background: rgba(255,255,255,0.90);
+      background: rgba(255,255,255,0.95);
       cursor: pointer;
       font-size: 13px;
-      font-weight: 700;
+      font-weight: 800;
       transition: transform .05s ease, background .12s ease;
     }
     button:hover{ background: rgba(255,255,255,1); }
@@ -121,206 +110,306 @@
       border-color: rgba(11,87,208,0.28);
       color: rgba(11,87,208,1);
     }
-    button.danger{
-      background: rgba(179,38,30,0.10);
-      border-color: rgba(179,38,30,0.22);
-      color: rgba(179,38,30,1);
-    }
     button.ok{
       background: rgba(19,115,51,0.10);
       border-color: rgba(19,115,51,0.22);
       color: rgba(19,115,51,1);
     }
-    button:disabled{
-      opacity: .45;
-      cursor: not-allowed;
-      transform: none;
+    button.danger{
+      background: rgba(179,38,30,0.10);
+      border-color: rgba(179,38,30,0.22);
+      color: rgba(179,38,30,1);
     }
+    button:disabled{ opacity:.45; cursor:not-allowed; transform:none; }
 
     .divider{
-      height: 1px;
-      width: 100%;
-      background: rgba(0,0,0,0.08);
-      margin: 10px 0;
+      height:1px; background: rgba(0,0,0,0.08);
+      margin: 12px 0;
     }
 
-    .mono{
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    .card{
+      border: 1px solid rgba(0,0,0,0.10);
+      background: rgba(255,255,255,0.72);
+      border-radius: 16px;
+      padding: 10px;
     }
-
-    .hint{
-      font-size: 12px;
+    .card .cttl{
+      font-weight: 950;
+      font-size: 13px;
+      margin-bottom: 6px;
+    }
+    .card .ctext{
+      font-size: 12.5px;
       color: var(--muted);
-      line-height: 1.5;
+      line-height: 1.6;
     }
+    .card .ctext b{ color: var(--text); }
 
     .status{
-      font-size: 12px;
-      color: var(--text);
-      padding: 10px;
-      border-radius: 12px;
-      border: 1px dashed rgba(0,0,0,0.12);
-      background: rgba(255,255,255,0.62);
-      line-height: 1.55;
-    }
-    .status .small{ color: var(--muted); }
-
-    /* 返し（自動営業） */
-    .objection-box{
-      border-radius: 14px;
-      border: 1px solid rgba(0,0,0,0.10);
+      border: 1px dashed rgba(0,0,0,0.14);
       background: rgba(255,255,255,0.70);
+      border-radius: 16px;
       padding: 10px;
-    }
-    .objection-box h2{
-      font-size: 13px;
-      margin: 0 0 8px 0;
-      font-weight: 900;
-    }
-    .objection-actions{
-      display:flex;
-      gap:8px;
-      flex-wrap: wrap;
-    }
-    .reply{
-      margin-top: 10px;
-      padding: 10px;
-      border-radius: 14px;
-      border: 1px solid rgba(11,87,208,0.18);
-      background: rgba(11,87,208,0.06);
       font-size: 12.5px;
       line-height: 1.6;
     }
-    .reply .ttl{
-      font-weight: 900;
-      color: rgba(11,87,208,1);
-      margin-bottom: 6px;
-      font-size: 12px;
+    .status .small{ color: var(--muted); font-size: 12px; }
+    .status b{ color: var(--text); }
+
+    .checklist{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+      margin-top: 8px;
     }
-    .reply .kicker{
-      display:inline-block;
-      padding: 3px 8px;
-      border-radius: 999px;
-      border: 1px solid rgba(0,0,0,0.10);
-      background: rgba(255,255,255,0.75);
-      color: var(--muted);
-      font-size: 11px;
-      margin-right: 6px;
-    }
-    .cta{
-      margin-top: 10px;
+    .check{
+      display:flex; gap:10px; align-items:flex-start;
       padding: 10px;
       border-radius: 14px;
+      border: 1px solid rgba(0,0,0,0.10);
+      background: rgba(255,255,255,0.78);
+    }
+    .check input{ margin-top: 3px; }
+    .check .t{ font-weight: 900; font-size: 12.5px; }
+    .check .d{ font-size: 12px; color: var(--muted); margin-top: 2px; line-height: 1.5; }
+
+    .cta{
+      border-radius: 16px;
       border: 1px solid rgba(19,115,51,0.20);
       background: rgba(19,115,51,0.06);
-      font-size: 12.5px;
-      line-height: 1.6;
+      padding: 10px;
     }
     .cta .ttl{
-      font-weight: 900;
+      font-weight: 950;
       color: var(--ok);
+      font-size: 13px;
       margin-bottom: 6px;
-      font-size: 12px;
     }
-    .cta ul{
-      margin: 6px 0 0 18px;
-      padding: 0;
-    }
+    .cta ul{ margin: 6px 0 0 18px; padding: 0; color: var(--muted); font-size: 12.5px; line-height: 1.6; }
+    .cta .small{ color: var(--muted); font-size: 12px; margin-top: 8px; line-height: 1.6; }
 
-    /* マーカー */
-    .shop-dot{
+    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace; }
+
+    /* Markers */
+    .dot{
       width: 12px; height: 12px;
       border-radius: 999px;
       border: 2px solid rgba(0,0,0,0.65);
       background: rgba(255,255,255,0.95);
       box-shadow: 0 2px 10px rgba(0,0,0,0.22);
     }
-    .shop-dot.active{
-      background: rgba(11,87,208,0.95);
-      border-color: rgba(11,87,208,0.95);
-      box-shadow: 0 8px 18px rgba(11,87,208,0.25);
+    .dot.dim{ opacity: .55; }
+    .dot.scan{ background: rgba(255,170,0,0.95); border-color: rgba(255,170,0,0.95); }
+    .dot.focus{ background: rgba(11,87,208,0.95); border-color: rgba(11,87,208,0.95); box-shadow: 0 10px 20px rgba(11,87,208,0.22); }
+    .dot.shop{
+      width: 14px; height: 14px;
+      background: rgba(19,115,51,0.95);
+      border-color: rgba(19,115,51,0.95);
+      box-shadow: 0 10px 22px rgba(19,115,51,0.22);
     }
-    .shop-dot.explore{
-      background: rgba(255,170,0,0.95);
-      border-color: rgba(255,170,0,0.95);
-      box-shadow: 0 8px 18px rgba(255,170,0,0.22);
+
+    .overlay{
+      position: absolute; inset: 0;
+      z-index: 2000;
+      background: rgba(0,0,0,0.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
     }
-    .shop-dot.dim{ opacity: .55; }
+    .modal{
+      width: min(540px, 100%);
+      background: rgba(255,255,255,0.96);
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.35);
+      box-shadow: 0 18px 60px rgba(0,0,0,0.35);
+      padding: 14px;
+      font-family: system-ui, -apple-system, "Noto Sans JP", sans-serif;
+      color: var(--text);
+    }
+    .modal h2{
+      margin: 0;
+      font-size: 16px;
+      font-weight: 950;
+    }
+    .modal p{
+      margin: 8px 0 0 0;
+      color: var(--muted);
+      line-height: 1.7;
+      font-size: 13px;
+    }
+    .modal .steps{
+      margin-top: 10px;
+      display: grid;
+      gap: 10px;
+    }
+    .step{
+      border-radius: 16px;
+      border: 1px solid rgba(0,0,0,0.10);
+      background: rgba(255,255,255,0.78);
+      padding: 10px;
+    }
+    .step .st{ font-weight: 950; font-size: 13px; }
+    .step .sd{ color: var(--muted); font-size: 12.5px; margin-top: 4px; line-height: 1.6; }
+    .modal .actions{ margin-top: 12px; display:flex; gap:10px; flex-wrap: wrap; justify-content: flex-end; }
+
+    .linkbtn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      text-decoration:none;
+    }
 
     .leaflet-container a{ color: var(--accent); }
   </style>
 </head>
+
 <body>
-  <div class="map-badge">
-    <b>秘書問題デモ（自動営業）</b><br>
-    <span class="muted">
-      37%は「位置」ではなく「比較フェーズ」。
-      立地は動かせないが、<b>迷いと不安</b>は減らせる → AreaMapで“選ばれる確率”を上げる。
-    </span>
+  <div class="badge">
+    <div class="ttl">迷いを減らして「選ばれやすくする」デモ</div>
+    <div class="sub">
+      立地は変えられない。だから <b>迷い（入口/駐車場/目印）</b> を減らして、比較の段階で“候補に残る”確率を上げます。
+    </div>
   </div>
 
   <div class="panel">
-    <h1>秘書問題デモ（37%ルール）</h1>
+    <h1>お店向け：60秒で分かる「AreaMapの必要性」</h1>
+    <div class="lead">
+      ここで伝えたいのは「あなたのお店がダメ」ではなく、<b>候補が多いほど、お客さんは迷いやすい</b>という構造。<br>
+      その中で <b>“迷わせない店”</b> は選ばれやすくなります。
+    </div>
 
-    <div class="row">
-      <span class="pill">最適戦略：最初の <b>約37%</b> は観察（比較）</span>
-      <span class="pill">最良を選べる最大確率：<span class="mono">1/e ≈ 0.368</span></span>
+    <div class="row" style="margin-top:10px;">
+      <button class="primary" id="tourBtn">▶ 60秒ガイドを見る</button>
+      <button id="demoNextBtn" disabled>次へ</button>
+      <button class="danger" id="demoResetBtn">リセット</button>
+      <button class="ok" id="placeShopBtn">📍 お店の位置を置く</button>
     </div>
 
     <div class="row">
-      <div>
-        <label for="nInput">候補数 n（このエリアの選択肢の多さ）</label><br>
-        <input id="nInput" type="number" min="1" step="1" value="30">
-      </div>
-      <div>
-        <label>比較フェーズ k = ⌊n/e⌋</label><br>
-        <div class="pill"><span class="mono" id="kOut">11</span> 件をまず比較</div>
-      </div>
-      <div style="flex:1 1 auto"></div>
-      <button class="primary" id="startDemoBtn">デモ開始</button>
-      <button id="nextBtn" disabled>次へ</button>
-      <button class="danger" id="resetBtn">リセット</button>
+      <span class="pill">候補が多いほど「比較→疲れ→確実な店」を選びがち</span>
+      <span class="pill">AreaMap：入口/駐車場/目印を<b>1タップ</b>で明確に</span>
     </div>
 
     <div class="divider"></div>
 
     <div class="status" id="statusBox">
-      <b>ポイント</b>：37%に入れない店＝終わり、ではありません。<br>
+      <b>操作は3つだけ</b><br>
       <span class="small">
-        比較フェーズでは「情報が弱い店」が落ちやすい。AreaMapは <b>入口/駐車場/目印/導線</b> を1タップで示して、
-        “比較に残る確率”と“来店の確率”を上げます。
+        ①「60秒ガイド」→ ②「次へ」で点を順に見る → ③最後に「2週間テスト」を見て判断。<br>
+        ※点は匿名です。店名は出しません。
       </span>
     </div>
 
     <div class="divider"></div>
 
-    <!-- ここが「で？」対策の自動営業UI -->
-    <div class="objection-box">
-      <h2>「で？」と突っ込まれたら（自動返し）</h2>
-      <div class="objection-actions">
-        <button class="primary" data-objection="A">うち選ばれないってこと？</button>
-        <button class="primary" data-objection="B">で？結局どうすれば？</button>
-        <button class="primary" data-objection="C">後半に店が多い道沿いで不利では？</button>
-        <button class="ok" id="showSprintBtn">2週間スプリント（次の一手）</button>
-      </div>
+    <div class="card">
+      <div class="cttl">チェック：迷いが起きるポイント（当てはまるほど効果が出やすい）</div>
+      <div class="ctext">※立地のせいではなく「伝え方」の問題になっている部分だけ改善します。</div>
 
-      <div id="replyBox" class="reply" style="display:none;"></div>
-      <div id="ctaBox" class="cta" style="display:none;"></div>
+      <div class="checklist" id="checklist">
+        <label class="check">
+          <input type="checkbox" data-k="entrance">
+          <div>
+            <div class="t">入口が分かりにくい（裏口/奥/建物が似ている）</div>
+            <div class="d">「ここで合ってる？」の不安があると、良さそうでも保留→別の店になりがち</div>
+          </div>
+        </label>
+
+        <label class="check">
+          <input type="checkbox" data-k="parking">
+          <div>
+            <div class="t">駐車場が共同/説明が長い</div>
+            <div class="d">道案内が毎回同じになっているなら、リンク一本化で楽になります</div>
+          </div>
+        </label>
+
+        <label class="check">
+          <input type="checkbox" data-k="landmark">
+          <div>
+            <div class="t">曲がるポイント（目印）が弱い</div>
+            <div class="d">地図は合ってても“最後の30m”で迷うと離脱や電話が増えます</div>
+          </div>
+        </label>
+      </div>
     </div>
 
     <div class="divider"></div>
 
-    <div class="hint">
-      <b>営業用一言（自動ツールの台本）</b><br>
-      「候補が多いほど、比較フェーズで“情報が弱い店”が落ちます。立地は変えられないので、迷いと不安を潰して“選ばれる確率”を上げます。」
+    <div class="cta" id="ctaBox">
+      <div class="ttl">次の一手：2週間「迷い削減テスト」</div>
+      <div class="ctext" style="color: var(--muted); line-height: 1.6; font-size: 12.5px;">
+        立地は変えずに、迷いを減らして「取りこぼし」を回収します。
+      </div>
+      <ul>
+        <li><b>Day1</b>：入口/駐車場/目印の写真を用意</li>
+        <li><b>Day2</b>：AreaMap（1ページ）を作成</li>
+        <li><b>Day3</b>：SNS/予約導線に固定（リンク一本化）</li>
+        <li><b>Day4-14</b>：数字を見る（迷い電話/DM/テンプレ送信回数）</li>
+      </ul>
+      <div class="small" id="impactText">
+        ✅ チェックが増えるほど効果が出やすいです（＝迷いが減る余地が大きい）。
+      </div>
+
+      <div class="row" style="margin-top:10px;">
+        <!-- ここはあなたの導線に置き換えてOK -->
+        <a class="linkbtn ok" id="contactBtn" href="#" target="_blank" rel="noopener" style="flex:1;">
+          <button class="ok" style="width:100%;">導入相談（リンク）</button>
+        </a>
+        <a class="linkbtn primary" id="sampleBtn" href="#" target="_blank" rel="noopener" style="flex:1;">
+          <button class="primary" style="width:100%;">AreaMapサンプルを見る</button>
+        </a>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="card">
+      <div class="cttl">※補足（言い換え）</div>
+      <div class="ctext">
+        「候補が多いと最適を選びにくい」という研究（秘書問題）があります。<br>
+        このデモは “怖がらせる” のではなく、<b>改善できる変数（迷いと不安）</b> に集中するためのものです。
+      </div>
     </div>
   </div>
 
   <div id="tilemap"></div>
 
+  <!-- 初回ガイド（モーダル） -->
+  <div class="overlay" id="overlay">
+    <div class="modal">
+      <h2>60秒ガイド：これを見るだけでOK</h2>
+      <p>
+        この地図は「店名なし」の匿名点群です。<br>
+        <b>候補が多いほど</b> お客さんは比較に疲れて「確実に行ける店」を選びがち。<br>
+        AreaMapは <b>入口/駐車場/目印</b> を1タップで示して、迷いを減らします。
+      </p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="st">Step1：点を順に見ます（「次へ」）</div>
+          <div class="sd">比較中は、入口や駐車場が分かりにくい店ほど「保留→別の店」になりやすい</div>
+        </div>
+        <div class="step">
+          <div class="st">Step2：お店の位置を置けます（任意）</div>
+          <div class="sd">立地は変えられない。だから「迷いを減らす」ことで不利を相殺します</div>
+        </div>
+        <div class="step">
+          <div class="st">Step3：2週間テストで数字を確認</div>
+          <div class="sd">迷い電話/DM/道案内テンプレ回数が減れば、導入価値が“数字”で分かります</div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button id="closeOverlayBtn">閉じる</button>
+        <button class="primary" id="startTourBtn">このままデモ開始</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // =========================
-    // 設定
+    // 設定（あなたの導線に合わせて変更OK）
     // =========================
     const DEFAULT_CENTER = [36.061, 136.223];
     const DEFAULT_ZOOM   = 14;
@@ -330,120 +419,26 @@
 
     const API_URL = "/api/shops";
 
-    // “落ちる理由”テンプレ（匿名のまま、立地不利を「改善できる変数」に変換する）
+    // CTAリンク（必要に応じて差し替え）
+    const CONTACT_URL = "https://areamap.onrender.com/ask";  // 例：LINE/フォーム
+    const SAMPLE_URL  = "https://areamap.onrender.com/areamap-lite";  // 例：https://areamap.onrender.com/areamap-lite
+
+    document.getElementById("contactBtn").href = CONTACT_URL;
+    document.getElementById("sampleBtn").href  = SAMPLE_URL;
+
+    // 「迷い例」テンプレ（匿名説明用）
     const FRICTION_REASONS = [
-      "入口が裏側で初見だと不安",
-      "駐車場が共同で位置が分かりにくい",
-      "大通りから奥まっていて見つけにくい",
-      "看板が小さく、夜は特に分かりづらい",
+      "入口が裏側で初見だと不安になりやすい",
+      "駐車場が共同で“どこ？”が起きやすい",
+      "大通りから奥まっていて最後の曲がりが不安",
+      "看板が小さく、夜や雨で見えづらい",
       "建物が似ていて“ここで合ってる？”が起きる",
-      "曲がるポイントが曖昧で迷いやすい",
-      "Googleマップのピンは合ってるが入口まで不安"
+      "曲がるポイント（目印）が曖昧で迷いやすい",
+      "地図は合ってるが入口までが分かりづらい"
     ];
 
     // =========================
-    // 自動営業：反論→返し→次の一手
-    // =========================
-    const replyBox = document.getElementById("replyBox");
-    const ctaBox   = document.getElementById("ctaBox");
-    const showSprintBtn = document.getElementById("showSprintBtn");
-
-    function renderReply(title, lines, tags=[]){
-      replyBox.style.display = "block";
-      const tagHtml = tags.map(t => `<span class="kicker">${escapeHtml(t)}</span>`).join("");
-      replyBox.innerHTML = `
-        <div class="ttl">${escapeHtml(title)}</div>
-        <div>${tagHtml}</div>
-        <div style="margin-top:8px;">
-          ${lines.map(p => `<div style="margin-top:6px;">${p}</div>`).join("")}
-        </div>
-      `;
-    }
-
-    function renderCTA(){
-      ctaBox.style.display = "block";
-      ctaBox.innerHTML = `
-        <div class="ttl">AreaMapがやること（立地は変えずに、不利を相殺）</div>
-        <div>
-          <b>① 比較に残る材料を増やす</b>：入口/駐車場/目印/写真を1タップで提示（不安を消す）<br>
-          <b>② 来店の摩擦をゼロに近づける</b>：迷い電話・DM・離脱を減らす（取りこぼし回収）
-        </div>
-        <ul>
-          <li>Googleマップは「場所」。AreaMapは「入口と駐車場の確信」</li>
-          <li>後半フェーズほど「迷わせない店」が勝ちやすい（疲労フェーズ対策）</li>
-        </ul>
-      `;
-    }
-
-    function renderSprint(){
-      renderReply(
-        "次の一手：2週間『立地不利 相殺スプリント』",
-        [
-          "立地は動かせないので、<b>迷いと不安</b>を潰して“選ばれる確率”を上げます。",
-          "<b>Day1</b>：入口/駐車場/目印の撮影（店側でもOK）",
-          "<b>Day2</b>：AreaMap仮ページ作成（スマホ最適）",
-          "<b>Day3</b>：SNS/予約導線に固定（リンクを一本化）",
-          "<b>Day4-14</b>：数字を確認（週次でOK）<br>・迷い電話/DM回数<br>・道案内テンプレ送信回数<br>・『迷わず来れた』声（スクショ）",
-          "これで「導入前→導入後」の改善が1つでも出れば、<b>導入事例（実例）</b>になります。"
-        ],
-        ["2週間", "数字で証明", "不利を相殺"]
-      );
-      renderCTA();
-    }
-
-    const OBJECTION_REPLIES = {
-      A: {
-        title: "返し：『うち選ばれないってこと？』",
-        tags: ["不安解消", "立地は変えない"],
-        lines: [
-          "逆です。ここで言いたいのは「候補が多いほど<b>情報が弱い店</b>が落ちやすい」という構造です。",
-          "立地は変えられないけど、<b>迷いと不安</b>は変えられます。迷いがあると『良さそうでも保留→別の店』になりがち。",
-          "AreaMapは<b>入口・駐車場・目印</b>を1タップ化して、比較フェーズで落ちにくくします。"
-        ]
-      },
-      B: {
-        title: "返し：『で？結局どうすれば？』",
-        tags: ["やること2つ", "即実行"],
-        lines: [
-          "やることは2つだけです。",
-          "<b>① 比較フェーズで“候補に残る材料”を増やす</b>（入口・駐車場・目印・写真）",
-          "<b>② 選ばれた後の“来店の摩擦”を減らす</b>（迷い電話・DM・離脱を減らす）",
-          "AreaMapはこの2つをまとめて実装します。"
-        ]
-      },
-      C: {
-        title: "返し：『後半に店が多い道沿いで不利では？』",
-        tags: ["疲労フェーズ", "後半ほど勝てる"],
-        lines: [
-          "その通り。不利になりやすいです。だからこそ後半は『魅力』より<b>確実に行ける</b>が効きます。",
-          "人は疲れるので、後半では『迷わせない店』を選びます。",
-          "AreaMapは“ここで合ってる”を作って、<b>疲労フェーズの意思決定</b>に強くします。"
-        ]
-      }
-    };
-
-    document.querySelectorAll("button[data-objection]").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const key = btn.getAttribute("data-objection");
-        const r = OBJECTION_REPLIES[key];
-        renderReply(r.title, r.lines, r.tags);
-        renderCTA();
-      });
-    });
-
-    showSprintBtn.addEventListener("click", renderSprint);
-
-    function escapeHtml(str){
-      return String(str)
-        .replaceAll("&","&amp;")
-        .replaceAll("<","&lt;")
-        .replaceAll(">","&gt;")
-        .replaceAll('"',"&quot;")
-        .replaceAll("'","&#039;");
-    }
-
-    // =========================
-    // 地図初期化
+    // 地図
     // =========================
     const tilemap = L.map("tilemap", {
       center: DEFAULT_CENTER,
@@ -453,37 +448,37 @@
     });
 
     L.tileLayer(GSI_TILE_URL, { attribution: GSI_ATTR, maxZoom: 18 }).addTo(tilemap);
-
     const markersLayer = L.layerGroup().addTo(tilemap);
 
     function makeDotIcon(extraClass=""){
       return L.divIcon({
         className: "",
-        html: `<div class="shop-dot ${extraClass}"></div>`,
+        html: `<div class="dot ${extraClass}"></div>`,
         iconSize: [12,12],
         iconAnchor: [6,6],
       });
     }
+    function makeShopIcon(){
+      return L.divIcon({
+        className: "",
+        html: `<div class="dot shop"></div>`,
+        iconSize: [14,14],
+        iconAnchor: [7,7],
+      });
+    }
 
     // =========================
-    // データとデモ状態
+    // 状態
     // =========================
-    let shops = [];
-    let markers = [];
-    let demoOrder = [];
+    let shops = [];     // {lat,lng}
+    let markers = [];   // leaflet markers
+    let order = [];     // indices
     let step = -1;
-    let n = 30;
-    let k = 11;
-    let bestScoreSeen = -Infinity;
-    let chosenIndex = null;
-    let demoRunning = false;
+    let running = false;
 
-    function makeScore(){
-      return Math.round(20 + Math.random() * 80);
-    }
-    function pickReason(i){
-      return FRICTION_REASONS[i % FRICTION_REASONS.length];
-    }
+    let shopMarker = null;
+    let placingShop = false;
+
     function shuffle(arr){
       for (let i = arr.length - 1; i > 0; i--){
         const j = Math.floor(Math.random() * (i + 1));
@@ -491,190 +486,225 @@
       }
       return arr;
     }
-    function clampInt(v, min, max){
-      const x = Math.floor(Number(v));
-      if (!Number.isFinite(x)) return min;
-      return Math.min(max, Math.max(min, x));
+    function pickReason(i){
+      return FRICTION_REASONS[i % FRICTION_REASONS.length];
     }
 
     // =========================
     // UI
     // =========================
-    const nInput = document.getElementById("nInput");
-    const kOut   = document.getElementById("kOut");
     const statusBox = document.getElementById("statusBox");
-    const startDemoBtn = document.getElementById("startDemoBtn");
-    const nextBtn  = document.getElementById("nextBtn");
-    const resetBtn = document.getElementById("resetBtn");
+    const tourBtn = document.getElementById("tourBtn");
+    const demoNextBtn = document.getElementById("demoNextBtn");
+    const demoResetBtn = document.getElementById("demoResetBtn");
+    const placeShopBtn = document.getElementById("placeShopBtn");
+    const impactText = document.getElementById("impactText");
 
-    function updateK(){
-      n = clampInt(nInput.value, 1, 9999);
-      k = Math.max(1, Math.floor(n / Math.E));
-      kOut.textContent = String(k);
+    const overlay = document.getElementById("overlay");
+    const closeOverlayBtn = document.getElementById("closeOverlayBtn");
+    const startTourBtn = document.getElementById("startTourBtn");
 
-      const m = markers.length;
-      statusBox.innerHTML =
-        `<b>ポイント</b>：37%は「位置」ではなく「比較フェーズ」。<br>` +
-        `<span class="small">候補が多いほど、<b>情報が弱い店</b>が比較から落ちやすい。立地は変えられないので、AreaMapで「迷いと不安」を減らして“選ばれる確率”を上げます。</span>` +
-        (m > 0 && n < m ? `<br><span class="small" style="color:rgba(179,38,30,1)"><b>注意</b>：点(${m})より n(${n})が小さいです。n は“候補総数”として大きめ推奨。</span>` : "");
+    function openOverlay(){
+      overlay.style.display = "flex";
+    }
+    function closeOverlay(){
+      overlay.style.display = "none";
     }
 
-    nInput.addEventListener("input", updateK);
+    tourBtn.addEventListener("click", openOverlay);
+    closeOverlayBtn.addEventListener("click", closeOverlay);
+    startTourBtn.addEventListener("click", () => {
+      closeOverlay();
+      startDemo(true);
+    });
 
     function setButtons(){
-      startDemoBtn.disabled = demoRunning || markers.length === 0;
-      nextBtn.disabled = !demoRunning;
+      demoNextBtn.disabled = !running;
     }
 
-    function resetDemoState(){
-      demoRunning = false;
+    function resetDemo(){
+      running = false;
       step = -1;
-      bestScoreSeen = -Infinity;
-      chosenIndex = null;
-
       markers.forEach(m => m.setIcon(makeDotIcon("dim")));
       setButtons();
 
-      statusBox.innerHTML =
-        `<b>リセットしました</b><br>` +
-        `<span class="small">デモは「比較フェーズで落ちない」話。恐怖ではなく、次の一手（AreaMap）へ繋げます。</span>`;
+      statusBox.innerHTML = `
+        <b>リセットしました</b><br>
+        <span class="small">
+          「60秒ガイド」→「次へ」で点を順に見てください。<br>
+          立地は変えずに、迷い（入口/駐車場/目印）を減らすことが結論です。
+        </span>
+      `;
     }
+    demoResetBtn.addEventListener("click", resetDemo);
 
-    resetBtn.addEventListener("click", resetDemoState);
+    // “お店の位置を置く”
+    placeShopBtn.addEventListener("click", () => {
+      placingShop = !placingShop;
+      placeShopBtn.textContent = placingShop ? "📍 地図をクリックして設置中…" : "📍 お店の位置を置く";
+      placeShopBtn.classList.toggle("ok", placingShop);
+      placeShopBtn.classList.toggle("primary", placingShop);
+      if (placingShop){
+        statusBox.innerHTML = `
+          <b>お店の位置を置くモード</b><br>
+          <span class="small">地図を1回クリックすると、お店マーカー（緑）が置けます。立地は変えずに「迷い」を減らす前提で見てください。</span>
+        `;
+      } else {
+        statusBox.innerHTML = `
+          <b>通常モード</b><br>
+          <span class="small">「次へ」で点を順に見ます。迷いがあると“良さそうでも保留”が起きやすい。</span>
+        `;
+      }
+    });
 
-    function buildPopupContent(phase, score, reason, isChosen){
-      const orderNo = step + 1;
-      const phaseLabel = phase === "explore"
-        ? `<span style="color:var(--amber);font-weight:900;">比較フェーズ</span>`
-        : `<span style="color:var(--accent);font-weight:900;">採用フェーズ</span>`;
+    tilemap.on("click", (e) => {
+      if (!placingShop) return;
+      const { lat, lng } = e.latlng;
 
-      const headline = isChosen
-        ? `<div style="margin:6px 0 0 0; font-weight:900; color:var(--accent);">✅ この候補に決めた（シミュレーション）</div>`
-        : "";
+      if (shopMarker) {
+        shopMarker.setLatLng([lat, lng]);
+      } else {
+        shopMarker = L.marker([lat, lng], { icon: makeShopIcon(), keyboard:false })
+          .addTo(markersLayer)
+          .bindPopup(`
+            <div style="font-family:system-ui,-apple-system,'Noto Sans JP',sans-serif; font-size:13px;">
+              <b>あなたのお店（仮）</b><br>
+              <span style="color:rgba(0,0,0,0.60);">
+                立地は変えられないので、入口/駐車場/目印を明確にして“迷い”を減らすのが勝ち筋です。
+              </span>
+            </div>
+          `);
+      }
 
-      const msg = phase === "explore"
-        ? `この段階は“見るだけ”。ただし<b>入口/駐車場/目印</b>が弱いと、比較から落ちやすい。`
-        : `ここからは“観察中の最高”を超えたら決める。<b>不安が少ない店</b>ほど選ばれやすい。`;
+      placingShop = false;
+      placeShopBtn.textContent = "📍 お店の位置を置く";
+      statusBox.innerHTML = `
+        <b>お店マーカーを置きました</b><br>
+        <span class="small">次は「60秒ガイド」→「次へ」でデモを見ると、AreaMapの役割が直感的に分かります。</span>
+      `;
+    });
 
+    // =========================
+    // デモ（“恐怖”ではなく“改善可能”に寄せる）
+    // =========================
+    function popupHtml(reason){
       return `
-        <div style="min-width:240px; font-family: system-ui, -apple-system, 'Noto Sans JP', sans-serif;">
-          <div style="font-size:12px;color:rgba(0,0,0,0.60);">候補 #${orderNo}（匿名）</div>
-          <div style="margin-top:3px;">${phaseLabel} / <span style="color:rgba(0,0,0,0.62);">仮スコア</span> <b>${score}</b></div>
-          <div style="margin-top:6px; font-size:13px; line-height:1.5;">${msg}</div>
-          <div style="margin-top:8px; padding:8px; border-radius:10px; background: rgba(255,255,255,0.75); border:1px solid rgba(0,0,0,0.08);">
-            <div style="font-size:12px; color: rgba(0,0,0,0.60);">立地不利を生む“迷い”例</div>
-            <div style="font-size:13px; margin-top:2px;"><b>${reason}</b></div>
+        <div style="min-width:250px; font-family:system-ui,-apple-system,'Noto Sans JP',sans-serif;">
+          <div style="font-size:12px;color:rgba(0,0,0,0.60);">候補（匿名）</div>
+          <div style="margin-top:6px; font-size:13px; line-height:1.6;">
+            <b>迷いが起きやすい例：</b><br>
+            ${escapeHtml(reason)}
           </div>
-          ${headline}
-          <div style="margin-top:8px; font-size:12px; color: rgba(0,0,0,0.60);">
-            👉 AreaMapで「入口/駐車場/目印/導線」を1タップ化し、立地の不利を相殺します。
+          <div style="margin-top:10px; font-size:12px; color:rgba(0,0,0,0.60); line-height:1.6;">
+            👉 AreaMapは「入口/駐車場/目印」を1タップで提示して、<b>不安を消す</b>→<b>取りこぼしを減らす</b>ためのページです。
           </div>
         </div>
       `;
     }
 
-    function startDemo(){
+    function startDemo(auto=false){
       if (markers.length === 0) return;
-      updateK();
 
-      const m = markers.length;
-
-      demoOrder = shuffle([...Array(m).keys()]);
+      running = true;
       step = -1;
-      bestScoreSeen = -Infinity;
-      chosenIndex = null;
-      demoRunning = true;
+      markers.forEach(m => m.setIcon(makeDotIcon("dim")));
 
-      markers.forEach(mk => mk.setIcon(makeDotIcon("dim")));
-
-      statusBox.innerHTML =
-        `<b>デモ開始</b>：点（匿名）を順に見ます。<br>` +
-        `<span class="small">最初の <b>${Math.min(k, m)}</b> 点は比較（観察）。それ以降で「観察中の最高」を超えた瞬間に“決める”のが秘書問題の最適戦略。</span>`;
+      // ランダム順＝「お客さんが順に候補を見ていく」イメージ
+      order = shuffle([...Array(markers.length).keys()]);
 
       setButtons();
-      nextStep();
+
+      statusBox.innerHTML = `
+        <b>デモ開始</b><br>
+        <span class="small">
+          候補が多いと、比較中に「迷い」がある店は保留されやすい。<br>
+          “迷わせない” を作るのが AreaMap の役割です。<br>
+          「次へ」で進めてください。
+        </span>
+      `;
+
+      if (auto) {
+        // 自動で2ステップだけ進めて「操作イメージ」を作る
+        nextStep();
+        setTimeout(() => nextStep(), 800);
+      }
     }
 
-    startDemoBtn.addEventListener("click", startDemo);
-
     function nextStep(){
-      if (!demoRunning) return;
+      if (!running) return;
 
-      const m = markers.length;
       step += 1;
-
-      if (step >= m){
-        demoRunning = false;
+      if (step >= order.length){
+        running = false;
         setButtons();
 
-        const resultText = chosenIndex == null
-          ? "今回は“決めきれない”パターン（情報不足で見送る/離脱）"
-          : "“決めた”が、現実では「迷い」があると離脱しやすい";
+        const shopHint = shopMarker
+          ? `<br><span class="small">（緑＝あなたのお店）立地は変えずに、迷いを減らして“来店までの不安”をゼロに近づけるのが結論です。</span>`
+          : "";
 
-        statusBox.innerHTML =
-          `<b>デモ終了</b>：${resultText}<br>` +
-          `<span class="small">ここからの提案は“立地は変えずに、迷いと不安を潰す”。右の「自動返し」ボタンでそのまま説明できます。</span>`;
+        statusBox.innerHTML = `
+          <b>ここまでで分かること</b><br>
+          <span class="small">
+            候補が多いほど、お客さんは疲れて「確実に行ける店」を選びがち。<br>
+            だから <b>入口/駐車場/目印</b> を1タップ化して “迷い” を減らすと取りこぼしが減ります。
+          </span>
+          ${shopHint}
+        `;
         return;
       }
 
-      const idx = demoOrder[step];
+      const idx = order[step];
       const marker = markers[idx];
-      const score = marker.__demoScore;
-      const reason = marker.__demoReason;
 
-      markers.forEach(mk => mk.setIcon(makeDotIcon("dim")));
+      // 見た目
+      markers.forEach(m => m.setIcon(makeDotIcon("dim")));
+      marker.setIcon(makeDotIcon(step < Math.ceil(order.length * 0.33) ? "scan" : "focus"));
 
-      const exploreCount = Math.min(k, m);
-      const phase = (step < exploreCount) ? "explore" : "exploit";
+      // ポップアップ
+      marker.openPopup();
 
-      if (phase === "explore"){
-        marker.setIcon(makeDotIcon("explore"));
-        bestScoreSeen = Math.max(bestScoreSeen, score);
-
-        marker.bindPopup(buildPopupContent(phase, score, reason, false), { closeButton: true });
-        marker.openPopup();
-
-        statusBox.innerHTML =
-          `<b>比較フェーズ</b>（${step+1}/${exploreCount}）<br>` +
-          `<span class="small">ここでは決めない。“基準（観察最高）”を作る。<br>` +
-          `現在の観察最高：<b>${bestScoreSeen}</b></span>`;
-      } else {
-        marker.setIcon(makeDotIcon("active"));
-
-        if (chosenIndex == null && score > bestScoreSeen){
-          chosenIndex = idx;
-
-          marker.bindPopup(buildPopupContent(phase, score, reason, true), { closeButton: true });
-          marker.openPopup();
-
-          statusBox.innerHTML =
-            `<b>採用フェーズ</b>：観察最高 <b>${bestScoreSeen}</b> を超えたので“決めた”扱い。<br>` +
-            `<span class="small">現実はここで「迷い」があると不安で離脱しやすい → AreaMapが効く。</span>`;
-        } else {
-          marker.bindPopup(buildPopupContent(phase, score, reason, false), { closeButton: true });
-          marker.openPopup();
-
-          statusBox.innerHTML =
-            `<b>採用フェーズ</b>（${step+1}/${m}）<br>` +
-            `<span class="small">観察最高：<b>${bestScoreSeen}</b> / 今の候補：<b>${score}</b><br>` +
-            `候補が多いほど「迷わせない店」が選ばれやすくなる。</span>`;
-        }
-      }
+      // 説明文（“で？”を潰す：結論まで毎回言う）
+      const phase = step < Math.ceil(order.length * 0.33) ? "比較中（序盤）" : "比較に疲れた後半";
+      statusBox.innerHTML = `
+        <b>${phase}</b><br>
+        <span class="small">
+          この段階で「迷い」があると、良さそうでも保留されやすい。<br>
+          AreaMapは <b>入口/駐車場/目印</b> を1タップで提示し、“迷い”による取りこぼしを減らします。
+        </span>
+      `;
 
       tilemap.panTo(marker.getLatLng(), { animate: true, duration: 0.35 });
     }
 
-    nextBtn.addEventListener("click", nextStep);
+    demoNextBtn.addEventListener("click", nextStep);
+    tourBtn.addEventListener("dblclick", (e) => e.preventDefault()); // accidental zoom text selection
 
     // =========================
-    // データロード（店名は使わない）
+    // チェックリスト → “効果”文言を自動調整
+    // =========================
+    const checklist = document.getElementById("checklist");
+    checklist.addEventListener("change", () => {
+      const checked = [...checklist.querySelectorAll("input[type=checkbox]")].filter(x => x.checked).length;
+
+      if (checked === 0){
+        impactText.textContent = "✅ チェックが増えるほど効果が出やすいです（＝迷いが減る余地が大きい）。";
+      } else if (checked === 1){
+        impactText.innerHTML = "✅ 1つ当てはまる：<b>迷い削減の余地あり</b>。まずは2週間テストで数字を確認しましょう。";
+      } else if (checked === 2){
+        impactText.innerHTML = "✅ 2つ当てはまる：<b>効果が出やすいタイプ</b>。迷い電話/DM/テンプレ回数が減る可能性が高いです。";
+      } else {
+        impactText.innerHTML = "✅ 3つ当てはまる：<b>かなり回収しやすい</b>。リンク一本化だけでも店側の負担が軽くなります。";
+      }
+    });
+
+    // =========================
+    // データロード
     // =========================
     async function loadShops(){
       try{
         const res = await fetch(API_URL, { cache: "no-store" });
         if (!res.ok) throw new Error("HTTP " + res.status);
         const data = await res.json();
-
         if (!Array.isArray(data)) throw new Error("API response is not an array");
 
         shops = data
@@ -684,7 +714,6 @@
         if (shops.length === 0) throw new Error("No valid lat/lng in response");
       } catch(err){
         console.warn("API load failed. Use fallback sample points.", err);
-
         shops = [
           {lat: 36.0612, lng: 136.2232},
           {lat: 36.0608, lng: 136.2264},
@@ -697,46 +726,80 @@
           {lat: 36.0619, lng: 136.2272},
           {lat: 36.0592, lng: 136.2239},
         ];
-
-        statusBox.innerHTML =
-          `<b>API読込に失敗</b>：サンプル点で表示しています。<br>` +
-          `<span class="small">サーバーで /api/shops が返る環境では自動で実データ点群になります。</span>`;
+        statusBox.innerHTML = `
+          <b>サンプル点で表示中</b><br>
+          <span class="small">/api/shops が返る環境なら実データ点群になります。操作や流れは同じです。</span>
+        `;
       }
 
       markersLayer.clearLayers();
       markers = [];
-
       const latLngs = [];
 
       shops.forEach((s, i) => {
-        const marker = L.marker([s.lat, s.lng], { icon: makeDotIcon("dim"), keyboard: false });
-        marker.__demoScore = makeScore();
-        marker.__demoReason = pickReason(i);
-
-        marker.bindPopup(
-          `<div style="font-family: system-ui, -apple-system, 'Noto Sans JP', sans-serif; font-size:13px;">` +
-          `<b>候補（匿名）</b><br><span style="color:rgba(0,0,0,0.60);">クリックしても店名は出しません。</span>` +
-          `</div>`
-        );
+        const reason = pickReason(i);
+        const marker = L.marker([s.lat, s.lng], { icon: makeDotIcon("dim"), keyboard:false })
+          .bindPopup(popupHtml(reason), { closeButton: true });
 
         marker.addTo(markersLayer);
         markers.push(marker);
         latLngs.push([s.lat, s.lng]);
       });
 
-      if (latLngs.length >= 2){
-        tilemap.fitBounds(latLngs, { padding: [30,30] });
-      } else if (latLngs.length === 1){
-        tilemap.setView(latLngs[0], 16);
+      if (latLngs.length >= 2) tilemap.fitBounds(latLngs, { padding: [30,30] });
+      else if (latLngs.length === 1) tilemap.setView(latLngs[0], 16);
+
+      // 初回はガイドを開いて迷わせない
+      openOverlay();
+
+      // デモボタン（tour）以外でも開始できるように
+      document.getElementById("tourBtn").addEventListener("click", () => {
+        // ガイド内から開始するのでここでは何もしない
+      });
+
+      // panelの「次へ」を有効にするには開始が必要
+      demoNextBtn.disabled = true;
+
+      // ガイド外からも開始できるように：badgeクリックで開始
+      document.querySelector(".badge").addEventListener("click", () => startDemo(false));
+
+      // 右上の「次へ」ボタンを開始に連動
+      // （startDemoが呼ばれたら有効化される）
+      // ※ガイドから開始時は auto=true で2ステップ進む
+
+      // 「60秒ガイドを見る」→モーダル開始でOK
+      // ただ、ユーザーがモーダル閉じてしまったときの導線として
+      // panel上の「60秒ガイドを見る」を押すだけで開始もできるようにする：
+      tourBtn.addEventListener("contextmenu", (e) => e.preventDefault());
+    }
+
+    // ガイド外から開始できるように：パネルの主ボタンで開始
+    document.getElementById("tourBtn").addEventListener("click", () => {
+      // ガイドを開くだけ
+    });
+
+    // デモ開始をガイド外にも用意：ステータスクリックで開始
+    document.getElementById("statusBox").addEventListener("click", () => {
+      // まだ動いてない場合だけ開始
+      if (!running && markers.length > 0){
+        startDemo(false);
       }
+    });
 
-      nInput.value = String(Math.max(30, markers.length));
-      updateK();
-      setButtons();
+    // startDemoを呼ぶと「次へ」が有効になるように補助
+    const _origStartDemo = startDemo;
+    startDemo = function(auto){
+      _origStartDemo(auto);
+      demoNextBtn.disabled = false;
+    };
 
-      // 初期状態で「で？」を先回りして見せたいならここで表示
-      // renderReply("まずここだけ", ["37%は“位置”ではなく“比較フェーズ”。立地は変えずに、迷いと不安を潰して選ばれる確率を上げます。"], ["安心設計"]);
-      // renderCTA();
+    function escapeHtml(str){
+      return String(str)
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
     }
 
     loadShops();
