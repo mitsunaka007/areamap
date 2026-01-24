@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>AreaMap | 秘書問題デモ（匿名点群）</title>
+  <title>AreaMap | 秘書問題デモ（自動営業）</title>
 
   <!-- Leaflet -->
   <link
@@ -27,11 +27,12 @@
       --muted: rgba(0,0,0,0.58);
       --accent: #0b57d0;
       --warn: #b3261e;
+      --ok: #137333;
+      --amber: #8a5a00;
     }
     html, body { height: 100%; margin: 0; }
     #tilemap { height: 100%; width: 100%; }
 
-    /* 左上：概要バッジ */
     .map-badge{
       position: absolute;
       top: 12px;
@@ -49,16 +50,15 @@
       color: var(--text);
       backdrop-filter: blur(6px);
     }
-    .map-badge b{ font-weight: 700; }
+    .map-badge b{ font-weight: 800; }
     .map-badge .muted{ color: var(--muted); }
 
-    /* 右上：コントロール */
     .panel{
       position: absolute;
       top: 12px;
       right: 12px;
       z-index: 1000;
-      width: min(420px, calc(100vw - 24px));
+      width: min(460px, calc(100vw - 24px));
       background: var(--bg);
       border-radius: 14px;
       box-shadow: var(--shadow);
@@ -67,11 +67,13 @@
       font-family: system-ui, -apple-system, "Noto Sans JP", sans-serif;
       color: var(--text);
       backdrop-filter: blur(6px);
+      max-height: calc(100vh - 24px);
+      overflow: auto;
     }
     .panel h1{
       font-size: 14px;
       margin: 0 0 8px 0;
-      font-weight: 800;
+      font-weight: 900;
       letter-spacing: .02em;
     }
     .row{ display:flex; gap:10px; align-items:center; flex-wrap: wrap; }
@@ -88,6 +90,7 @@
       font-size: 12px;
       color: var(--muted);
     }
+    .pill b{ color: var(--text); }
 
     label{ font-size: 12px; color: var(--muted); }
     input[type="number"]{
@@ -108,7 +111,7 @@
       background: rgba(255,255,255,0.90);
       cursor: pointer;
       font-size: 13px;
-      font-weight: 650;
+      font-weight: 700;
       transition: transform .05s ease, background .12s ease;
     }
     button:hover{ background: rgba(255,255,255,1); }
@@ -122,6 +125,11 @@
       background: rgba(179,38,30,0.10);
       border-color: rgba(179,38,30,0.22);
       color: rgba(179,38,30,1);
+    }
+    button.ok{
+      background: rgba(19,115,51,0.10);
+      border-color: rgba(19,115,51,0.22);
+      color: rgba(19,115,51,1);
     }
     button:disabled{
       opacity: .45;
@@ -145,7 +153,6 @@
       color: var(--muted);
       line-height: 1.5;
     }
-    .hint b{ color: var(--text); }
 
     .status{
       font-size: 12px;
@@ -158,7 +165,69 @@
     }
     .status .small{ color: var(--muted); }
 
-    /* マーカー（匿名） */
+    /* 返し（自動営業） */
+    .objection-box{
+      border-radius: 14px;
+      border: 1px solid rgba(0,0,0,0.10);
+      background: rgba(255,255,255,0.70);
+      padding: 10px;
+    }
+    .objection-box h2{
+      font-size: 13px;
+      margin: 0 0 8px 0;
+      font-weight: 900;
+    }
+    .objection-actions{
+      display:flex;
+      gap:8px;
+      flex-wrap: wrap;
+    }
+    .reply{
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 14px;
+      border: 1px solid rgba(11,87,208,0.18);
+      background: rgba(11,87,208,0.06);
+      font-size: 12.5px;
+      line-height: 1.6;
+    }
+    .reply .ttl{
+      font-weight: 900;
+      color: rgba(11,87,208,1);
+      margin-bottom: 6px;
+      font-size: 12px;
+    }
+    .reply .kicker{
+      display:inline-block;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(0,0,0,0.10);
+      background: rgba(255,255,255,0.75);
+      color: var(--muted);
+      font-size: 11px;
+      margin-right: 6px;
+    }
+    .cta{
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 14px;
+      border: 1px solid rgba(19,115,51,0.20);
+      background: rgba(19,115,51,0.06);
+      font-size: 12.5px;
+      line-height: 1.6;
+    }
+    .cta .ttl{
+      font-weight: 900;
+      color: var(--ok);
+      margin-bottom: 6px;
+      font-size: 12px;
+    }
+    .cta ul{
+      margin: 6px 0 0 18px;
+      padding: 0;
+    }
+
+    /* マーカー */
     .shop-dot{
       width: 12px; height: 12px;
       border-radius: 999px;
@@ -176,17 +245,18 @@
       border-color: rgba(255,170,0,0.95);
       box-shadow: 0 8px 18px rgba(255,170,0,0.22);
     }
-    .shop-dot.dim{
-      opacity: .55;
-    }
+    .shop-dot.dim{ opacity: .55; }
 
     .leaflet-container a{ color: var(--accent); }
   </style>
 </head>
 <body>
   <div class="map-badge">
-    <b>匿名点群デモ</b>（店名なし）<br>
-    <span class="muted">「選択肢が多いと“最適な店”を選べない」問題を、秘書問題で腹落ちさせる → AreaMap導入へ繋げる用途。</span>
+    <b>秘書問題デモ（自動営業）</b><br>
+    <span class="muted">
+      37%は「位置」ではなく「比較フェーズ」。
+      立地は動かせないが、<b>迷いと不安</b>は減らせる → AreaMapで“選ばれる確率”を上げる。
+    </span>
   </div>
 
   <div class="panel">
@@ -199,7 +269,7 @@
 
     <div class="row">
       <div>
-        <label for="nInput">候補数 n（このエリアの“選択肢の多さ”）</label><br>
+        <label for="nInput">候補数 n（このエリアの選択肢の多さ）</label><br>
         <input id="nInput" type="number" min="1" step="1" value="30">
       </div>
       <div>
@@ -215,16 +285,34 @@
     <div class="divider"></div>
 
     <div class="status" id="statusBox">
-      <b>使い方</b>：<br>
-      1) 候補数 n を入れる（ざっくりでOK）→ 2) 「デモ開始」→ 3) 「次へ」で候補を順に見せる。<br>
-      <span class="small">比較フェーズでは“良し悪し判断”はできても、店側が情報不足だと「検討に残れない」＝選ばれにくい。そこを AreaMap が補う、という流れを作る。</span>
+      <b>ポイント</b>：37%に入れない店＝終わり、ではありません。<br>
+      <span class="small">
+        比較フェーズでは「情報が弱い店」が落ちやすい。AreaMapは <b>入口/駐車場/目印/導線</b> を1タップで示して、
+        “比較に残る確率”と“来店の確率”を上げます。
+      </span>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ここが「で？」対策の自動営業UI -->
+    <div class="objection-box">
+      <h2>「で？」と突っ込まれたら（自動返し）</h2>
+      <div class="objection-actions">
+        <button class="primary" data-objection="A">うち選ばれないってこと？</button>
+        <button class="primary" data-objection="B">で？結局どうすれば？</button>
+        <button class="primary" data-objection="C">後半に店が多い道沿いで不利では？</button>
+        <button class="ok" id="showSprintBtn">2週間スプリント（次の一手）</button>
+      </div>
+
+      <div id="replyBox" class="reply" style="display:none;"></div>
+      <div id="ctaBox" class="cta" style="display:none;"></div>
     </div>
 
     <div class="divider"></div>
 
     <div class="hint">
-      <b>AreaMapの繋げ方（営業用一言）</b><br>
-      「候補が多いほど、序盤の“比較フェーズ”で落ちる。だから <b>入口・駐車場・目印</b> を1タップで提示して、“検討に残る確率”を上げます。」
+      <b>営業用一言（自動ツールの台本）</b><br>
+      「候補が多いほど、比較フェーズで“情報が弱い店”が落ちます。立地は変えられないので、迷いと不安を潰して“選ばれる確率”を上げます。」
     </div>
   </div>
 
@@ -234,17 +322,15 @@
     // =========================
     // 設定
     // =========================
-    const DEFAULT_CENTER = [36.061, 136.223]; // 福井駅あたりの例
+    const DEFAULT_CENTER = [36.061, 136.223];
     const DEFAULT_ZOOM   = 14;
 
-    // 国土地理院（淡色地図）タイル
     const GSI_TILE_URL = "https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png";
     const GSI_ATTR     = "出典：国土地理院（地理院タイル）";
 
-    // 取得API（あなたの既存APIに合わせる）
     const API_URL = "/api/shops";
 
-    // 「迷い要因」テンプレ（店名を出さずに“落ちる理由”を示す）
+    // “落ちる理由”テンプレ（匿名のまま、立地不利を「改善できる変数」に変換する）
     const FRICTION_REASONS = [
       "入口が裏側で初見だと不安",
       "駐車場が共同で位置が分かりにくい",
@@ -252,8 +338,109 @@
       "看板が小さく、夜は特に分かりづらい",
       "建物が似ていて“ここで合ってる？”が起きる",
       "曲がるポイントが曖昧で迷いやすい",
-      "Googleマップのピンは合ってるが入口まで遠い"
+      "Googleマップのピンは合ってるが入口まで不安"
     ];
+
+    // =========================
+    // 自動営業：反論→返し→次の一手
+    // =========================
+    const replyBox = document.getElementById("replyBox");
+    const ctaBox   = document.getElementById("ctaBox");
+    const showSprintBtn = document.getElementById("showSprintBtn");
+
+    function renderReply(title, lines, tags=[]){
+      replyBox.style.display = "block";
+      const tagHtml = tags.map(t => `<span class="kicker">${escapeHtml(t)}</span>`).join("");
+      replyBox.innerHTML = `
+        <div class="ttl">${escapeHtml(title)}</div>
+        <div>${tagHtml}</div>
+        <div style="margin-top:8px;">
+          ${lines.map(p => `<div style="margin-top:6px;">${p}</div>`).join("")}
+        </div>
+      `;
+    }
+
+    function renderCTA(){
+      ctaBox.style.display = "block";
+      ctaBox.innerHTML = `
+        <div class="ttl">AreaMapがやること（立地は変えずに、不利を相殺）</div>
+        <div>
+          <b>① 比較に残る材料を増やす</b>：入口/駐車場/目印/写真を1タップで提示（不安を消す）<br>
+          <b>② 来店の摩擦をゼロに近づける</b>：迷い電話・DM・離脱を減らす（取りこぼし回収）
+        </div>
+        <ul>
+          <li>Googleマップは「場所」。AreaMapは「入口と駐車場の確信」</li>
+          <li>後半フェーズほど「迷わせない店」が勝ちやすい（疲労フェーズ対策）</li>
+        </ul>
+      `;
+    }
+
+    function renderSprint(){
+      renderReply(
+        "次の一手：2週間『立地不利 相殺スプリント』",
+        [
+          "立地は動かせないので、<b>迷いと不安</b>を潰して“選ばれる確率”を上げます。",
+          "<b>Day1</b>：入口/駐車場/目印の撮影（店側でもOK）",
+          "<b>Day2</b>：AreaMap仮ページ作成（スマホ最適）",
+          "<b>Day3</b>：SNS/予約導線に固定（リンクを一本化）",
+          "<b>Day4-14</b>：数字を確認（週次でOK）<br>・迷い電話/DM回数<br>・道案内テンプレ送信回数<br>・『迷わず来れた』声（スクショ）",
+          "これで「導入前→導入後」の改善が1つでも出れば、<b>導入事例（実例）</b>になります。"
+        ],
+        ["2週間", "数字で証明", "不利を相殺"]
+      );
+      renderCTA();
+    }
+
+    const OBJECTION_REPLIES = {
+      A: {
+        title: "返し：『うち選ばれないってこと？』",
+        tags: ["不安解消", "立地は変えない"],
+        lines: [
+          "逆です。ここで言いたいのは「候補が多いほど<b>情報が弱い店</b>が落ちやすい」という構造です。",
+          "立地は変えられないけど、<b>迷いと不安</b>は変えられます。迷いがあると『良さそうでも保留→別の店』になりがち。",
+          "AreaMapは<b>入口・駐車場・目印</b>を1タップ化して、比較フェーズで落ちにくくします。"
+        ]
+      },
+      B: {
+        title: "返し：『で？結局どうすれば？』",
+        tags: ["やること2つ", "即実行"],
+        lines: [
+          "やることは2つだけです。",
+          "<b>① 比較フェーズで“候補に残る材料”を増やす</b>（入口・駐車場・目印・写真）",
+          "<b>② 選ばれた後の“来店の摩擦”を減らす</b>（迷い電話・DM・離脱を減らす）",
+          "AreaMapはこの2つをまとめて実装します。"
+        ]
+      },
+      C: {
+        title: "返し：『後半に店が多い道沿いで不利では？』",
+        tags: ["疲労フェーズ", "後半ほど勝てる"],
+        lines: [
+          "その通り。不利になりやすいです。だからこそ後半は『魅力』より<b>確実に行ける</b>が効きます。",
+          "人は疲れるので、後半では『迷わせない店』を選びます。",
+          "AreaMapは“ここで合ってる”を作って、<b>疲労フェーズの意思決定</b>に強くします。"
+        ]
+      }
+    };
+
+    document.querySelectorAll("button[data-objection]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const key = btn.getAttribute("data-objection");
+        const r = OBJECTION_REPLIES[key];
+        renderReply(r.title, r.lines, r.tags);
+        renderCTA();
+      });
+    });
+
+    showSprintBtn.addEventListener("click", renderSprint);
+
+    function escapeHtml(str){
+      return String(str)
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
 
     // =========================
     // 地図初期化
@@ -269,7 +456,6 @@
 
     const markersLayer = L.layerGroup().addTo(tilemap);
 
-    // divIcon（状態でクラス差し替え）
     function makeDotIcon(extraClass=""){
       return L.divIcon({
         className: "",
@@ -282,26 +468,22 @@
     // =========================
     // データとデモ状態
     // =========================
-    let shops = [];                 // {lat,lng}
-    let markers = [];               // Leaflet marker list
-    let demoOrder = [];             // indices in the order "user encounters"
-    let step = -1;                  // current step (0..m-1)
+    let shops = [];
+    let markers = [];
+    let demoOrder = [];
+    let step = -1;
     let n = 30;
-    let k = 11;                     // floor(n / e)
-    let bestScoreSeen = -Infinity;  // exploration phase max score
-    let chosenIndex = null;         // chosen in exploitation phase
+    let k = 11;
+    let bestScoreSeen = -Infinity;
+    let chosenIndex = null;
     let demoRunning = false;
 
-    // ダミースコア（魅力度）: 0..100（秘書問題の“順位”を再現するため）
-    // ※現場説明用なので、実店舗の評価ではない。
     function makeScore(){
       return Math.round(20 + Math.random() * 80);
     }
-
     function pickReason(i){
       return FRICTION_REASONS[i % FRICTION_REASONS.length];
     }
-
     function shuffle(arr){
       for (let i = arr.length - 1; i > 0; i--){
         const j = Math.floor(Math.random() * (i + 1));
@@ -309,7 +491,6 @@
       }
       return arr;
     }
-
     function clampInt(v, min, max){
       const x = Math.floor(Number(v));
       if (!Number.isFinite(x)) return min;
@@ -327,22 +508,15 @@
     const resetBtn = document.getElementById("resetBtn");
 
     function updateK(){
-      // 候補数は「店舗数」より大きくしても良い（近隣の競合や“比較候補”を含むイメージ）
       n = clampInt(nInput.value, 1, 9999);
       k = Math.max(1, Math.floor(n / Math.E));
       kOut.textContent = String(k);
 
       const m = markers.length;
-      if (m > 0 && n < m){
-        statusBox.innerHTML =
-          `<b>注意</b>：地図上の点（${m}）より n（${n}）が小さいです。<br>` +
-          `<span class="small">デモは「点の中から順に見る」挙動なので、n は点の数以上を推奨（または“このエリアの候補総数”として大きめに設定）。</span>`;
-      } else {
-        statusBox.innerHTML =
-          `<b>使い方</b>：<br>` +
-          `1) 候補数 n を入れる（ざっくりでOK）→ 2) 「デモ開始」→ 3) 「次へ」で候補を順に見せる。<br>` +
-          `<span class="small">比較フェーズ（最初の約37%）で“検討に残る情報”がないと落ちる → AreaMapで補う、の流れに。</span>`;
-      }
+      statusBox.innerHTML =
+        `<b>ポイント</b>：37%は「位置」ではなく「比較フェーズ」。<br>` +
+        `<span class="small">候補が多いほど、<b>情報が弱い店</b>が比較から落ちやすい。立地は変えられないので、AreaMapで「迷いと不安」を減らして“選ばれる確率”を上げます。</span>` +
+        (m > 0 && n < m ? `<br><span class="small" style="color:rgba(179,38,30,1)"><b>注意</b>：点(${m})より n(${n})が小さいです。n は“候補総数”として大きめ推奨。</span>` : "");
     }
 
     nInput.addEventListener("input", updateK);
@@ -363,26 +537,24 @@
 
       statusBox.innerHTML =
         `<b>リセットしました</b><br>` +
-        `<span class="small">n を調整して「デモ開始」。秘書問題（37%ルール）→ “比較で落ちない情報提示” → AreaMap導入の流れへ。</span>`;
+        `<span class="small">デモは「比較フェーズで落ちない」話。恐怖ではなく、次の一手（AreaMap）へ繋げます。</span>`;
     }
 
-    resetBtn.addEventListener("click", () => {
-      resetDemoState();
-    });
+    resetBtn.addEventListener("click", resetDemoState);
 
     function buildPopupContent(phase, score, reason, isChosen){
       const orderNo = step + 1;
       const phaseLabel = phase === "explore"
-        ? `<span style="color:#8a5a00;font-weight:800;">比較フェーズ</span>`
-        : `<span style="color:#0b57d0;font-weight:800;">採用フェーズ</span>`;
+        ? `<span style="color:var(--amber);font-weight:900;">比較フェーズ</span>`
+        : `<span style="color:var(--accent);font-weight:900;">採用フェーズ</span>`;
 
       const headline = isChosen
-        ? `<div style="margin:6px 0 0 0; font-weight:900; color:#0b57d0;">✅ この候補に決めた（シミュレーション）</div>`
+        ? `<div style="margin:6px 0 0 0; font-weight:900; color:var(--accent);">✅ この候補に決めた（シミュレーション）</div>`
         : "";
 
       const msg = phase === "explore"
-        ? `この段階では「良さそう/微妙」を判断するだけ。<br>ただし <b>入口・駐車場・目印が曖昧</b> だと、比較の土俵にすら乗れず落ちやすい。`
-        : `ここからは「これまでの最高」を超えたら決める。<br><b>比較に残る情報</b> がある店ほど、“選ばれる確率”が上がる。`;
+        ? `この段階は“見るだけ”。ただし<b>入口/駐車場/目印</b>が弱いと、比較から落ちやすい。`
+        : `ここからは“観察中の最高”を超えたら決める。<b>不安が少ない店</b>ほど選ばれやすい。`;
 
       return `
         <div style="min-width:240px; font-family: system-ui, -apple-system, 'Noto Sans JP', sans-serif;">
@@ -390,12 +562,12 @@
           <div style="margin-top:3px;">${phaseLabel} / <span style="color:rgba(0,0,0,0.62);">仮スコア</span> <b>${score}</b></div>
           <div style="margin-top:6px; font-size:13px; line-height:1.5;">${msg}</div>
           <div style="margin-top:8px; padding:8px; border-radius:10px; background: rgba(255,255,255,0.75); border:1px solid rgba(0,0,0,0.08);">
-            <div style="font-size:12px; color: rgba(0,0,0,0.60);">よくある“落ちる理由”</div>
+            <div style="font-size:12px; color: rgba(0,0,0,0.60);">立地不利を生む“迷い”例</div>
             <div style="font-size:13px; margin-top:2px;"><b>${reason}</b></div>
           </div>
           ${headline}
           <div style="margin-top:8px; font-size:12px; color: rgba(0,0,0,0.60);">
-            👉 AreaMapは「入口/駐車場/目印/最短導線」を1タップ化して、比較フェーズで落ちにくくします。
+            👉 AreaMapで「入口/駐車場/目印/導線」を1タップ化し、立地の不利を相殺します。
           </div>
         </div>
       `;
@@ -437,11 +609,11 @@
 
         const resultText = chosenIndex == null
           ? "今回は“決めきれない”パターン（情報不足で見送る/離脱）"
-          : "“決めた”が、最良とは限らない（= 選ばれにくい構造が残る）";
+          : "“決めた”が、現実では「迷い」があると離脱しやすい";
 
         statusBox.innerHTML =
           `<b>デモ終了</b>：${resultText}<br>` +
-          `<span class="small">言いたいのは「候補が多い＝選ばれにくい」。だから AreaMapで “比較に残る材料（入口/駐車場/目印）” を増やす、という提案が自然に通ります。</span>`;
+          `<span class="small">ここからの提案は“立地は変えずに、迷いと不安を潰す”。右の「自動返し」ボタンでそのまま説明できます。</span>`;
         return;
       }
 
@@ -464,7 +636,7 @@
 
         statusBox.innerHTML =
           `<b>比較フェーズ</b>（${step+1}/${exploreCount}）<br>` +
-          `<span class="small">ここでは決めない。観察して“基準（最高スコア）”を作る。<br>` +
+          `<span class="small">ここでは決めない。“基準（観察最高）”を作る。<br>` +
           `現在の観察最高：<b>${bestScoreSeen}</b></span>`;
       } else {
         marker.setIcon(makeDotIcon("active"));
@@ -477,7 +649,7 @@
 
           statusBox.innerHTML =
             `<b>採用フェーズ</b>：観察最高 <b>${bestScoreSeen}</b> を超えたので“決めた”扱い。<br>` +
-            `<span class="small">現実では、この瞬間に「入口/駐車場/目印」が分かりづらいと不安で離脱しやすい → AreaMapが効く。</span>`;
+            `<span class="small">現実はここで「迷い」があると不安で離脱しやすい → AreaMapが効く。</span>`;
         } else {
           marker.bindPopup(buildPopupContent(phase, score, reason, false), { closeButton: true });
           marker.openPopup();
@@ -485,7 +657,7 @@
           statusBox.innerHTML =
             `<b>採用フェーズ</b>（${step+1}/${m}）<br>` +
             `<span class="small">観察最高：<b>${bestScoreSeen}</b> / 今の候補：<b>${score}</b><br>` +
-            `“比較に残る情報”がない店は、候補が多いほど埋もれていく。</span>`;
+            `候補が多いほど「迷わせない店」が選ばれやすくなる。</span>`;
         }
       }
 
@@ -561,6 +733,10 @@
       nInput.value = String(Math.max(30, markers.length));
       updateK();
       setButtons();
+
+      // 初期状態で「で？」を先回りして見せたいならここで表示
+      // renderReply("まずここだけ", ["37%は“位置”ではなく“比較フェーズ”。立地は変えずに、迷いと不安を潰して選ばれる確率を上げます。"], ["安心設計"]);
+      // renderCTA();
     }
 
     loadShops();
