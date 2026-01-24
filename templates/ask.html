@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="stylesheet" href="../static/css/areamaplp.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/areamaplp.css') }}">
   <title>AreaMap｜お問い合わせ</title>
 </head>
 
@@ -32,8 +32,8 @@
       </h1>
 
       <p class="lp-text ask-lead">
-        「Liteで足りる？」「Proが必要？」など、状況を聞いて整理します。<br>
-        YES/NOヒアリング結果がある方は、内容に添えて送ってください。
+        「Entranceで足りる？」「Last30が必要？」など、状況を聞いて整理します。<br>
+        もしLP/Tilemapの診断結果がある方は、内容に添えて送ってください。
       </p>
 
       <!-- Flash messages -->
@@ -54,7 +54,7 @@
           <div class="ask-card">
             <h2 class="ask-card-title">このフォームでできること</h2>
             <ul class="ask-list">
-              <li>Lite / Pro のどちらが合うか、現状を整理</li>
+              <li>Entrance / Last30 のどちらが合うか、現状を整理</li>
               <li>「迷う原因（入口/駐車場/目印）」の優先度決め</li>
               <li>HP / Instagram / チラシQR の導線の作り方提案</li>
             </ul>
@@ -81,7 +81,16 @@
           <div class="ask-card">
             <h2 class="ask-card-title">入力してください</h2>
 
+            {# -----------------------------
+               plan を POST でも落とさない：action に plan を保持
+               /ask?plan=entrance で開いたら POST 先も /ask?plan=entrance にする
+               ----------------------------- #}
+            {% set _plan = request.args.get('plan') %}
+            {% if _plan in ['entrance','last30','event'] %}
+            <form method="POST" action="{{ url_for('ask', plan=_plan) }}" class="ask-form-inner">
+            {% else %}
             <form method="POST" action="{{ url_for('ask') }}" class="ask-form-inner">
+            {% endif %}
               {{ form.hidden_tag() }}
 
               <div class="ask-field">
