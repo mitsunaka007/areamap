@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, flash, url_for, redirect
+from flask import Flask, render_template, request, jsonify, flash, url_for, redirect, current_app
 import os
 import hashlib
 from sqlalchemy import func, case
@@ -344,12 +344,46 @@ def areamap_pro():
 # ----------------------------
 # お問い合わせ (自動補完機能付き)
 # ----------------------------
+from flask import (
+    Flask, render_template, request, jsonify,
+    flash, url_for, redirect, current_app
+)
+
+# 既存の app / db / mail / Message / AskForm / ContactInquiry は定義済み前提
+
+@app.get("/thanks")
+def thanks():
+    """
+    サンクス画面
+    /thanks?plan=entrance|last30|event
+    """
+    plan = (request.args.get("plan") or "entrance").strip()
+    if plan not in ("entrance", "last30", "event"):
+        plan = "entrance"
+    # ここはあなたが作ったサンクスHTMLのファイル名に合わせてください
+    # 例: templates/areamap_thanks_v1.html を置いた場合
+    return render_template("areamap_thanks_v1.html", plan=plan)
+
+
 @app.route("/ask", methods=["GET", "POST"])
 def ask():
     form = AskForm()
 
-    # クエリパラメータから plan を取得
-    plan_type = request.args.get("plan", "").strip()
+    # クエリパラメータから plan を取得（GETでは来るが、POSTでは消えやすい）
+    plan_type = (request.args.get("plan", "") or "").strip()
+
+    # POST時はクエリが消えるので、本文の先頭テンプレから推定して復元
+    def _infer_plan(plan_from_query: str, detail_text: str) -> str:
+        if plan_from_query in ("entrance", "last30", "event"):
+            return plan_from_query
+        t = (detail_text or "").lstrip()
+        if t.startswith("【Entrance Pack"):
+            return "entrance"
+        if t.startswith("【Last30 Navigator"):
+            return "last30"
+        if t.startswith("【Event Navigator"):
+            return "event"
+        return "entrance"
 
     initial_values = {
         "entrance": {
@@ -412,9 +446,12 @@ def ask():
         form.contactdetail.data = initial_values[plan_type]["detail"]
 
     if form.validate_on_submit():
-        name = form.contactname.data.strip()
-        email = form.contactemail.data.strip()
-        detail = form.contactdetail.data.strip()
+        name = (form.contactname.data or "").strip()
+        email = (form.contactemail.data or "").strip()
+        detail = (form.contactdetail.data or "").strip()
+
+        # POST時でも plan を確定（thanks に渡す）
+        plan_type_effective = _infer_plan(plan_type, detail)
 
         # 1) まずDB保存（ここが成功したら「送信成功」扱いにする）
         inquiry = ContactInquiry(
@@ -434,7 +471,8 @@ def ask():
             db.session.rollback()
             current_app.logger.exception("ContactInquiry DB save failed")
             flash("送信に失敗しました。時間をおいて再度お試しください。", "danger")
-            return redirect(url_for("ask"))
+            # planを維持して戻す
+            return redirect(url_for("ask", plan=plan_type_effective), code=303)
 
         # 2) DB保存が成功したので、ユーザーには成功表示（メール失敗でもここは変えない）
         flash("送信しました。お問い合わせありがとうございます。", "success")
@@ -460,28 +498,39 @@ def ask():
                 reply_to=email,
             )
             mail.send(msg)
-
             inquiry.mail_status = "sent"
             inquiry.mail_error = None
         except Exception as e:
-            # 内部には失敗を残す（DBにもログにも）
             inquiry.mail_status = "failed"
-            inquiry.mail_error = str(e)[:4000]  # 念のため長すぎ対策
-            current_app.logger.exception("Admin mail send failed (ContactInquiry id=%s)", inquiry.id)
+            inquiry.mail_error = str(e)[:4000]
+            current_app.logger.exception(
+                "Admin mail send failed (ContactInquiry id=%s)", inquiry.id
+            )
         finally:
             try:
                 db.session.commit()
             except Exception:
                 db.session.rollback()
-                current_app.logger.exception("Failed to update mail_status for ContactInquiry id=%s", inquiry.id)
+                current_app.logger.exception(
+                    "Failed to update mail_status for ContactInquiry id=%s", inquiry.id
+                )
 
-        return redirect(url_for("ask"))
+        # ✅ 送信後は /thanks へ（POST→GETに切替えるため303推奨）:contentReference[oaicite:1]{index=1}
+        return redirect(url_for("thanks", plan=plan_type_effective), code=303)
 
     return render_template("ask.html", form=form)
 
 @app.get("/tilemap")
 def tilemap():
     return render_template("tilemap.html")
+
+@app.get("/thanks")
+def thanks():
+    plan = (request.args.get("plan") or "entrance").strip()
+    if plan not in ("entrance", "last30"):
+        plan = "entrance"
+    # サンクス画面HTML（あなたが作ったやつ）を templates に置いた前提
+    return render_template("areamap_thanks.html", plan=plan)
 
 @app.get("/api/shops")
 def api_shops():
