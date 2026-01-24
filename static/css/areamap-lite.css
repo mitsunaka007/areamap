@@ -127,6 +127,7 @@ html[data-areamap-view] .hotspot {
   position: absolute;
   width: 40px;
   height: 40px;
+  border-radius: 50%;
 
   /* 下端固定（IG/モバイル安全域対応） */
   bottom: calc(16px + env(safe-area-inset-bottom));
@@ -190,8 +191,21 @@ html[data-areamap-view] .areamap-cta {
   /* 下端固定（IG/モバイル安全域対応） */
   bottom: calc(10px + env(safe-area-inset-bottom));
 }
-
-html[data-areamap-view] .areamap-cta a {
+html[data-areamap-view].areamap-cta a {
+  display: inline-block;
+  padding: 8px 12px;
+  background-color: rgba(255, 255, 255, 0.9);
+  color: #333;
   text-decoration: none;
-  color: black;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+html[data-areamap-view] .areamap-cta a:hover {
+  background-color: rgba(255, 255, 255, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transform: translateY(-1px);
 }
