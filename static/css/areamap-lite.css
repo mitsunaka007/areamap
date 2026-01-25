@@ -32,6 +32,10 @@ html[data-areamap-view] #map-wrapper{
   width: 100%;
   background: #000;
   overflow: hidden;
+
+  /* 追加：全画面 */
+  height: 100dvh;
+  height: 100vh; /* fallback */
 }
 
 html[data-areamap-view="page"] #map-wrapper{
@@ -68,8 +72,6 @@ html[data-areamap-view] .map-image-container img{
   height: 100%;
   object-fit: cover;
   display: block;
-  user-select: none;
-  -webkit-user-drag: none;
 }
 
 /* ===== Badge ===== */
