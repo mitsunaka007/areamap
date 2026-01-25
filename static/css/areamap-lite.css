@@ -37,22 +37,14 @@ html[data-areamap-view] #map-wrapper{
   width: 100%;
   background: #000;
   overflow: hidden;
-
-  /* 追加：全画面 */
   height: 100dvh;
-  height: 100vh; /* fallback */
+  height: 100vh;
 }
-
 html[data-areamap-view="page"] #map-wrapper{
-  height: min(70vh, 720px);
-  min-height: 360px;
-}
-
-@media (max-width: 768px){
-  html[data-areamap-view="page"] #map-wrapper{
-    height: 52vh;
-    min-height: 320px;
-  }
+  height: 100svh;
+  height: 100dvh;
+  height: 100vh;
+  min-height: 0;
 }
 
 html[data-areamap-view="embed"] #map-wrapper{
