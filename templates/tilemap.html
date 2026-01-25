@@ -86,65 +86,77 @@
        Panel (desktop: overlay)
        ========================= */
     .panel{
-      position:absolute; top:12px; right:12px; z-index:1000;
+      position:absolute;
+      right:12px; top:12px; bottom:12px;
       width: min(520px, calc(100vw - 24px));
-      max-height: calc(100vh - 24px);
-      overflow:auto;
+      z-index:1000;
       background: var(--panel);
       border: 1px solid var(--border);
       border-radius: 18px;
       box-shadow: var(--shadow);
       padding: 12px;
+      overflow:auto;
+      -webkit-overflow-scrolling: touch;
       backdrop-filter: blur(10px);
     }
     .panel h1{
-      margin: 0 0 8px;
       font-size: 15px;
-      line-height: 1.35;
+      margin: 0 0 8px 0;
+      font-weight: 950;
       letter-spacing: .01em;
     }
-
     .lead{
-      font-size: 12.5px;
       color: var(--muted);
-      line-height: 1.6;
+      font-size: 12.5px;
+      line-height: 1.65;
     }
-    .row{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+
+    .row{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
     .row > *{ flex: 0 0 auto; }
-    .divider{ height:1px; background: rgba(0,0,0,0.08); margin: 12px 0; }
+    button{
+      border: 0;
+      border-radius: 999px;
+      padding: 10px 12px;
+      font-weight: 900;
+      cursor:pointer;
+      box-shadow: 0 10px 22px rgba(0,0,0,0.12);
+      font-family: system-ui, -apple-system, "Noto Sans JP", sans-serif;
+    }
+    button.primary{ background: var(--accent); color:#fff; }
+    button.ok{ background: var(--ok); color:#fff; }
+    button.danger{ background: var(--warn); color:#fff; }
+    button:disabled{
+      opacity:.55;
+      cursor:not-allowed;
+      box-shadow:none;
+    }
 
     .pill{
-      display:inline-flex; align-items:center; gap:8px;
-      padding: 6px 10px;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
       border-radius: 999px;
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,0.70);
+      padding: 6px 10px;
       font-size: 12px;
-      color: var(--muted);
-    }
-    .pill b{ color: var(--text); }
-
-    button{
-      padding: 10px 12px;
-      border-radius: 14px;
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,0.95);
-      cursor:pointer;
-      font-weight: 900;
-      letter-spacing: .01em;
-    }
-    button.primary{ background: rgba(11,87,208,0.10); color: var(--accent); border-color: rgba(11,87,208,0.22); }
-    button.ok{ background: rgba(19,115,51,0.10); color: var(--ok); border-color: rgba(19,115,51,0.22); }
-    button.danger{ background: rgba(179,38,30,0.10); color: var(--warn); border-color: rgba(179,38,30,0.22); }
-    button:disabled{ opacity:.45; cursor:not-allowed; }
-
-    .status{
-      padding: 10px 12px;
-      border-radius: 14px;
       border: 1px solid rgba(0,0,0,0.10);
       background: rgba(255,255,255,0.75);
+      color: var(--muted);
+      font-weight: 800;
+    }
+    .divider{ height: 1px; background: rgba(0,0,0,0.08); margin: 12px 0; }
+
+    .status{
+      border-radius: 16px;
+      border: 1px solid rgba(0,0,0,0.10);
+      background: rgba(255,255,255,0.76);
+      padding: 10px;
       font-size: 12.5px;
-      line-height: 1.55;
+      line-height: 1.65;
       color: var(--muted);
     }
     .status b{ color: var(--text); }
@@ -167,11 +179,14 @@
       border-radius: 14px;
       background: rgba(255,255,255,0.85);
     }
-    .check input{ margin-top: 2px; }
+    /* ✅ FIX: checkboxはフォーム共通の width/padding を当てない */
+    .check input[type="checkbox"]{ margin-top: 2px; width:auto; flex:0 0 auto; }
+    .check > div{ flex:1; min-width:0; }
     .check .t{ font-weight: 900; font-size: 12.5px; color: var(--text); }
     .check .d{ font-size: 12px; color: var(--muted); line-height: 1.45; margin-top: 2px; }
 
-    select, input{
+    /* ✅ FIX: checkbox/radioは除外して、テキスト系だけを 100% */
+    select, input:not([type="checkbox"]):not([type="radio"]) {
       width: 100%;
       padding: 10px 12px;
       border-radius: 14px;
@@ -210,58 +225,60 @@
        Tour overlay
        ========================= */
     .overlay{
-      position: fixed; inset: 0;
-      display:none;
-      align-items:center; justify-content:center;
-      background: rgba(0,0,0,0.55);
-      z-index: 3000;
-      padding: 14px;
+      position: absolute; inset: 0;
+      z-index: 2000;
+      background: rgba(0,0,0,0.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
     }
-    .overlay.is-open{ display:flex; }
     .modal{
-      width: min(760px, 96vw);
-      background: rgba(255,255,255,0.95);
-      border: 1px solid rgba(255,255,255,0.16);
+      width: min(540px, 100%);
+      background: rgba(255,255,255,0.96);
       border-radius: 18px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.35);
-      overflow:hidden;
-    }
-    .modal .head{
-      padding: 12px 12px 10px;
-      border-bottom: 1px solid rgba(0,0,0,0.08);
-      display:flex; align-items:center; justify-content:space-between;
-      gap:10px;
-      font-weight: 900;
-    }
-    .modal .body{
-      padding: 12px;
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.65;
-    }
-    .modal .body h2{
-      margin: 0 0 6px;
-      font-size: 15px;
+      border: 1px solid rgba(255,255,255,0.35);
+      box-shadow: 0 18px 60px rgba(0,0,0,0.35);
+      padding: 14px;
+      font-family: system-ui, -apple-system, "Noto Sans JP", sans-serif;
       color: var(--text);
     }
-    .modal .steps{ display:grid; gap:10px; margin-top: 10px; }
+    .modal h2{
+      margin: 0;
+      font-size: 16px;
+      font-weight: 950;
+    }
+    .modal p{
+      margin: 8px 0 0 0;
+      color: var(--muted);
+      line-height: 1.7;
+      font-size: 13px;
+    }
+    .modal .steps{
+      margin-top: 10px;
+      display: grid;
+      gap: 10px;
+    }
     .step{
-      border: 1px solid rgba(0,0,0,0.10);
       border-radius: 16px;
-      background: rgba(255,255,255,0.85);
+      border: 1px solid rgba(0,0,0,0.10);
+      background: rgba(255,255,255,0.78);
       padding: 10px;
     }
-    .step .st{ font-weight: 900; font-size: 13px; color: var(--text); }
-    .step .sd{ font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
-    .modal .foot{
-      padding: 12px;
-      border-top: 1px solid rgba(0,0,0,0.08);
-      display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap;
+    .step .st{ font-weight: 950; font-size: 13px; }
+    .step .sd{ color: var(--muted); font-size: 12.5px; margin-top: 4px; line-height: 1.6; }
+    .modal .actions{ margin-top: 12px; display:flex; gap:10px; flex-wrap: wrap; justify-content: flex-end; }
+
+    .linkbtn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      text-decoration:none;
     }
 
-    /* =========================
-       Panel toggle (embed only / desktop)
-       ========================= */
+    .leaflet-container a{ color: var(--accent); }
+
+    /* Embed mode (iframeなど) */
     body.is-embed .badge{ display:none; }
     body.is-embed .panel{ width: min(520px, calc(100vw - 24px)); }
     .panel-toggle{
@@ -284,84 +301,30 @@
     body.is-embed .panel{ transition: transform .22s ease; }
 
     /* =========================
-       Mobile bottom sheet
+       Mobile: tilemap full-height + panel under map
        ========================= */
     @media (max-width: 520px){
-      /* map fills viewport (iOS URL bar aware) */
+      /* map fills the viewport (avoid iOS URL-bar issues by using dynamic/small viewport units when supported) */
       #tilemap{
-        height: 100vh;
+        height: 100vh; /* fallback */
         height: 100dvh;
       }
       @supports (height: 100svh){
         #tilemap{ height: 100svh; }
       }
 
-      /* disable desktop embed toggle on mobile (we'll use bottom sheet always) */
-      .panel-toggle{ display:none !important; }
-
-      /* panel becomes bottom sheet */
+      /* panel becomes normal-flow block under the map */
       .panel{
-        position: fixed;
-        left: 0; right: 0; bottom: 0; top: auto;
-        width: 100%;
-        margin: 0;
+        position: relative;
+        top: auto; right: auto; left: auto; bottom: auto;
+        width: auto;
         max-height: none;
-        padding: 0;
-        overflow: hidden;
-        border-radius: var(--sheet-radius) var(--sheet-radius) 0 0;
-        backdrop-filter: blur(10px);
-        background: var(--panel);
-        border: 1px solid var(--border);
-        box-shadow: 0 -10px 26px rgba(0,0,0,0.20);
-        z-index: 2000; /* over map */
-        height: var(--sheet-max-fallback);
-        transform: translateY(var(--sheet-ty, calc(100% - var(--sheet-peek))));
-        transition: transform 220ms ease;
-        will-change: transform;
-      }
-      @supports (height: 100svh){
-        .panel{ height: var(--sheet-max); }
-      }
-      .panel.is-dragging{
-        transition: none;
+        overflow: visible;
+        margin: 12px;
       }
 
-      /* handle area */
-      .sheet-handle{
-        height: var(--sheet-handle-h);
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        gap:10px;
-        padding: 8px 12px;
-        border-bottom: 1px solid rgba(0,0,0,0.08);
-        user-select:none;
-        -webkit-user-select:none;
-        touch-action: none; /* allow us to drag using pointer events */
-      }
-      .grip{
-        width: 42px;
-        height: 5px;
-        border-radius: 999px;
-        background: rgba(0,0,0,0.22);
-      }
-      .sheet-title{
-        font-weight: 900;
-        font-size: 12.5px;
-        color: rgba(0,0,0,0.70);
-      }
-
-      /* content scroll area */
-      .sheet-content{
-        padding: 12px 12px calc(12px + env(safe-area-inset-bottom, 0px));
-        overflow: auto;
-        overscroll-behavior: contain;
-        -webkit-overflow-scrolling: touch;
-        max-height: calc(100% - var(--sheet-handle-h));
-      }
-
-      /* badge narrower for mobile */
-      .badge{ width: calc(100vw - 24px); }
+      /* collapse toggle is unnecessary when panel is below */
+      .panel-toggle{ display:none !important; }
     }
   </style>
 </head>
@@ -382,588 +345,432 @@
 
   <div id="tilemap"></div>
 
-  <div class="panel" id="panel" aria-label="説明パネル">
-    <!-- Mobile bottom sheet handle (desktopでも表示されても問題ないが、CSSで主にmobileに効く) -->
-    <div class="sheet-handle" id="sheetHandle" role="button" aria-controls="panel" aria-expanded="false" tabindex="0">
-      <div class="grip" aria-hidden="true"></div>
-      <div class="sheet-title">説明 / 計算（上にスワイプ）</div>
+  <div class="panel" id="panel">
+    <h1>お店向け：60秒で分かる「AreaMapの必要性」</h1>
+    <div class="lead">
+      ここで伝えたいのは「あなたのお店がダメ」ではなく、<b>候補が多いほど、お客さんは“比較→疲れ→確実な店”を選びがち</b>という構造。<br>
+      だから AreaMap は、立地そのものではなく <b>“迷いと不安”を潰して、候補に残る順番を早める</b> ためのツールです。
     </div>
 
-    <div class="sheet-content" id="sheetContent">
-      <h1>お店向け：60秒で分かる「AreaMapの必要性」</h1>
-      <div class="lead">
-        ここで伝えたいのは「あなたのお店がダメ」ではなく、<b>候補が多いほど、お客さんは“比較→疲れ→確実な店”を選びがち</b>という構造。<br>
-        だから AreaMap は、立地そのものではなく <b>“迷いと不安”を潰して、候補に残る順番を早める</b> ためのツールです。
+    <div class="row" style="margin-top:10px;">
+      <button class="primary" id="tourBtn">▶ 60秒ガイドを見る</button>
+      <button id="demoNextBtn" disabled>次へ</button>
+      <button class="danger" id="demoResetBtn">リセット</button>
+      <button class="ok" id="placeShopBtn">📍 お店の位置を置く</button>
+    </div>
+
+    <div class="row">
+      <span class="pill">候補が多いほど「比較→疲れ→確実な店」を選びがち</span>
+      <span class="pill">AreaMap：入口/駐車場/目印を<b>1タップ</b>で明確に</span>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="status" id="statusBox">
+      <b>操作は3つだけ</b><br>
+      <span class="small">
+        ①「60秒ガイド」→ ②「次へ」で点を順に見る → ③最後に「2週間テスト」を見て判断。<br>
+        ※点は匿名です。店名は出しません。
+      </span>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="card">
+      <div class="cttl">チェック：迷いが起きるポイント（当てはまるほど効果が出やすい）</div>
+      <div class="ctext">※立地のせいではなく「伝え方」の問題になっている部分だけ改善します。</div>
+
+      <div class="checklist" id="checklist">
+        <label class="check">
+          <input type="checkbox" data-k="entrance">
+          <div>
+            <div class="t">入口が分かりにくい（裏口/奥/建物が似ている）</div>
+            <div class="d">「ここで合ってる？」の不安があると、良さそうでも保留→別の店になりがち</div>
+          </div>
+        </label>
+
+        <label class="check">
+          <input type="checkbox" data-k="parking">
+          <div>
+            <div class="t">駐車場が共同/説明が長い</div>
+            <div class="d">道案内が毎回同じになっているなら、リンク一本化で楽になります</div>
+          </div>
+        </label>
+
+        <label class="check">
+          <input type="checkbox" data-k="landmark">
+          <div>
+            <div class="t">曲がるポイント（目印）が弱い</div>
+            <div class="d">地図は合ってても“最後の30m”で迷うと離脱や電話が増えます</div>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="card" id="calcCard">
+      <div class="cttl">自動計算：回収判定（Entrance Pack / Last30 Navigator）</div>
+      <div class="ctext">
+        「うちの店は選ばれないの？」ではなく、<b>立地の不利を“迷いの削減”で相殺</b>できるかを数字で見ます。<br>
+        時間ロス＋取りこぼし（任意）を足して、<b>費用を回収できるか</b>をその場で判定します。
       </div>
 
       <div class="row" style="margin-top:10px;">
-        <button class="primary" id="tourBtn">▶ 60秒ガイドを見る</button>
-        <button id="demoNextBtn" disabled>次へ</button>
-        <button class="danger" id="demoResetBtn">リセット</button>
-        <button class="ok" id="placeShopBtn">📍 お店の位置を置く</button>
+        <div style="flex:1 1 220px;">
+          <label>プラン</label><br>
+          <select id="calc_plan">
+            <option value="entrance">Entrance Pack（初期10,000円 / 月3,000円）</option>
+            <option value="last30">Last30 Navigator（初期29,800円 / 月10,000円）</option>
+          </select>
+        </div>
+        <div style="flex:1 1 160px;">
+          <label>初期費用の回収期間（ヶ月）</label><br>
+          <input id="calc_amort_months" type="number" min="1" step="1" value="6" />
+        </div>
+        <div style="flex:1 1 160px;">
+          <label>AreaMapで減る割合（%）</label><br>
+          <input id="calc_reduce_pct" type="number" min="0" max="100" step="5" value="50" />
+        </div>
       </div>
 
       <div class="row" style="margin-top:10px;">
-        <span class="pill">候補が多いほど「比較→疲れ→確実な店」を選びがち</span>
-        <span class="pill">AreaMap：入口/駐車場/目印を<b>1タップ</b>で明確に</span>
-      </div>
-
-      <div class="divider"></div>
-
-      <div class="status" id="statusBox">
-        <b>操作は3つだけ</b><br>
-        <span class="small">
-          ①「60秒ガイド」→ ②「次へ」で点を順に見る → ③最後に「2週間テスト」を見て判断。<br>
-          ※点は匿名です。店名は出しません。
-        </span>
-      </div>
-
-      <div class="divider"></div>
-
-      <div class="card">
-        <div class="cttl">チェック：迷いが起きるポイント（当てはまるほど効果が出やすい）</div>
-        <div class="ctext">※立地のせいではなく「伝え方」の問題になっている部分だけ改善します。</div>
-
-        <div class="checklist" id="checklist">
-          <label class="check">
-            <input type="checkbox" data-k="entrance">
-            <div>
-              <div class="t">入口が分かりにくい（裏口/奥/建物が似ている）</div>
-              <div class="d">「ここで合ってる？」の不安があると、良さそうでも保留→別の店になりがち</div>
-            </div>
-          </label>
-
-          <label class="check">
-            <input type="checkbox" data-k="parking">
-            <div>
-              <div class="t">駐車場が共同/説明が長い</div>
-              <div class="d">道案内が毎回同じになっているなら、リンク一本化で楽になります</div>
-            </div>
-          </label>
-
-          <label class="check">
-            <input type="checkbox" data-k="landmark">
-            <div>
-              <div class="t">曲がるポイント（目印）が弱い</div>
-              <div class="d">地図は合ってても“最後の30m”で迷うと離脱や電話が増えます</div>
-            </div>
-          </label>
+        <div>
+          <label>迷い電話/DM（週）</label><br>
+          <input id="calc_weekly" type="number" min="0" step="1" value="5" />
+        </div>
+        <div>
+          <label>1回の対応（分）</label><br>
+          <input id="calc_min_per" type="number" min="1" step="1" value="3" />
+        </div>
+        <div>
+          <label>人件費/機会損失（円/時）</label><br>
+          <input id="calc_yen_per_hour" type="number" min="0" step="100" value="2000" />
         </div>
       </div>
 
       <div class="divider"></div>
+      <div class="cttl" style="margin-bottom:4px;">任意：取りこぼし（迷って来店しなかった分）も入れる</div>
+      <div class="hint">※電話/DMが少ない業種でも、こっちを入れると回収判定が現実に寄ります。</div>
 
-      <div class="card" id="calcCard">
-        <div class="cttl">自動計算：回収判定（Entrance Pack / Last30 Navigator）</div>
-        <div class="ctext">
-          「うちの店は選ばれないの？」ではなく、<b>立地の不利を“迷いの削減”で相殺</b>できるかを数字で見ます。<br>
-          時間ロス＋取りこぼし（任意）を足して、<b>費用を回収できるか</b>をその場で判定します。
+      <div class="row" style="margin-top:10px;">
+        <div>
+          <label>月の取りこぼし（人）</label><br>
+          <input id="calc_lost_customers" type="number" min="0" step="1" value="1" />
         </div>
-
-        <div class="row" style="margin-top:10px;">
-          <div style="flex:1 1 220px;">
-            <label>プラン</label><br>
-            <select id="calc_plan">
-              <option value="entrance">Entrance Pack（初期10,000円 / 月3,000円）</option>
-              <option value="last30">Last30 Navigator（初期29,800円 / 月10,000円）</option>
-            </select>
-          </div>
-          <div style="flex:1 1 160px;">
-            <label>初期費用の回収期間（ヶ月）</label><br>
-            <input id="calc_amort_months" type="number" min="1" step="1" value="6" />
-          </div>
-          <div style="flex:1 1 160px;">
-            <label>AreaMapで減る割合（%）</label><br>
-            <input id="calc_reduce_pct" type="number" min="0" max="100" step="5" value="50" />
-          </div>
+        <div>
+          <label>1人あたり粗利（円）</label><br>
+          <input id="calc_profit_per" type="number" min="0" step="100" value="5000" />
         </div>
-
-        <div class="row" style="margin-top:10px;">
-          <div>
-            <label>迷い電話/DM（週）</label><br>
-            <input id="calc_weekly" type="number" min="0" step="1" value="5" />
-          </div>
-          <div>
-            <label>1回の対応（分）</label><br>
-            <input id="calc_min_per" type="number" min="1" step="1" value="3" />
-          </div>
-          <div>
-            <label>人件費/機会損失（円/時）</label><br>
-            <input id="calc_yen_per_hour" type="number" min="0" step="100" value="2000" />
-          </div>
-        </div>
-
-        <div class="divider"></div>
-        <div class="cttl" style="margin-bottom:4px;">任意：取りこぼし（迷って来店しなかった分）も入れる</div>
-        <div class="hint">※電話/DMが少ない業種でも、こっちを入れると回収判定が現実に寄ります。</div>
-
-        <div class="row" style="margin-top:10px;">
-          <div>
-            <label>月の取りこぼし（人）</label><br>
-            <input id="calc_lost_customers" type="number" min="0" step="1" value="1" />
-          </div>
-          <div>
-            <label>1人あたり粗利（円）</label><br>
-            <input id="calc_profit_per" type="number" min="0" step="100" value="5000" />
-          </div>
-          <div>
-            <label>回収できる割合（%）</label><br>
-            <input id="calc_recover_pct" type="number" min="0" max="100" step="5" value="20" />
-          </div>
-        </div>
-
-        <div class="row" style="margin-top:10px;">
-          <button class="primary" id="calc_applyBtn" type="button">この条件で再計算</button>
-          <span id="calc_badge" class="resultBadge warn">判定：入力してください</span>
-        </div>
-
-        <div class="status" id="calc_out" style="margin-top:10px;"></div>
-
-        <div class="hint" style="margin-top:8px;">
-          コツ：まず “今の現実” を入れて、2週間テストで「迷い電話/DM」または「迷いが理由のキャンセル/未予約」が減ったかで更新します。
+        <div>
+          <label>回収できる割合（%）</label><br>
+          <input id="calc_recover_pct" type="number" min="0" max="100" step="5" value="20" />
         </div>
       </div>
 
-      <div class="cta" id="ctaBox">
-        <div class="ttl">次の一手：2週間「迷い削減テスト」</div>
-        <div class="ctext" style="color: var(--muted); line-height: 1.6; font-size: 12.5px;">
-          立地は変えずに、迷いを減らして「取りこぼし」を回収します。
-        </div>
-        <ul>
-          <li><b>Day1</b>：入口/駐車場/目印の写真を用意</li>
-          <li><b>Day2</b>：AreaMap（1ページ）を作成</li>
-          <li><b>Day3</b>：SNS/予約導線に固定（リンク一本化）</li>
-          <li><b>Day4-14</b>：数字を見る（迷い電話/DM/テンプレ送信回数）</li>
-        </ul>
-        <div class="small" id="impactText">
-          ✅ チェックが増えるほど効果が出やすいです（＝迷いが減る余地が大きい）。
-        </div>
-
-        <div class="row" style="margin-top:10px;">
-          <a class="linkbtn ok" id="contactBtn" href="#" target="_blank" rel="noopener" style="flex:1;">
-            <button class="ok" style="width:100%;">導入相談（リンク）</button>
-          </a>
-          <a class="linkbtn primary" id="sampleBtn" href="#" target="_blank" rel="noopener" style="flex:1;">
-            <button class="primary" style="width:100%;">AreaMapサンプルを見る</button>
-          </a>
-        </div>
+      <div class="row" style="margin-top:10px;">
+        <button class="primary" id="calc_applyBtn" type="button">この条件で再計算</button>
+        <span id="calc_badge" class="resultBadge warn">判定：入力してください</span>
       </div>
 
-      <div class="divider"></div>
+      <div class="status" id="calc_out" style="margin-top:10px;"></div>
 
-      <div class="card">
-        <div class="cttl">※補足（言い換え）</div>
-        <div class="ctext">
-          「候補が多いと最適を選びにくい」最適停止の有名問題（秘書問題／37%ルール）があります。<br>
-          重要なのは “37%に入る/入らない” の烙印ではなく、<b>改善できる変数（迷いと不安）で“選ばれる順番”を前にずらす</b>こと。
-        </div>
+      <div class="hint" style="margin-top:8px;">
+        コツ：まず “今の現実” を入れて、2週間テストで「迷い電話/DM」または「迷いが理由のキャンセル/未予約」が減ったかで更新します。
+      </div>
+    </div>
+
+    <div class="cta" id="ctaBox">
+      <div class="ttl">次の一手：2週間「迷い削減テスト」</div>
+      <div class="ctext" style="color: var(--muted); line-height: 1.6; font-size: 12.5px;">
+        立地は変えずに、迷いを減らして「取りこぼし」を回収します。
+      </div>
+      <ul>
+        <li><b>Day1</b>：入口/駐車場/目印の写真を用意</li>
+        <li><b>Day2</b>：AreaMap（1ページ）を作成</li>
+        <li><b>Day3</b>：SNS/予約導線に固定（リンク一本化）</li>
+        <li><b>Day4-14</b>：数字を見る（迷い電話/DM/テンプレ送信回数）</li>
+      </ul>
+      <div class="small" id="impactText">
+        ✅ チェックが増えるほど効果が出やすいです（＝迷いが減る余地が大きい）。
       </div>
 
-      <!-- sheet content end -->
+      <div class="row" style="margin-top:10px;">
+        <!-- ここはあなたの導線に置き換えてOK -->
+        <a class="linkbtn ok" id="contactBtn" href="#" target="_blank" rel="noopener" style="flex:1;">
+          <button class="ok" style="width:100%;">導入相談（リンク）</button>
+        </a>
+        <a class="linkbtn primary" id="sampleBtn" href="#" target="_blank" rel="noopener" style="flex:1;">
+          <button class="primary" style="width:100%;">AreaMapサンプルを見る</button>
+        </a>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="card">
+      <div class="cttl">※補足（言い換え）</div>
+      <div class="ctext">
+        「候補が多いと最適を選びにくい」最適停止の有名問題（秘書問題／37%ルール）があります。<br>
+        重要なのは “37%に入る/入らない” の烙印ではなく、<b>改善できる変数（迷いと不安）で“選ばれる順番”を前にずらす</b>こと。
+      </div>
     </div>
   </div>
 
-  <!-- 初回ガイド（モーダル） -->
+  <!-- Tour overlay -->
   <div class="overlay" id="overlay">
-    <div class="modal">
-      <div class="head">
-        <div>60秒ガイド（見るだけでOK）</div>
-        <button id="tourCloseBtn" type="button">閉じる</button>
-      </div>
-      <div class="body">
-        <h2>このデモで伝えたいこと</h2>
-        <p>
-          この地図は「店名なし」の匿名点群です。<br>
-          重要なのは「立地が良い/悪い」ではなく、<b>比較の途中で“迷い”がある候補ほど保留になりやすい</b>という構造です。
-        </p>
-
-        <div class="steps">
-          <div class="step">
-            <div class="st">Step1：点を順に見ます（次へ）</div>
-            <div class="sd">比較中は、入口や駐車場が分かりにくい店ほど「保留→別の店」になりやすい</div>
-          </div>
-          <div class="step">
-            <div class="st">Step2：お店の位置を置けます（任意）</div>
-            <div class="sd">立地は変えられない。だから「迷いを減らす」ことで不利を相殺します</div>
-          </div>
-          <div class="step">
-            <div class="st">Step3：2週間テストで数字を確認</div>
-            <div class="divider"></div>
-            <div class="hint">
-              右パネルの <b>「自動計算：回収判定」</b> で、迷い電話/DMや取りこぼしが減った場合の回収見込みをその場で確認できます。
-            </div>
-          </div>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="tourTitle">
+      <h2 id="tourTitle">60秒ガイド</h2>
+      <p>
+        「比較→疲れ→確実な店」になりやすい構造を、<b>“迷い”</b>の変数で動かします。
+      </p>
+      <div class="steps">
+        <div class="step">
+          <div class="st">Step1：候補は多いほど“比較コスト”が増える</div>
+          <div class="sd">地図が正しくても、「最後の30m」で不安があると保留されやすい。</div>
+        </div>
+        <div class="step">
+          <div class="st">Step2：“迷いと不安”を潰すと、候補に残りやすい</div>
+          <div class="sd">入口/駐車場/目印を1タップで提示 → 来店の確度が上がる。</div>
+        </div>
+        <div class="step">
+          <div class="st">Step3：2週間テストで数字を見る</div>
+          <div class="sd">迷い電話/DM、テンプレ送信回数、キャンセル理由が減るかで判断。</div>
         </div>
       </div>
-      <div class="foot">
-        <button class="primary" id="tourStartBtn" type="button">OK、始める</button>
+      <div class="actions">
+        <button id="closeTourBtn">閉じる</button>
+        <button class="primary" id="startDemoBtn">デモを開始</button>
       </div>
     </div>
   </div>
 
   <script>
     // =========================
-    // Query: embed mode
+    // URL Params
     // =========================
-    (function(){
-      const p = new URLSearchParams(location.search);
-      const mode = p.get("mode");
-      if(mode === "embed"){
-        document.body.classList.add("is-embed");
-      }
-    })();
+    const params = new URLSearchParams(location.search);
+    const API_URL = params.get("api") || "https://areamap.onrender.com/api/shops";
+    const EMBED = (params.get("embed") === "1") || (window.self !== window.top);
 
-    // =========================
-    // Map (Leaflet)
-    // =========================
-    const DEFAULT_CENTER = [36.064, 136.219];
-    const DEFAULT_ZOOM = 15;
-
-    const tilemap = L.map("tilemap", {
-      center: DEFAULT_CENTER,
-      zoom: DEFAULT_ZOOM,
-      zoomControl: true
-    });
-
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(tilemap);
-
-    const points = [
-      { lat: 36.0646, lng: 136.2197, label: "候補A（匿名）", kind: "entrance" },
-      { lat: 36.0628, lng: 136.2179, label: "候補B（匿名）", kind: "parking" },
-      { lat: 36.0662, lng: 136.2214, label: "候補C（匿名）", kind: "landmark" },
-      { lat: 36.0619, lng: 136.2210, label: "候補D（匿名）", kind: "entrance" },
-      { lat: 36.0670, lng: 136.2174, label: "候補E（匿名）", kind: "parking" }
-    ];
-
-    const markers = points.map(p => L.circleMarker([p.lat, p.lng], {
-      radius: 8,
-      color: "#0b57d0",
-      weight: 2,
-      fillColor: "#0b57d0",
-      fillOpacity: 0.22
-    }).bindPopup(`<b>${p.label}</b><br><span style="color:rgba(0,0,0,0.6);font-size:12px;">タイプ：${p.kind}</span>`));
-
-    markers.forEach(m => m.addTo(tilemap));
+    if (EMBED){
+      document.body.classList.add("is-embed");
+    }
 
     // =========================
-    // UI elements
+    // Panel toggle (embed only)
     // =========================
-    const tourBtn = document.getElementById("tourBtn");
-    const overlay = document.getElementById("overlay");
-    const tourCloseBtn = document.getElementById("tourCloseBtn");
-    const tourStartBtn = document.getElementById("tourStartBtn");
-
-    const demoNextBtn = document.getElementById("demoNextBtn");
-    const demoResetBtn = document.getElementById("demoResetBtn");
-    const placeShopBtn = document.getElementById("placeShopBtn");
-
     const panel = document.getElementById("panel");
     const panelToggle = document.getElementById("panelToggle");
-
-    const sheetHandle = document.getElementById("sheetHandle");
-    const sheetContent = document.getElementById("sheetContent");
-
-    let demoIndex = -1;
-    let shopMarker = null;
-
-    function openTour(){ overlay.classList.add("is-open"); }
-    function closeTour(){ overlay.classList.remove("is-open"); }
-
-    tourBtn.addEventListener("click", openTour);
-    tourCloseBtn.addEventListener("click", closeTour);
-    tourStartBtn.addEventListener("click", () => {
-      closeTour();
-      demoNextBtn.disabled = false;
-      demoNextBtn.click();
-    });
-
-    demoNextBtn.addEventListener("click", () => {
-      demoIndex++;
-      if(demoIndex >= markers.length){
-        demoIndex = markers.length - 1;
-        return;
-      }
-      const m = markers[demoIndex];
-      tilemap.setView(m.getLatLng(), Math.max(tilemap.getZoom(), 16), { animate: true });
-      m.openPopup();
-    });
-
-    demoResetBtn.addEventListener("click", () => {
-      demoIndex = -1;
-      demoNextBtn.disabled = false;
-      tilemap.setView(DEFAULT_CENTER, DEFAULT_ZOOM, { animate: true });
-      if(shopMarker){
-        tilemap.removeLayer(shopMarker);
-        shopMarker = null;
-      }
-      markers.forEach(m => m.closePopup());
-    });
-
-    placeShopBtn.addEventListener("click", () => {
-      const c = tilemap.getCenter();
-      if(shopMarker) tilemap.removeLayer(shopMarker);
-      shopMarker = L.marker([c.lat, c.lng]).addTo(tilemap)
-        .bindPopup("<b>お店（仮）</b><br><span style='font-size:12px;color:rgba(0,0,0,0.6)'>ここに置きました（任意）</span>");
-      shopMarker.openPopup();
-    });
-
-    // =========================
-    // Panel toggle (embed desktop)
-    // =========================
-    panelToggle.addEventListener("click", () => {
-      const collapsed = panel.classList.toggle("is-collapsed");
-      panelToggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
-    });
-
-    // =========================
-    // Calculator
-    // =========================
-    const calc_applyBtn = document.getElementById("calc_applyBtn");
-    const calc_badge = document.getElementById("calc_badge");
-    const calc_out = document.getElementById("calc_out");
-
-    function yen(n){ return (Math.round(n)).toLocaleString("ja-JP"); }
-
-    function calc(){
-      const plan = document.getElementById("calc_plan").value;
-      const amort = Number(document.getElementById("calc_amort_months").value || 6);
-      const reducePct = Number(document.getElementById("calc_reduce_pct").value || 0) / 100;
-
-      const weekly = Number(document.getElementById("calc_weekly").value || 0);
-      const minPer = Number(document.getElementById("calc_min_per").value || 1);
-      const yenPerHour = Number(document.getElementById("calc_yen_per_hour").value || 0);
-
-      const lost = Number(document.getElementById("calc_lost_customers").value || 0);
-      const profitPer = Number(document.getElementById("calc_profit_per").value || 0);
-      const recoverPct = Number(document.getElementById("calc_recover_pct").value || 0) / 100;
-
-      const init = (plan === "entrance") ? 10000 : 29800;
-      const monthly = (plan === "entrance") ? 3000 : 10000;
-
-      const weeklyMinutes = weekly * minPer;
-      const monthlyMinutes = weeklyMinutes * 4.3;
-      const monthlyHours = monthlyMinutes / 60;
-      const monthlyLossTime = monthlyHours * yenPerHour;
-
-      const monthlyLostSales = lost * profitPer * recoverPct;
-      const monthlyBenefit = (monthlyLossTime + monthlyLostSales) * reducePct;
-
-      const monthlyNeed = (init / amort) + monthly;
-      const ok = monthlyBenefit >= monthlyNeed;
-
-      calc_badge.className = "resultBadge " + (ok ? "ok" : "warn");
-      calc_badge.textContent = ok ? "判定：回収できそう" : "判定：要改善/要検証";
-
-      calc_out.innerHTML = `
-        <b>月あたり削減見込み（推定）</b><br>
-        ・対応コスト：${yen(monthlyLossTime)}円/月<br>
-        ・取りこぼし：${yen(monthlyLostSales)}円/月（任意）<br>
-        ・AreaMapで減る割合：${Math.round(reducePct*100)}%<br>
-        ⇒ <b>改善価値</b>：${yen(monthlyBenefit)}円/月<br><br>
-        <b>必要額（初期/運用）</b><br>
-        ・初期費用：${yen(init)}円（${amort}ヶ月で按分）<br>
-        ・月額：${yen(monthly)}円<br>
-        ⇒ <b>必要額</b>：${yen(monthlyNeed)}円/月
-      `;
-    }
-    calc_applyBtn.addEventListener("click", calc);
-
-    // =========================
-    // Mobile Bottom Sheet (drag + snap)
-    // - uses pointer events + pointer capture for stable drag
-    //   (setPointerCapture: MDN) https://developer.mozilla.org/docs/Web/API/Element/setPointerCapture
-    // =========================
-    const mq = window.matchMedia("(max-width: 520px)");
-
-    let sheetEnabled = false;
-    let maxTranslate = 0;
-    let currentTranslate = 0;
-    let startY = 0;
-    let startTranslate = 0;
-    let dragging = false;
-    let didMove = false;
-
-    const SNAP_EXPANDED = 0; // top
-    let SNAP_MID = 0;
-    let SNAP_COLLAPSED = 0;
-
-    function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
-
-    function getPeekPx(){
-      const v = getComputedStyle(document.documentElement).getPropertyValue("--sheet-peek").trim();
-      const n = parseFloat(v);
-      return Number.isFinite(n) ? n : 110;
-    }
-
-    function measureSheet(){
-      const peek = getPeekPx();
-      const rect = panel.getBoundingClientRect();
-      const h = rect.height || 0;
-      maxTranslate = Math.max(0, h - peek);
-      SNAP_MID = Math.round(maxTranslate * 0.45);
-      SNAP_COLLAPSED = maxTranslate;
-      // keep current within bounds
-      currentTranslate = clamp(currentTranslate, 0, maxTranslate);
-      document.documentElement.style.setProperty("--sheet-ty", currentTranslate + "px");
-    }
-
-    function setSheetTranslate(px, animate=true){
-      currentTranslate = clamp(px, 0, maxTranslate);
-      if(!animate){
-        panel.classList.add("is-dragging");
-      }else{
-        panel.classList.remove("is-dragging");
-      }
-      document.documentElement.style.setProperty("--sheet-ty", currentTranslate + "px");
-      // aria
-      const expanded = (currentTranslate <= SNAP_MID * 0.5);
-      sheetHandle.setAttribute("aria-expanded", expanded ? "true" : "false");
-    }
-
-    function snapToNearest(){
-      const candidates = [SNAP_EXPANDED, SNAP_MID, SNAP_COLLAPSED];
-      let best = candidates[0];
-      let bestD = Math.abs(currentTranslate - best);
-      for(const c of candidates){
-        const d = Math.abs(currentTranslate - c);
-        if(d < bestD){ bestD = d; best = c; }
-      }
-      setSheetTranslate(best, true);
-      // Map invalidation helps if sheet height/viewport changed
-      setTimeout(() => tilemap.invalidateSize(), 50);
-    }
-
-    function disableMapInteractions(){
-      tilemap.dragging.disable();
-      tilemap.touchZoom.disable();
-      tilemap.doubleClickZoom.disable();
-      tilemap.scrollWheelZoom.disable();
-      tilemap.boxZoom.disable();
-      tilemap.keyboard.disable();
-      if(tilemap.tap) tilemap.tap.disable();
-    }
-    function enableMapInteractions(){
-      tilemap.dragging.enable();
-      tilemap.touchZoom.enable();
-      tilemap.doubleClickZoom.enable();
-      tilemap.scrollWheelZoom.enable();
-      tilemap.boxZoom.enable();
-      tilemap.keyboard.enable();
-      if(tilemap.tap) tilemap.tap.enable();
-    }
-
-    function onHandlePointerDown(e){
-      if(!sheetEnabled) return;
-      dragging = true;
-      didMove = false;
-      startY = e.clientY;
-      startTranslate = currentTranslate;
-      panel.classList.add("is-dragging");
-      disableMapInteractions();
-      // capture pointer so move/up are delivered even if finger leaves handle
-      try{ sheetHandle.setPointerCapture(e.pointerId); }catch(_){}
-    }
-
-    function onHandlePointerMove(e){
-      if(!sheetEnabled || !dragging) return;
-      const dy = e.clientY - startY;
-      if(Math.abs(dy) > 3) didMove = true;
-      setSheetTranslate(startTranslate + dy, false);
-    }
-
-    function endDrag(){
-      if(!sheetEnabled) return;
-      if(!dragging) return;
-      dragging = false;
-      panel.classList.remove("is-dragging");
-      enableMapInteractions();
-      snapToNearest();
-    }
-
-    function onHandlePointerUp(e){
-      if(!sheetEnabled) return;
-      try{ sheetHandle.releasePointerCapture(e.pointerId); }catch(_){}
-      endDrag();
-      // tap-to-toggle (only if it wasn't a drag)
-      if(!didMove){
-        // toggle between collapsed and mid/expanded
-        const nearCollapsed = Math.abs(currentTranslate - SNAP_COLLAPSED) < Math.max(18, maxTranslate*0.08);
-        setSheetTranslate(nearCollapsed ? SNAP_MID : SNAP_COLLAPSED, true);
-        setTimeout(() => tilemap.invalidateSize(), 50);
-      }
-    }
-
-    function onHandleKeyDown(e){
-      if(!sheetEnabled) return;
-      if(e.key === "Enter" || e.key === " "){
-        e.preventDefault();
-        const nearCollapsed = Math.abs(currentTranslate - SNAP_COLLAPSED) < Math.max(18, maxTranslate*0.08);
-        setSheetTranslate(nearCollapsed ? SNAP_MID : SNAP_COLLAPSED, true);
-        setTimeout(() => tilemap.invalidateSize(), 50);
-      }
-      if(e.key === "ArrowUp"){
-        e.preventDefault();
-        setSheetTranslate(SNAP_MID, true);
-      }
-      if(e.key === "ArrowDown"){
-        e.preventDefault();
-        setSheetTranslate(SNAP_COLLAPSED, true);
-      }
-    }
-
-    function enableSheet(){
-      if(sheetEnabled) return;
-      sheetEnabled = true;
-      // initial: collapsed peek
-      measureSheet();
-      setSheetTranslate(SNAP_COLLAPSED, true);
-
-      sheetHandle.addEventListener("pointerdown", onHandlePointerDown, {passive:true});
-      sheetHandle.addEventListener("pointermove", onHandlePointerMove, {passive:true});
-      sheetHandle.addEventListener("pointerup", onHandlePointerUp, {passive:true});
-      sheetHandle.addEventListener("pointercancel", onHandlePointerUp, {passive:true});
-      sheetHandle.addEventListener("keydown", onHandleKeyDown);
-
-      window.addEventListener("resize", () => {
-        if(!sheetEnabled) return;
-        measureSheet();
-        // keep snapped feeling on resize
-        setSheetTranslate(currentTranslate, true);
-        setTimeout(() => tilemap.invalidateSize(), 50);
+    if (panelToggle){
+      panelToggle.addEventListener("click", () => {
+        const collapsed = panel.classList.toggle("is-collapsed");
+        panelToggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
       });
     }
 
-    function disableSheet(){
-      if(!sheetEnabled) return;
-      sheetEnabled = false;
+    // =========================
+    // Leaflet init
+    // =========================
+    const tilemap = L.map("tilemap", {
+      zoomControl: true,
+      attributionControl: false
+    }).setView([36.064, 136.221], 14);
 
-      sheetHandle.removeEventListener("pointerdown", onHandlePointerDown);
-      sheetHandle.removeEventListener("pointermove", onHandlePointerMove);
-      sheetHandle.removeEventListener("pointerup", onHandlePointerUp);
-      sheetHandle.removeEventListener("pointercancel", onHandlePointerUp);
-      sheetHandle.removeEventListener("keydown", onHandleKeyDown);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19
+    }).addTo(tilemap);
 
-      // reset transform var so desktop overlay uses its own layout
-      document.documentElement.style.removeProperty("--sheet-ty");
+    // =========================
+    // Markers (demo)
+    // =========================
+    let shops = [];
+    let markers = [];
+    let order = [];
+    let step = -1;
+
+    function makeDotIcon(mode="dim"){
+      const c = mode === "focus" ? "rgba(11,87,208,1)" : mode === "scan" ? "rgba(138,90,0,1)" : "rgba(0,0,0,0.25)";
+      const bg = mode === "dim" ? "rgba(255,255,255,0.65)" : "rgba(255,255,255,0.95)";
+      return L.divIcon({
+        className: "",
+        html: `
+          <div style="
+            width:14px;height:14px;border-radius:999px;
+            background:${bg};
+            border:3px solid ${c};
+            box-shadow:0 10px 22px rgba(0,0,0,0.18);
+          "></div>
+        `,
+        iconSize: [14,14],
+        iconAnchor: [7,7]
+      });
     }
 
-    function syncSheetMode(){
-      if(mq.matches){
-        enableSheet();
-      }else{
-        disableSheet();
+    function shuffle(arr){
+      const a = [...arr];
+      for (let i=a.length-1;i>0;i--){
+        const j = Math.floor(Math.random()*(i+1));
+        [a[i],a[j]] = [a[j],a[i]];
       }
-      setTimeout(() => tilemap.invalidateSize(), 50);
+      return a;
     }
 
-    // init after first layout
-    window.addEventListener("load", () => {
-      syncSheetMode();
+    function resetDemo(){
+      step = -1;
+      order = [];
+      markers.forEach(m => tilemap.removeLayer(m));
+      markers = [];
+      statusBox.innerHTML = `
+        <b>操作は3つだけ</b><br>
+        <span class="small">
+          ①「60秒ガイド」→ ②「次へ」で点を順に見る → ③最後に「2週間テスト」を見て判断。<br>
+          ※点は匿名です。店名は出しません。
+        </span>
+      `;
+      demoNextBtn.disabled = true;
+      demoNextBtn.textContent = "次へ";
+    }
+
+    function buildMarkers(){
+      markers.forEach(m => tilemap.removeLayer(m));
+      markers = shops.map((s, idx) => {
+        const m = L.marker([s.lat, s.lng], { icon: makeDotIcon("dim") }).addTo(tilemap);
+        m.bindPopup(`<b>候補 ${idx+1}</b><br><span style="font-size:12px;color:rgba(0,0,0,0.6);">匿名ポイント</span>`);
+        return m;
+      });
+      order = shuffle([...Array(markers.length).keys()]);
+      step = -1;
+      demoNextBtn.disabled = markers.length === 0;
+      demoNextBtn.textContent = "次へ";
+    }
+
+    function nextStep(){
+      if (markers.length === 0) return;
+
+      step++;
+      if (step >= order.length){
+        statusBox.innerHTML = `
+          <b>結論</b><br>
+          <span class="small">
+            “良い店”でも、<b>迷いがあると後回し</b>にされやすい。<br>
+            AreaMapは <b>入口/駐車場/目印</b> を1タップで提示し、<b>候補に残る順番</b>を前にずらします。<br><br>
+            ✅ 次は「2週間テスト」で、迷い電話/DMやテンプレ送信回数が減るかを見ましょう。
+          </span>
+        `;
+        demoNextBtn.disabled = true;
+        demoNextBtn.textContent = "完了";
+        markers.forEach(m => m.setIcon(makeDotIcon("dim")));
+        return;
+      }
+
+      const idx = order[step];
+      const marker = markers[idx];
+
+      // 見た目
+      markers.forEach(m => m.setIcon(makeDotIcon("dim")));
+      marker.setIcon(makeDotIcon(step < Math.ceil(order.length * 0.33) ? "scan" : "focus"));
+
+      // ポップアップ
+      marker.openPopup();
+
+      // 説明文（“で？”を潰す：結論まで毎回言う）
+      const phase = step < Math.ceil(order.length * 0.33) ? "比較中（序盤）" : "比較に疲れた後半";
+      statusBox.innerHTML = `
+        <b>${phase}</b><br>
+        <span class="small">
+          この段階で「迷い」があると、良さそうでも保留されやすい。<br>
+          AreaMapは <b>入口/駐車場/目印</b> を1タップで提示し、“迷い”による取りこぼしを減らします。
+        </span>
+      `;
+
+      tilemap.panTo(marker.getLatLng(), { animate: true, duration: 0.35 });
+    }
+
+    const tourBtn = document.getElementById("tourBtn");
+    const demoNextBtn = document.getElementById("demoNextBtn");
+    const demoResetBtn = document.getElementById("demoResetBtn");
+    const placeShopBtn = document.getElementById("placeShopBtn");
+    const statusBox = document.getElementById("statusBox");
+    const overlay = document.getElementById("overlay");
+    const closeTourBtn = document.getElementById("closeTourBtn");
+    const startDemoBtn = document.getElementById("startDemoBtn");
+    const impactText = document.getElementById("impactText");
+
+    tourBtn.addEventListener("click", () => { overlay.style.display = "flex"; });
+    closeTourBtn.addEventListener("click", () => { overlay.style.display = "none"; });
+    overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.style.display = "none"; });
+
+    startDemoBtn.addEventListener("click", async () => {
+      overlay.style.display = "none";
+      await loadShops();
+      buildMarkers();
+      nextStep();
+      demoNextBtn.disabled = false;
     });
-    mq.addEventListener?.("change", syncSheetMode);
+
+    demoNextBtn.addEventListener("click", nextStep);
+    demoResetBtn.addEventListener("click", () => {
+      resetDemo();
+      buildMarkers();
+    });
+
+    // ダミー：お店の位置を置く（クリックで1点）
+    let shopMarker = null;
+    placeShopBtn.addEventListener("click", () => {
+      statusBox.innerHTML = `<b>地図をタップ</b><br><span class="small">「お店の位置」の仮置きをします（デモ用）。</span>`;
+      tilemap.once("click", (e) => {
+        if (shopMarker) tilemap.removeLayer(shopMarker);
+        shopMarker = L.marker(e.latlng, { icon: makeDotIcon("focus") }).addTo(tilemap);
+        shopMarker.bindPopup("<b>お店の位置（仮）</b>").openPopup();
+        statusBox.innerHTML = `<b>置きました</b><br><span class="small">次は「入口/駐車場/目印」を1タップで出せる状態にします。</span>`;
+      });
+    });
+
+    // =========================
+    // チェックリスト → “効果”文言を自動調整
+    // =========================
+    const checklist = document.getElementById("checklist");
+    checklist.addEventListener("change", () => {
+      const checked = [...checklist.querySelectorAll("input[type=checkbox]")].filter(x => x.checked).length;
+
+      if (checked === 0){
+        impactText.textContent = "✅ チェックが増えるほど効果が出やすいです（＝迷いが減る余地が大きい）。";
+      } else if (checked === 1){
+        impactText.innerHTML = "✅ 1つ当てはまる：<b>迷い削減の余地あり</b>。まずは2週間テストで数字を確認しましょう。";
+      } else if (checked === 2){
+        impactText.innerHTML = "✅ 2つ当てはまる：<b>効果が出やすいタイプ</b>。迷い電話/DM/テンプレ回数が減る可能性が高いです。";
+      } else {
+        impactText.innerHTML = "✅ 3つ当てはまる：<b>かなり回収しやすい</b>。リンク一本化だけでも店側の負担が軽くなります。";
+      }
+    });
+
+    // =========================
+    // データロード
+    // =========================
+    async function loadShops(){
+      try{
+        const res = await fetch(API_URL, { cache: "no-store" });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const data = await res.json();
+        if (!Array.isArray(data)) throw new Error("API response is not an array");
+
+        shops = data
+          .map(s => ({ lat: Number(s.lat), lng: Number(s.lng) }))
+          .filter(s => Number.isFinite(s.lat) && Number.isFinite(s.lng));
+
+        if (shops.length === 0){
+          statusBox.innerHTML = `<b>データが空です</b><br><span class="small">APIの返却データにlat/lngがありません。</span>`;
+        }
+      } catch (e){
+        console.error(e);
+        statusBox.innerHTML = `<b>読み込み失敗</b><br><span class="small">api=... のURLパラメータか、CORS/JSON形式を確認してください。</span>`;
+        shops = [];
+      }
+    }
+
+    // 初期表示：APIを読まずに地図だけ
+    resetDemo();
   </script>
 </body>
 </html>
