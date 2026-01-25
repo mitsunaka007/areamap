@@ -1,211 +1,306 @@
 /* =========================
-   View Mode Switch (page/embed/ig)
-   - HTML側で <html data-areamap-view="..."> を付ける想定
-   - 例: ?mode=embed / ?mode=ig
+   AreaMap Lite (Refined UI)
+   - mode: page / embed / ig
+   - タップしやすさ(≥44px)・見た目の質感・モーダルを改善
 ========================= */
 
-html[data-areamap-view] body {
+:root{
+  --am-bg: #0b0f19;
+  --am-surface: rgba(255,255,255,0.78);
+  --am-surface-strong: rgba(255,255,255,0.92);
+  --am-text: #0b1220;
+  --am-text-sub: rgba(11,18,32,0.70);
+  --am-ring: rgba(255,255,255,0.85);
+  --am-shadow: 0 10px 26px rgba(0,0,0,0.22);
+  --am-shadow-soft: 0 6px 18px rgba(0,0,0,0.16);
+  --am-radius: 16px;
+  --am-radius-lg: 20px;
+  --am-tap: 48px; /* 44px以上を確保 */
+  --am-safe-b: env(safe-area-inset-bottom, 0px);
+  --am-safe-t: env(safe-area-inset-top, 0px);
+}
+
+html[data-areamap-view] body{
   margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans JP", "Hiragino Sans", "Yu Gothic", sans-serif;
+  background: #000;
 }
 
-/* ===== Map Wrapper / Base ===== */
-html[data-areamap-view] #map-wrapper {
+/* ===== Map Wrapper ===== */
+html[data-areamap-view] #map-wrapper{
   position: relative;
   width: 100%;
-  background: #f8f8f8;
+  background: #000;
   overflow: hidden;
-
-  /* デフォルト（page） */
-  /* height: 40vh;
-  max-height: 600px; */
 }
+
+html[data-areamap-view="page"] #map-wrapper{
+  height: min(70vh, 720px);
+  min-height: 360px;
+}
+
 @media (max-width: 768px){
-  html[data-areamap-view] #map-wrapper {
-    height: 40vh;
-    max-height: 600px;
-  }
-}
-@media (min-width: 920px){
-  html[data-areamap-view] #map-wrapper {
-    height: 100vh;
+  html[data-areamap-view="page"] #map-wrapper{
+    height: 52vh;
+    min-height: 320px;
   }
 }
 
-html[data-areamap-view] .map-image-container {
-  position: relative;
-  width: 100%;
-  height: 100%;
-}
-
-html[data-areamap-view] .map-image-container img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover; /* object-fit: contain; にしたい場合はここを変更 */
-  display: block;
-}
-
-/* ===== embed（iframe用：地図だけ） ===== */
-html[data-areamap-view="embed"] #map-wrapper {
+html[data-areamap-view="embed"] #map-wrapper{
   height: 100%;
   max-height: none;
 }
 
-html[data-areamap-view="embed"] .areamap-cta,
-html[data-areamap-view="embed"] .areamap-footer {
-  display: none !important;
-}
-
-/* ===== ig（Instagram用：フルスクリーン） ===== */
-html[data-areamap-view="ig"] #map-wrapper {
+html[data-areamap-view="ig"] #map-wrapper{
   height: 100dvh;
   max-height: none;
-  background: #000; /* 余白が出た時の白を消す */
+  background: #000;
 }
 
-html[data-areamap-view="ig"] .areamap-footer {
+html[data-areamap-view] .map-image-container{
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+html[data-areamap-view] .map-image-container img{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* ===== Badge ===== */
+html[data-areamap-view] .areamap-badge{
+  position: absolute;
+  left: 12px;
+  top: calc(12px + var(--am-safe-t));
+  z-index: 12;
+
+  padding: 8px 10px;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.42);
+  color: rgba(255,255,255,0.92);
+  font-size: 12px;
+  letter-spacing: .02em;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+}
+
+/* ===== embed: CTA/Footer hide ===== */
+html[data-areamap-view="embed"] .areamap-cta,
+html[data-areamap-view="embed"] .areamap-footer{
   display: none !important;
 }
 
-/* ===== モーダル（map-wrapper上に重ねる） ===== */
-html[data-areamap-view] .img-modal {
+html[data-areamap-view="ig"] .areamap-footer{
+  display: none !important;
+}
+
+/* =========================
+   Hotspots
+========================= */
+html[data-areamap-view] .hotspot{
   position: absolute;
-  inset: 10px;
-  z-index: 2000;
-  display: none;
-  border-radius: 14px;
-  overflow: hidden;
-  height: auto; /* ← 固定40vhをやめて、insetに任せる */
-}
+  z-index: 20;
 
-html[data-areamap-view] .img-modal.is-open {
-  display: block;
-}
-
-html[data-areamap-view] .img-modal__overlay {
-  position: absolute;
-  inset: 0;
-  background: rgba(0,0,0,0.55);
-}
-
-html[data-areamap-view] .img-modal__content {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-
-  width: min(92%, 720px);
-  max-height: 90%;
-
-  background: #fff;
-  border-radius: 14px;
-  overflow: hidden;
-}
-
-html[data-areamap-view] .img-modal__content img {
-  width: 100%;
-  height: auto;
-  display: block;
-}
-
-html[data-areamap-view] .img-modal__close {
-  position: absolute;
-  right: 10px;
-  top: 10px;
-  width: 36px;
-  height: 36px;
-  border: 0;
+  width: var(--am-tap);
+  height: var(--am-tap);
   border-radius: 999px;
-  background: rgba(0,0,0,0.6);
-  color: #fff;
-  font-size: 20px;
-  line-height: 36px;
-  cursor: pointer;
-}
+  border: 1px solid rgba(255,255,255,0.55);
 
-/* ===== ホットスポット共通（アイコン前提） ===== */
-html[data-areamap-view] .hotspot {
-  position: absolute;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-
-  /* 下端固定（IG/モバイル安全域対応） */
-  bottom: calc(16px + env(safe-area-inset-bottom));
-  top: auto;
-  transform: none;
+  /* “地図UI”の質感 */
+  background: rgba(0,0,0,0.35);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: var(--am-shadow-soft);
 
   background-repeat: no-repeat;
   background-position: center;
   background-size: 60% 60%;
+
+  cursor: pointer;
+
+  /* 下端固定（安全域含む） */
+  bottom: calc(14px + var(--am-safe-b));
+  top: auto;
 
   /* タップ最適化 */
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
 
-html[data-areamap-view] .hotspot:hover {
-  background-color: rgba(255, 255, 255, 0.7);
+html[data-areamap-view] .hotspot:focus-visible{
+  outline: 2px solid var(--am-ring);
+  outline-offset: 3px;
 }
 
-/* ラベルは不要（テキスト表示しない） */
-html[data-areamap-view] .hotspot::after {
-  content: none;
+html[data-areamap-view] .hotspot:hover{
+  transform: translateY(-1px);
+  box-shadow: 0 12px 26px rgba(0,0,0,0.22);
 }
 
-/* 駐車場（アイコン + 位置） */
-html[data-areamap-view] .hotspot-parking {
-  right: 76px;
+html[data-areamap-view] .hotspot:active{
+  transform: translateY(0px) scale(0.98);
+}
+
+/* うっすらパルス（動きが苦手な人には止める） */
+html[data-areamap-view] .hotspot::before{
+  content:"";
+  position:absolute;
+  inset:-6px;
+  border-radius:999px;
+  border: 1px solid rgba(255,255,255,0.35);
+  opacity: .65;
+  animation: amPulse 1.9s ease-in-out infinite;
+}
+
+@keyframes amPulse{
+  0%{ transform: scale(0.96); opacity:.55; }
+  60%{ transform: scale(1.06); opacity:.18; }
+  100%{ transform: scale(0.96); opacity:.55; }
+}
+
+@media (prefers-reduced-motion: reduce){
+  html[data-areamap-view] .hotspot::before{
+    animation: none;
+  }
+  html[data-areamap-view] .hotspot:hover,
+  html[data-areamap-view] .hotspot:active{
+    transform: none;
+  }
+}
+
+/* 駐車場 */
+html[data-areamap-view] .hotspot-parking{
+  right: calc(16px + var(--am-tap) + 12px);
   background-image: url("../img/parking-sign.svg");
 }
 
-/* メニュー（アイコン + 位置） */
-html[data-areamap-view] .hotspot-menu {
+/* メニュー */
+html[data-areamap-view] .hotspot-menu{
   right: 16px;
   background-image: url("../img/yen-sign.svg");
 }
 
-/* 任意：リーダー線 */
-html[data-areamap-view] .hotspot.has-leader::before {
-  content: "";
+/* =========================
+   CTA (Bottom Panel)
+========================= */
+html[data-areamap-view] .areamap-cta{
   position: absolute;
-  width: 40px;
-  height: 2px;
-  background: rgba(255,255,255,0.9);
-  left: -36px;
-  top: 50%;
-  transform: translateY(-50%) rotate(-20deg);
-  border-radius: 2px;
-  border: none;
+  left: 12px;
+  right: 12px;
+  bottom: calc(12px + var(--am-safe-b));
+  z-index: 15;
+
+  display: grid;
+  gap: 6px;
+
+  padding: 10px 10px;
+  border-radius: var(--am-radius-lg);
+  background: rgba(0,0,0,0.40);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: var(--am-shadow);
 }
 
-/* ===== CTA ===== */
-html[data-areamap-view] .areamap-cta {
-  position: absolute;
-  left: 10px;
-  z-index: 10;
-  width: 140px;
-  height: 30px;
-  background-color: rgba(255,255,255,0.7);
-  padding: 5px;
+html[data-areamap-view] .btn-route{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 
-  /* 下端固定（IG/モバイル安全域対応） */
-  bottom: calc(10px + env(safe-area-inset-bottom));
-}
-html[data-areamap-view].areamap-cta a {
-  display: inline-block;
-  padding: 8px 12px;
-  background-color: rgba(255, 255, 255, 0.9);
-  color: #333;
+  width: 100%;
+  min-height: 46px;
+
+  padding: 10px 12px;
+  border-radius: 14px;
+
+  background: var(--am-surface-strong);
+  color: var(--am-text);
   text-decoration: none;
-  font-size: 13px;
-  font-weight: 500;
-  border-radius: 6px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  white-space: nowrap;
-  transition: all 0.2s ease;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: .01em;
+
+  box-shadow: 0 10px 22px rgba(0,0,0,0.18);
+  transition: transform .18s ease, box-shadow .18s ease, background-color .18s ease;
 }
-html[data-areamap-view] .areamap-cta a:hover {
-  background-color: rgba(255, 255, 255, 1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+
+html[data-areamap-view] .btn-route:hover{
   transform: translateY(-1px);
+  box-shadow: 0 16px 30px rgba(0,0,0,0.22);
+}
+
+html[data-areamap-view] .btn-route:active{
+  transform: translateY(0px) scale(0.99);
+}
+
+html[data-areamap-view] .btn-route:focus-visible{
+  outline: 2px solid rgba(255,255,255,0.92);
+  outline-offset: 3px;
+}
+
+html[data-areamap-view] .cta-sub{
+  text-align: center;
+  font-size: 12px;
+  color: rgba(255,255,255,0.78);
+}
+
+/* ===== モーダル(dialog) ===== */
+html[data-areamap-view] .img-modal{
+  border: 0;
+  padding: 0;
+  width: min(92vw, 860px);
+  border-radius: var(--am-radius-lg);
+  background: transparent;
+}
+
+html[data-areamap-view] .img-modal::backdrop{
+  background: rgba(0,0,0,0.62);
+}
+
+html[data-areamap-view] .img-modal__content{
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--am-radius-lg);
+  background: #fff;
+  box-shadow: var(--am-shadow);
+}
+
+html[data-areamap-view] .img-modal__title{
+  padding: 14px 52px 10px 16px;
+  font-weight: 800;
+  color: var(--am-text);
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+
+html[data-areamap-view] .img-modal__content img{
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+html[data-areamap-view] .img-modal__close{
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 999px;
+
+  background: rgba(0,0,0,0.58);
+  color: #fff;
+  font-size: 22px;
+  line-height: 40px;
+  cursor: pointer;
+}
+
+html[data-areamap-view] .img-modal__close:focus-visible{
+  outline: 2px solid rgba(255,255,255,0.92);
+  outline-offset: 2px;
 }
