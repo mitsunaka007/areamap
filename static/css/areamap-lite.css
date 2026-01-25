@@ -4,6 +4,11 @@
    - タップしやすさ(≥44px)・見た目の質感・モーダルを改善
 ========================= */
 
+/* 追加：幅計算を安定させてはみ出し防止 */
+*, *::before, *::after{
+  box-sizing: border-box;
+}
+
 :root{
   --am-bg: #0b0f19;
   --am-surface: rgba(255,255,255,0.78);
@@ -133,6 +138,7 @@ html[data-areamap-view] .hotspot{
   /* タップ最適化 */
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+  bottom: calc(14px + var(--am-safe-b) + 88px);
 }
 
 html[data-areamap-view] .hotspot:focus-visible{
@@ -230,6 +236,8 @@ html[data-areamap-view] .btn-route{
 
   box-shadow: 0 10px 22px rgba(0,0,0,0.18);
   transition: transform .18s ease, box-shadow .18s ease, background-color .18s ease;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 html[data-areamap-view] .btn-route:hover{
