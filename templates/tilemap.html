@@ -97,6 +97,33 @@
       line-height: 1.35;
       letter-spacing: .01em;
     }
+
+    /* Mobile sheet header (shown only on small screens) */
+    .sheet-top{
+      display:none;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      position: sticky;
+      top: 0;
+      background: var(--panel);
+      padding: 4px 0 10px;
+      z-index: 2;
+    }
+    .sheet-spacer{ width: 52px; flex: 0 0 52px; }
+    .sheet-handle{
+      width: 46px;
+      height: 5px;
+      border-radius: 999px;
+      background: rgba(0,0,0,0.18);
+      margin: 0 auto;
+    }
+    .sheet-close{
+      padding: 8px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 900;
+    }
     .lead{
       font-size: 12.5px;
       color: var(--muted);
@@ -164,7 +191,13 @@
     .check .t{ font-weight: 900; font-size: 12.5px; color: var(--text); }
     .check .d{ font-size: 12px; color: var(--muted); line-height: 1.45; margin-top: 2px; }
 
-    select, input{
+    select,
+    input[type="text"],
+    input[type="number"],
+    input[type="url"],
+    input[type="email"],
+    input[type="tel"],
+    input[type="search"]{
       width: 100%;
       padding: 10px 12px;
       border-radius: 14px;
@@ -172,6 +205,14 @@
       background: rgba(255,255,255,0.92);
       font-size: 13px;
       outline: none;
+      box-sizing: border-box;
+    }
+    input[type="checkbox"]{
+      width: 18px;
+      height: 18px;
+      flex: 0 0 18px;
+      margin: 2px 0 0;
+      accent-color: var(--accent);
     }
     label{ font-size: 11.5px; color: var(--muted); font-weight: 800; }
     .resultBadge{
@@ -283,10 +324,10 @@
     body.is-embed .panel{ transition: transform .22s ease; }
 
     /* =========================
-       Mobile: tilemap full-height + panel under map
+       Mobile: guide dock + bottom sheet panel
        ========================= */
     @media (max-width: 520px){
-      /* map fills the viewport (avoid iOS URL-bar issues by using dynamic/small viewport units when supported) */
+      /* Map fills the viewport (iOS address-bar safe) */
       #tilemap{
         height: 100vh; /* fallback */
         height: 100dvh;
@@ -295,19 +336,52 @@
         #tilemap{ height: 100svh; }
       }
 
-      /* panel becomes normal-flow block under the map */
-      .panel{
-        position: relative;
-        top: auto; right: auto; left: auto; bottom: auto;
-        width: auto;
-        max-height: none;
-        overflow: visible;
-        margin: 12px;
-      }
+      /* Hide the big badge on mobile (space) */
+      .badge{ display:none; }
 
-      /* collapse toggle is unnecessary when panel is below */
-      .panel-toggle{ display:none !important; }
+      /* Use the existing toggle as a bottom dock */
+      .panel-toggle{
+        position: fixed;
+        left: 12px;
+        right: 12px;
+        bottom: calc(12px + env(safe-area-inset-bottom));
+        top: auto;
+        display: block !important;
+        width: auto;
+        border-radius: 16px;
+        text-align: center;
+        z-index: 2100;
+      }
+      body.sheet-open .panel-toggle{ display:none !important; }
+
+      /* Panel becomes a bottom sheet */
+      .panel{
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        top: auto;
+        width: auto;
+        margin: 0;
+        max-height: none;
+        height: 86vh; /* fallback */
+        height: 86dvh;
+        border-radius: 18px 18px 0 0;
+        overflow: auto;
+        transform: translateY(100%);
+        transition: transform 220ms ease;
+        padding: 12px 12px calc(16px + env(safe-area-inset-bottom));
+        box-sizing: border-box;
+        z-index: 2200;
+      }
+      @supports (height: 100svh){
+        .panel{ height: 86svh; }
+      }
+      body.sheet-open .panel{ transform: translateY(0); }
+
+      .sheet-top{ display:flex; }
     }
+
   </style>
 </head>
 
@@ -323,11 +397,16 @@
     </div>
   </div>
 
-  <button class="panel-toggle" id="panelToggle" type="button" aria-controls="panel" aria-expanded="true">説明/計算</button>
+  <button class="panel-toggle" id="panelToggle" type="button" aria-controls="panel" aria-expanded="true">▶ 60秒ガイド</button>
 
   <div id="tilemap"></div>
 
   <div class="panel" id="panel">
+    <div class="sheet-top" id="sheetTop">
+      <div class="sheet-spacer" aria-hidden="true"></div>
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <button class="sheet-close" id="sheetClose" type="button">閉じる</button>
+    </div>
     <h1>お店向け：60秒で分かる「AreaMapの必要性」</h1>
     <div class="lead">
       ここで伝えたいのは「あなたのお店がダメ」ではなく、<b>候補が多いほど、お客さんは“比較→疲れ→確実な店”を選びがち</b>という構造。<br>
@@ -682,12 +761,59 @@
     // =========================
     // Panel toggle (embed)
     // =========================
+    const mqMobile = window.matchMedia("(max-width: 520px)");
+    const sheetClose = document.getElementById("sheetClose");
+
+    function isMobile(){ return mqMobile.matches; }
+    function setAria(){
+      if(isMobile()){
+        const open = document.body.classList.contains("sheet-open");
+        panelToggle.setAttribute("aria-expanded", open ? "true" : "false");
+        return;
+      }
+      const collapsedNow = panel.classList.contains("is-collapsed");
+      panelToggle.setAttribute("aria-expanded", collapsedNow ? "false" : "true");
+    }
+    function openSheet(){
+      document.body.classList.add("sheet-open");
+      setAria();
+    }
+    function closeSheet(){
+      document.body.classList.remove("sheet-open");
+      setAria();
+    }
+
     panelToggle.addEventListener("click", () => {
+      if(isMobile()){
+        const open = document.body.classList.toggle("sheet-open");
+        panelToggle.setAttribute("aria-expanded", open ? "true" : "false");
+        return;
+      }
       const collapsed = panel.classList.toggle("is-collapsed");
       panelToggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
     });
 
-    // =========================
+    if(sheetClose){
+      sheetClose.addEventListener("click", closeSheet);
+    }
+
+    document.addEventListener("keydown", (e) => {
+      if(e.key === "Escape" && isMobile()){
+        closeSheet();
+      }
+    });
+
+    mqMobile.addEventListener("change", () => {
+      // leaving mobile -> ensure sheet is closed
+      if(!isMobile()){
+        document.body.classList.remove("sheet-open");
+      }
+      setAria();
+    });
+
+    // initial aria state
+    setAria();
+// =========================
     // Calculator
     // =========================
     const calc_applyBtn = document.getElementById("calc_applyBtn");
