@@ -249,24 +249,35 @@
     }
 
     .overlay{
-      position: absolute; inset: 0;
-      z-index: 2000;
-      background: rgba(0,0,0,0.45);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 16px;
-    }
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(0,0,0,0.45);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  /* iOS iframe対策：タップ/スクロールを安定させる */
+  touch-action: manipulation;
+}
     .modal{
-      width: min(540px, 100%);
-      background: rgba(255,255,255,0.96);
-      border-radius: 18px;
-      border: 1px solid rgba(255,255,255,0.35);
-      box-shadow: 0 18px 60px rgba(0,0,0,0.35);
-      padding: 14px;
-      font-family: system-ui, -apple-system, "Noto Sans JP", sans-serif;
-      color: var(--text);
-    }
+  width: min(540px, 100%);
+  background: rgba(255,255,255,0.96);
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.35);
+  box-shadow: 0 18px 60px rgba(0,0,0,0.35);
+  padding: 14px;
+  font-family: system-ui, -apple-system, "Noto Sans JP", sans-serif;
+  color: var(--text);
+
+  /* ✅ モバイル/iframeで見切れない */
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+@supports (height: 100svh){
+  .modal{ max-height: calc(100svh - 32px); }
+}
     .modal h2{
       margin: 0;
       font-size: 16px;
@@ -291,7 +302,16 @@
     }
     .step .st{ font-weight: 950; font-size: 13px; }
     .step .sd{ color: var(--muted); font-size: 12.5px; margin-top: 4px; line-height: 1.6; }
-    .modal .actions{ margin-top: 12px; display:flex; gap:10px; flex-wrap: wrap; justify-content: flex-end; }
+    
+.modal .actions{ 
+  margin-top: 12px; 
+  display:flex; gap:10px; flex-wrap: wrap; 
+  justify-content: flex-end; 
+  position: sticky;
+  bottom: 0;
+  padding-top: 10px;
+  background: rgba(255,255,255,0.96);
+}
 
     .linkbtn{
       display:inline-flex;
@@ -301,10 +321,20 @@
     }
 
     .leaflet-container a{ color: var(--accent); }
+    #openFullBtn{ display:none; }
+
   
     /* Embed mode (iframeなど) */
-    body.is-embed .badge{ display:none; }
-    body.is-embed .panel{ width: min(520px, calc(100vw - 24px)); }
+    body.is-embed .badge{ display:block; max-width: 360px; }
+    body.is-embed .badge .sub{ display:none; }
+    body.is-embed .badge .ttl{ font-size: 12.5px; }
+
+    body.is-embed .panel{ width: min(520px, calc(100vw - 24px)); max-height: calc(100% - 24px); }
+
+body.is-embed #startTourBtn{ display:none; }
+body.is-embed #openFullBtn{ display:inline-flex; }
+body.is-embed .modal .steps{ display:none; }
+
     .panel-toggle{
       position:absolute; top:12px; right:12px; z-index:1100;
       display:none;
@@ -627,8 +657,8 @@
     <!-- 初回ガイド（モーダル） -->
     <div class="overlay" id="overlay">
       <div class="modal">
-        <h2>60秒ガイド：これを見るだけでOK</h2>
-        <p>
+        <h2 id="guideTitle">60秒ガイド：これを見るだけでOK</h2>
+        <p id="guideText">
           この地図は「店名なし」の匿名点群です。<br>
           <b>候補が多いほど</b> お客さんは比較に疲れて「確実に行ける店」を選びがち。秘書問題では、最初に約<b>37%</b>を“比較用に見る”のが合理的という話が出てきます。<br>
           だから AreaMap は、立地ではなく <b>入口/駐車場/目印</b> を1タップで示して“迷い”を潰し、<b>比較の早い段階で候補に残る</b>ための仕組みです。
@@ -655,7 +685,10 @@
 
       <div class="actions">
         <button id="closeOverlayBtn">閉じる</button>
-        <button class="primary" id="startTourBtn">このままデモ開始</button>
+        <a class="linkbtn primary" id="openFullBtn" href="#" target="_blank" rel="noopener" style="flex:1 1 180px;">
+          <button class="primary" type="button" style="width:100%;">フル画面で見る</button>
+        </a>
+        <button class="primary" id="startTourBtn" style="flex:1 1 180px;">このままデモ開始</button>
       </div>
     </div>
   </div>
@@ -755,24 +788,50 @@
     }
 
     // ===== 埋め込みモード（LP内iframe） =====
-    (function(){
-      const p = new URLSearchParams(location.search);
-      const mode = p.get("mode") || "page"; // page | embed
-      if (mode === "embed") {
-        document.body.classList.add("is-embed");
-        const panel = document.getElementById("panel");
-        const toggle = document.getElementById("panelToggle");
-        if (panel && toggle){
-          // 初期は畳む（地図を見せる）
-          panel.classList.add("is-collapsed");
-          toggle.setAttribute("aria-expanded", "false");
-          toggle.addEventListener("click", () => {
-            const collapsed = panel.classList.toggle("is-collapsed");
-            toggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
-          });
-        }
-      }
-    })();
+const EMBED_MODE = (() => {
+  const p = new URLSearchParams(location.search);
+  const mode = p.get("mode") || "page"; // page | embed
+  let inIframe = false;
+  try { inIframe = (window.self !== window.top); } catch(_) { inIframe = true; }
+  return (mode === "embed") || inIframe;
+})();
+
+(function(){
+  if (!EMBED_MODE) return;
+  document.body.classList.add("is-embed");
+
+  // 右パネルは初期で畳む（地図を見せる）
+  const panel = document.getElementById("panel");
+  const toggle = document.getElementById("panelToggle");
+  if (panel && toggle){
+    panel.classList.add("is-collapsed");
+    toggle.setAttribute("aria-expanded", "false");
+    toggle.addEventListener("click", () => {
+      const collapsed = panel.classList.toggle("is-collapsed");
+      toggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
+    });
+  }
+
+  // 60秒ガイドは「概要版」に差し替え（iframe内で最後まで見切れない + LPで邪魔しない）
+  const title = document.getElementById("guideTitle");
+  const text = document.getElementById("guideText");
+  if (title) title.textContent = "概要：AreaMapが解決すること（1分）";
+  if (text){
+    text.innerHTML = `
+      <b>候補が多いほど</b>、お客さんは「比較→疲れ→確実な店」に流れがち。<br>
+      AreaMapは <b>入口/駐車場/目印</b> を1タップで示して、<b>迷いと不安</b>を潰し、候補に残る順番を前にずらします。<br>
+      <span style="color:var(--muted)">※このiframeは“概要”のみ。デモ（次へ等）を触るなら「フル画面で見る」を開いてください。</span>
+    `;
+  }
+
+  const openFullBtn = document.getElementById("openFullBtn");
+  if (openFullBtn){
+    // mode=embed を外して同ページを開く
+    const u = new URL(location.href);
+    u.searchParams.delete("mode");
+    openFullBtn.href = u.toString();
+  }
+})();
 
     // =========================
     // 設定（あなたの導線に合わせて変更OK）
@@ -1198,7 +1257,7 @@
       else if (latLngs.length === 1) tilemap.setView(latLngs[0], 16);
 
       // 初回はガイドを開いて迷わせない
-      openOverlay();
+      if (!EMBED_MODE) openOverlay();
 
       // デモボタン（tour）以外でも開始できるように
       document.getElementById("tourBtn").addEventListener("click", () => {
@@ -1229,6 +1288,7 @@
     // デモ開始をガイド外にも用意：ステータスクリックで開始
     document.getElementById("statusBox").addEventListener("click", () => {
       // まだ動いてない場合だけ開始
+      if (EMBED_MODE) return;
       if (!running && markers.length > 0){
         startDemo(false);
       }
