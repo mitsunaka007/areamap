@@ -30,16 +30,23 @@
       --ok: #137333;
       --warn: #b3261e;
       --amber: #8a5a00;
-    }
-    html, body { height: 100%; margin: 0; }
-    #tilemap { height: 100%; width: 100%; }
 
+      /* Bottom sheet tuning (mobile) */
+      --sheet-peek: 110px;  /* 閉じているときに見える高さ */
+      --sheet-max: 86svh;   /* 開いた時の最大高さ（iOS向け） */
+      --sheet-max-fallback: 86dvh; /* fallback */
+      --sheet-radius: 18px;
+      --sheet-handle-h: 44px;
+    }
+
+    html, body { height: 100%; margin: 0; }
     body{
       background:#000;
       font-family: system-ui, -apple-system, "Noto Sans JP", sans-serif;
       color: var(--text);
       overflow-x:hidden;
     }
+    #tilemap { height: 100%; width: 100%; }
 
     /* =========================
        Badge (top-left)
@@ -96,6 +103,7 @@
       line-height: 1.35;
       letter-spacing: .01em;
     }
+
     .lead{
       font-size: 12.5px;
       color: var(--muted);
@@ -173,6 +181,7 @@
       outline: none;
     }
     label{ font-size: 11.5px; color: var(--muted); font-weight: 800; }
+
     .resultBadge{
       display:inline-flex; align-items:center; gap:8px;
       padding: 6px 10px;
@@ -244,7 +253,6 @@
     }
     .step .st{ font-weight: 900; font-size: 13px; color: var(--text); }
     .step .sd{ font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
-
     .modal .foot{
       padding: 12px;
       border-top: 1px solid rgba(0,0,0,0.08);
@@ -252,7 +260,7 @@
     }
 
     /* =========================
-       Panel toggle (embed only)
+       Panel toggle (embed only / desktop)
        ========================= */
     body.is-embed .badge{ display:none; }
     body.is-embed .panel{ width: min(520px, calc(100vw - 24px)); }
@@ -276,30 +284,84 @@
     body.is-embed .panel{ transition: transform .22s ease; }
 
     /* =========================
-       Mobile: tilemap full-height + panel under map
+       Mobile bottom sheet
        ========================= */
     @media (max-width: 520px){
-      /* map fills the viewport (avoid iOS URL-bar issues by using dynamic/small viewport units when supported) */
+      /* map fills viewport (iOS URL bar aware) */
       #tilemap{
-        height: 100vh; /* fallback */
+        height: 100vh;
         height: 100dvh;
       }
       @supports (height: 100svh){
         #tilemap{ height: 100svh; }
       }
 
-      /* panel becomes normal-flow block under the map */
+      /* disable desktop embed toggle on mobile (we'll use bottom sheet always) */
+      .panel-toggle{ display:none !important; }
+
+      /* panel becomes bottom sheet */
       .panel{
-        position: relative;
-        top: auto; right: auto; left: auto; bottom: auto;
-        width: auto;
+        position: fixed;
+        left: 0; right: 0; bottom: 0; top: auto;
+        width: 100%;
+        margin: 0;
         max-height: none;
-        overflow: visible;
-        margin: 12px;
+        padding: 0;
+        overflow: hidden;
+        border-radius: var(--sheet-radius) var(--sheet-radius) 0 0;
+        backdrop-filter: blur(10px);
+        background: var(--panel);
+        border: 1px solid var(--border);
+        box-shadow: 0 -10px 26px rgba(0,0,0,0.20);
+        z-index: 2000; /* over map */
+        height: var(--sheet-max-fallback);
+        transform: translateY(var(--sheet-ty, calc(100% - var(--sheet-peek))));
+        transition: transform 220ms ease;
+        will-change: transform;
+      }
+      @supports (height: 100svh){
+        .panel{ height: var(--sheet-max); }
+      }
+      .panel.is-dragging{
+        transition: none;
       }
 
-      /* collapse toggle is unnecessary when panel is below */
-      .panel-toggle{ display:none !important; }
+      /* handle area */
+      .sheet-handle{
+        height: var(--sheet-handle-h);
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        gap:10px;
+        padding: 8px 12px;
+        border-bottom: 1px solid rgba(0,0,0,0.08);
+        user-select:none;
+        -webkit-user-select:none;
+        touch-action: none; /* allow us to drag using pointer events */
+      }
+      .grip{
+        width: 42px;
+        height: 5px;
+        border-radius: 999px;
+        background: rgba(0,0,0,0.22);
+      }
+      .sheet-title{
+        font-weight: 900;
+        font-size: 12.5px;
+        color: rgba(0,0,0,0.70);
+      }
+
+      /* content scroll area */
+      .sheet-content{
+        padding: 12px 12px calc(12px + env(safe-area-inset-bottom, 0px));
+        overflow: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+        max-height: calc(100% - var(--sheet-handle-h));
+      }
+
+      /* badge narrower for mobile */
+      .badge{ width: calc(100vw - 24px); }
     }
   </style>
 </head>
@@ -320,174 +382,184 @@
 
   <div id="tilemap"></div>
 
-  <div class="panel" id="panel">
-    <h1>お店向け：60秒で分かる「AreaMapの必要性」</h1>
-    <div class="lead">
-      ここで伝えたいのは「あなたのお店がダメ」ではなく、<b>候補が多いほど、お客さんは“比較→疲れ→確実な店”を選びがち</b>という構造。<br>
-      だから AreaMap は、立地そのものではなく <b>“迷いと不安”を潰して、候補に残る順番を早める</b> ためのツールです。
+  <div class="panel" id="panel" aria-label="説明パネル">
+    <!-- Mobile bottom sheet handle (desktopでも表示されても問題ないが、CSSで主にmobileに効く) -->
+    <div class="sheet-handle" id="sheetHandle" role="button" aria-controls="panel" aria-expanded="false" tabindex="0">
+      <div class="grip" aria-hidden="true"></div>
+      <div class="sheet-title">説明 / 計算（上にスワイプ）</div>
     </div>
 
-    <div class="row" style="margin-top:10px;">
-      <button class="primary" id="tourBtn">▶ 60秒ガイドを見る</button>
-      <button id="demoNextBtn" disabled>次へ</button>
-      <button class="danger" id="demoResetBtn">リセット</button>
-      <button class="ok" id="placeShopBtn">📍 お店の位置を置く</button>
-    </div>
-
-    <div class="row" style="margin-top:10px;">
-      <span class="pill">候補が多いほど「比較→疲れ→確実な店」を選びがち</span>
-      <span class="pill">AreaMap：入口/駐車場/目印を<b>1タップ</b>で明確に</span>
-    </div>
-
-    <div class="divider"></div>
-
-    <div class="status" id="statusBox">
-      <b>操作は3つだけ</b><br>
-      <span class="small">
-        ①「60秒ガイド」→ ②「次へ」で点を順に見る → ③最後に「2週間テスト」を見て判断。<br>
-        ※点は匿名です。店名は出しません。
-      </span>
-    </div>
-
-    <div class="divider"></div>
-
-    <div class="card">
-      <div class="cttl">チェック：迷いが起きるポイント（当てはまるほど効果が出やすい）</div>
-      <div class="ctext">※立地のせいではなく「伝え方」の問題になっている部分だけ改善します。</div>
-
-      <div class="checklist" id="checklist">
-        <label class="check">
-          <input type="checkbox" data-k="entrance">
-          <div>
-            <div class="t">入口が分かりにくい（裏口/奥/建物が似ている）</div>
-            <div class="d">「ここで合ってる？」の不安があると、良さそうでも保留→別の店になりがち</div>
-          </div>
-        </label>
-
-        <label class="check">
-          <input type="checkbox" data-k="parking">
-          <div>
-            <div class="t">駐車場が共同/説明が長い</div>
-            <div class="d">道案内が毎回同じになっているなら、リンク一本化で楽になります</div>
-          </div>
-        </label>
-
-        <label class="check">
-          <input type="checkbox" data-k="landmark">
-          <div>
-            <div class="t">曲がるポイント（目印）が弱い</div>
-            <div class="d">地図は合ってても“最後の30m”で迷うと離脱や電話が増えます</div>
-          </div>
-        </label>
-      </div>
-    </div>
-
-    <div class="divider"></div>
-
-    <div class="card" id="calcCard">
-      <div class="cttl">自動計算：回収判定（Entrance Pack / Last30 Navigator）</div>
-      <div class="ctext">
-        「うちの店は選ばれないの？」ではなく、<b>立地の不利を“迷いの削減”で相殺</b>できるかを数字で見ます。<br>
-        時間ロス＋取りこぼし（任意）を足して、<b>費用を回収できるか</b>をその場で判定します。
+    <div class="sheet-content" id="sheetContent">
+      <h1>お店向け：60秒で分かる「AreaMapの必要性」</h1>
+      <div class="lead">
+        ここで伝えたいのは「あなたのお店がダメ」ではなく、<b>候補が多いほど、お客さんは“比較→疲れ→確実な店”を選びがち</b>という構造。<br>
+        だから AreaMap は、立地そのものではなく <b>“迷いと不安”を潰して、候補に残る順番を早める</b> ためのツールです。
       </div>
 
       <div class="row" style="margin-top:10px;">
-        <div style="flex:1 1 220px;">
-          <label>プラン</label><br>
-          <select id="calc_plan">
-            <option value="entrance">Entrance Pack（初期10,000円 / 月3,000円）</option>
-            <option value="last30">Last30 Navigator（初期29,800円 / 月10,000円）</option>
-          </select>
-        </div>
-        <div style="flex:1 1 160px;">
-          <label>初期費用の回収期間（ヶ月）</label><br>
-          <input id="calc_amort_months" type="number" min="1" step="1" value="6" />
-        </div>
-        <div style="flex:1 1 160px;">
-          <label>AreaMapで減る割合（%）</label><br>
-          <input id="calc_reduce_pct" type="number" min="0" max="100" step="5" value="50" />
-        </div>
+        <button class="primary" id="tourBtn">▶ 60秒ガイドを見る</button>
+        <button id="demoNextBtn" disabled>次へ</button>
+        <button class="danger" id="demoResetBtn">リセット</button>
+        <button class="ok" id="placeShopBtn">📍 お店の位置を置く</button>
       </div>
 
       <div class="row" style="margin-top:10px;">
-        <div>
-          <label>迷い電話/DM（週）</label><br>
-          <input id="calc_weekly" type="number" min="0" step="1" value="5" />
-        </div>
-        <div>
-          <label>1回の対応（分）</label><br>
-          <input id="calc_min_per" type="number" min="1" step="1" value="3" />
-        </div>
-        <div>
-          <label>人件費/機会損失（円/時）</label><br>
-          <input id="calc_yen_per_hour" type="number" min="0" step="100" value="2000" />
+        <span class="pill">候補が多いほど「比較→疲れ→確実な店」を選びがち</span>
+        <span class="pill">AreaMap：入口/駐車場/目印を<b>1タップ</b>で明確に</span>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="status" id="statusBox">
+        <b>操作は3つだけ</b><br>
+        <span class="small">
+          ①「60秒ガイド」→ ②「次へ」で点を順に見る → ③最後に「2週間テスト」を見て判断。<br>
+          ※点は匿名です。店名は出しません。
+        </span>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="card">
+        <div class="cttl">チェック：迷いが起きるポイント（当てはまるほど効果が出やすい）</div>
+        <div class="ctext">※立地のせいではなく「伝え方」の問題になっている部分だけ改善します。</div>
+
+        <div class="checklist" id="checklist">
+          <label class="check">
+            <input type="checkbox" data-k="entrance">
+            <div>
+              <div class="t">入口が分かりにくい（裏口/奥/建物が似ている）</div>
+              <div class="d">「ここで合ってる？」の不安があると、良さそうでも保留→別の店になりがち</div>
+            </div>
+          </label>
+
+          <label class="check">
+            <input type="checkbox" data-k="parking">
+            <div>
+              <div class="t">駐車場が共同/説明が長い</div>
+              <div class="d">道案内が毎回同じになっているなら、リンク一本化で楽になります</div>
+            </div>
+          </label>
+
+          <label class="check">
+            <input type="checkbox" data-k="landmark">
+            <div>
+              <div class="t">曲がるポイント（目印）が弱い</div>
+              <div class="d">地図は合ってても“最後の30m”で迷うと離脱や電話が増えます</div>
+            </div>
+          </label>
         </div>
       </div>
 
       <div class="divider"></div>
-      <div class="cttl" style="margin-bottom:4px;">任意：取りこぼし（迷って来店しなかった分）も入れる</div>
-      <div class="hint">※電話/DMが少ない業種でも、こっちを入れると回収判定が現実に寄ります。</div>
 
-      <div class="row" style="margin-top:10px;">
-        <div>
-          <label>月の取りこぼし（人）</label><br>
-          <input id="calc_lost_customers" type="number" min="0" step="1" value="1" />
+      <div class="card" id="calcCard">
+        <div class="cttl">自動計算：回収判定（Entrance Pack / Last30 Navigator）</div>
+        <div class="ctext">
+          「うちの店は選ばれないの？」ではなく、<b>立地の不利を“迷いの削減”で相殺</b>できるかを数字で見ます。<br>
+          時間ロス＋取りこぼし（任意）を足して、<b>費用を回収できるか</b>をその場で判定します。
         </div>
-        <div>
-          <label>1人あたり粗利（円）</label><br>
-          <input id="calc_profit_per" type="number" min="0" step="100" value="5000" />
+
+        <div class="row" style="margin-top:10px;">
+          <div style="flex:1 1 220px;">
+            <label>プラン</label><br>
+            <select id="calc_plan">
+              <option value="entrance">Entrance Pack（初期10,000円 / 月3,000円）</option>
+              <option value="last30">Last30 Navigator（初期29,800円 / 月10,000円）</option>
+            </select>
+          </div>
+          <div style="flex:1 1 160px;">
+            <label>初期費用の回収期間（ヶ月）</label><br>
+            <input id="calc_amort_months" type="number" min="1" step="1" value="6" />
+          </div>
+          <div style="flex:1 1 160px;">
+            <label>AreaMapで減る割合（%）</label><br>
+            <input id="calc_reduce_pct" type="number" min="0" max="100" step="5" value="50" />
+          </div>
         </div>
-        <div>
-          <label>回収できる割合（%）</label><br>
-          <input id="calc_recover_pct" type="number" min="0" max="100" step="5" value="20" />
+
+        <div class="row" style="margin-top:10px;">
+          <div>
+            <label>迷い電話/DM（週）</label><br>
+            <input id="calc_weekly" type="number" min="0" step="1" value="5" />
+          </div>
+          <div>
+            <label>1回の対応（分）</label><br>
+            <input id="calc_min_per" type="number" min="1" step="1" value="3" />
+          </div>
+          <div>
+            <label>人件費/機会損失（円/時）</label><br>
+            <input id="calc_yen_per_hour" type="number" min="0" step="100" value="2000" />
+          </div>
+        </div>
+
+        <div class="divider"></div>
+        <div class="cttl" style="margin-bottom:4px;">任意：取りこぼし（迷って来店しなかった分）も入れる</div>
+        <div class="hint">※電話/DMが少ない業種でも、こっちを入れると回収判定が現実に寄ります。</div>
+
+        <div class="row" style="margin-top:10px;">
+          <div>
+            <label>月の取りこぼし（人）</label><br>
+            <input id="calc_lost_customers" type="number" min="0" step="1" value="1" />
+          </div>
+          <div>
+            <label>1人あたり粗利（円）</label><br>
+            <input id="calc_profit_per" type="number" min="0" step="100" value="5000" />
+          </div>
+          <div>
+            <label>回収できる割合（%）</label><br>
+            <input id="calc_recover_pct" type="number" min="0" max="100" step="5" value="20" />
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:10px;">
+          <button class="primary" id="calc_applyBtn" type="button">この条件で再計算</button>
+          <span id="calc_badge" class="resultBadge warn">判定：入力してください</span>
+        </div>
+
+        <div class="status" id="calc_out" style="margin-top:10px;"></div>
+
+        <div class="hint" style="margin-top:8px;">
+          コツ：まず “今の現実” を入れて、2週間テストで「迷い電話/DM」または「迷いが理由のキャンセル/未予約」が減ったかで更新します。
         </div>
       </div>
 
-      <div class="row" style="margin-top:10px;">
-        <button class="primary" id="calc_applyBtn" type="button">この条件で再計算</button>
-        <span id="calc_badge" class="resultBadge warn">判定：入力してください</span>
+      <div class="cta" id="ctaBox">
+        <div class="ttl">次の一手：2週間「迷い削減テスト」</div>
+        <div class="ctext" style="color: var(--muted); line-height: 1.6; font-size: 12.5px;">
+          立地は変えずに、迷いを減らして「取りこぼし」を回収します。
+        </div>
+        <ul>
+          <li><b>Day1</b>：入口/駐車場/目印の写真を用意</li>
+          <li><b>Day2</b>：AreaMap（1ページ）を作成</li>
+          <li><b>Day3</b>：SNS/予約導線に固定（リンク一本化）</li>
+          <li><b>Day4-14</b>：数字を見る（迷い電話/DM/テンプレ送信回数）</li>
+        </ul>
+        <div class="small" id="impactText">
+          ✅ チェックが増えるほど効果が出やすいです（＝迷いが減る余地が大きい）。
+        </div>
+
+        <div class="row" style="margin-top:10px;">
+          <a class="linkbtn ok" id="contactBtn" href="#" target="_blank" rel="noopener" style="flex:1;">
+            <button class="ok" style="width:100%;">導入相談（リンク）</button>
+          </a>
+          <a class="linkbtn primary" id="sampleBtn" href="#" target="_blank" rel="noopener" style="flex:1;">
+            <button class="primary" style="width:100%;">AreaMapサンプルを見る</button>
+          </a>
+        </div>
       </div>
 
-      <div class="status" id="calc_out" style="margin-top:10px;"></div>
+      <div class="divider"></div>
 
-      <div class="hint" style="margin-top:8px;">
-        コツ：まず “今の現実” を入れて、2週間テストで「迷い電話/DM」または「迷いが理由のキャンセル/未予約」が減ったかで更新します。
-      </div>
-    </div>
-
-    <div class="cta" id="ctaBox">
-      <div class="ttl">次の一手：2週間「迷い削減テスト」</div>
-      <div class="ctext" style="color: var(--muted); line-height: 1.6; font-size: 12.5px;">
-        立地は変えずに、迷いを減らして「取りこぼし」を回収します。
-      </div>
-      <ul>
-        <li><b>Day1</b>：入口/駐車場/目印の写真を用意</li>
-        <li><b>Day2</b>：AreaMap（1ページ）を作成</li>
-        <li><b>Day3</b>：SNS/予約導線に固定（リンク一本化）</li>
-        <li><b>Day4-14</b>：数字を見る（迷い電話/DM/テンプレ送信回数）</li>
-      </ul>
-      <div class="small" id="impactText">
-        ✅ チェックが増えるほど効果が出やすいです（＝迷いが減る余地が大きい）。
+      <div class="card">
+        <div class="cttl">※補足（言い換え）</div>
+        <div class="ctext">
+          「候補が多いと最適を選びにくい」最適停止の有名問題（秘書問題／37%ルール）があります。<br>
+          重要なのは “37%に入る/入らない” の烙印ではなく、<b>改善できる変数（迷いと不安）で“選ばれる順番”を前にずらす</b>こと。
+        </div>
       </div>
 
-      <div class="row" style="margin-top:10px;">
-        <a class="linkbtn ok" id="contactBtn" href="#" target="_blank" rel="noopener" style="flex:1;">
-          <button class="ok" style="width:100%;">導入相談（リンク）</button>
-        </a>
-        <a class="linkbtn primary" id="sampleBtn" href="#" target="_blank" rel="noopener" style="flex:1;">
-          <button class="primary" style="width:100%;">AreaMapサンプルを見る</button>
-        </a>
-      </div>
-    </div>
-
-    <div class="divider"></div>
-
-    <div class="card">
-      <div class="cttl">※補足（言い換え）</div>
-      <div class="ctext">
-        「候補が多いと最適を選びにくい」最適停止の有名問題（秘書問題／37%ルール）があります。<br>
-        重要なのは “37%に入る/入らない” の烙印ではなく、<b>改善できる変数（迷いと不安）で“選ばれる順番”を前にずらす</b>こと。
-      </div>
+      <!-- sheet content end -->
     </div>
   </div>
 
@@ -544,7 +616,7 @@
     // =========================
     // Map (Leaflet)
     // =========================
-    const DEFAULT_CENTER = [36.064, 136.219]; // Fukui-ish (example)
+    const DEFAULT_CENTER = [36.064, 136.219];
     const DEFAULT_ZOOM = 15;
 
     const tilemap = L.map("tilemap", {
@@ -558,9 +630,6 @@
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(tilemap);
 
-    // =========================
-    // Demo points (anonymous)
-    // =========================
     const points = [
       { lat: 36.0646, lng: 136.2197, label: "候補A（匿名）", kind: "entrance" },
       { lat: 36.0628, lng: 136.2179, label: "候補B（匿名）", kind: "parking" },
@@ -594,15 +663,14 @@
     const panel = document.getElementById("panel");
     const panelToggle = document.getElementById("panelToggle");
 
+    const sheetHandle = document.getElementById("sheetHandle");
+    const sheetContent = document.getElementById("sheetContent");
+
     let demoIndex = -1;
     let shopMarker = null;
 
-    function openTour(){
-      overlay.classList.add("is-open");
-    }
-    function closeTour(){
-      overlay.classList.remove("is-open");
-    }
+    function openTour(){ overlay.classList.add("is-open"); }
+    function closeTour(){ overlay.classList.remove("is-open"); }
 
     tourBtn.addEventListener("click", openTour);
     tourCloseBtn.addEventListener("click", closeTour);
@@ -637,12 +705,13 @@
     placeShopBtn.addEventListener("click", () => {
       const c = tilemap.getCenter();
       if(shopMarker) tilemap.removeLayer(shopMarker);
-      shopMarker = L.marker([c.lat, c.lng]).addTo(tilemap).bindPopup("<b>お店（仮）</b><br><span style='font-size:12px;color:rgba(0,0,0,0.6)'>ここに置きました（任意）</span>");
+      shopMarker = L.marker([c.lat, c.lng]).addTo(tilemap)
+        .bindPopup("<b>お店（仮）</b><br><span style='font-size:12px;color:rgba(0,0,0,0.6)'>ここに置きました（任意）</span>");
       shopMarker.openPopup();
     });
 
     // =========================
-    // Panel toggle (embed)
+    // Panel toggle (embed desktop)
     // =========================
     panelToggle.addEventListener("click", () => {
       const collapsed = panel.classList.toggle("is-collapsed");
@@ -656,9 +725,7 @@
     const calc_badge = document.getElementById("calc_badge");
     const calc_out = document.getElementById("calc_out");
 
-    function yen(n){
-      return (Math.round(n)).toLocaleString("ja-JP");
-    }
+    function yen(n){ return (Math.round(n)).toLocaleString("ja-JP"); }
 
     function calc(){
       const plan = document.getElementById("calc_plan").value;
@@ -702,8 +769,201 @@
         ⇒ <b>必要額</b>：${yen(monthlyNeed)}円/月
       `;
     }
-
     calc_applyBtn.addEventListener("click", calc);
+
+    // =========================
+    // Mobile Bottom Sheet (drag + snap)
+    // - uses pointer events + pointer capture for stable drag
+    //   (setPointerCapture: MDN) https://developer.mozilla.org/docs/Web/API/Element/setPointerCapture
+    // =========================
+    const mq = window.matchMedia("(max-width: 520px)");
+
+    let sheetEnabled = false;
+    let maxTranslate = 0;
+    let currentTranslate = 0;
+    let startY = 0;
+    let startTranslate = 0;
+    let dragging = false;
+    let didMove = false;
+
+    const SNAP_EXPANDED = 0; // top
+    let SNAP_MID = 0;
+    let SNAP_COLLAPSED = 0;
+
+    function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
+
+    function getPeekPx(){
+      const v = getComputedStyle(document.documentElement).getPropertyValue("--sheet-peek").trim();
+      const n = parseFloat(v);
+      return Number.isFinite(n) ? n : 110;
+    }
+
+    function measureSheet(){
+      const peek = getPeekPx();
+      const rect = panel.getBoundingClientRect();
+      const h = rect.height || 0;
+      maxTranslate = Math.max(0, h - peek);
+      SNAP_MID = Math.round(maxTranslate * 0.45);
+      SNAP_COLLAPSED = maxTranslate;
+      // keep current within bounds
+      currentTranslate = clamp(currentTranslate, 0, maxTranslate);
+      document.documentElement.style.setProperty("--sheet-ty", currentTranslate + "px");
+    }
+
+    function setSheetTranslate(px, animate=true){
+      currentTranslate = clamp(px, 0, maxTranslate);
+      if(!animate){
+        panel.classList.add("is-dragging");
+      }else{
+        panel.classList.remove("is-dragging");
+      }
+      document.documentElement.style.setProperty("--sheet-ty", currentTranslate + "px");
+      // aria
+      const expanded = (currentTranslate <= SNAP_MID * 0.5);
+      sheetHandle.setAttribute("aria-expanded", expanded ? "true" : "false");
+    }
+
+    function snapToNearest(){
+      const candidates = [SNAP_EXPANDED, SNAP_MID, SNAP_COLLAPSED];
+      let best = candidates[0];
+      let bestD = Math.abs(currentTranslate - best);
+      for(const c of candidates){
+        const d = Math.abs(currentTranslate - c);
+        if(d < bestD){ bestD = d; best = c; }
+      }
+      setSheetTranslate(best, true);
+      // Map invalidation helps if sheet height/viewport changed
+      setTimeout(() => tilemap.invalidateSize(), 50);
+    }
+
+    function disableMapInteractions(){
+      tilemap.dragging.disable();
+      tilemap.touchZoom.disable();
+      tilemap.doubleClickZoom.disable();
+      tilemap.scrollWheelZoom.disable();
+      tilemap.boxZoom.disable();
+      tilemap.keyboard.disable();
+      if(tilemap.tap) tilemap.tap.disable();
+    }
+    function enableMapInteractions(){
+      tilemap.dragging.enable();
+      tilemap.touchZoom.enable();
+      tilemap.doubleClickZoom.enable();
+      tilemap.scrollWheelZoom.enable();
+      tilemap.boxZoom.enable();
+      tilemap.keyboard.enable();
+      if(tilemap.tap) tilemap.tap.enable();
+    }
+
+    function onHandlePointerDown(e){
+      if(!sheetEnabled) return;
+      dragging = true;
+      didMove = false;
+      startY = e.clientY;
+      startTranslate = currentTranslate;
+      panel.classList.add("is-dragging");
+      disableMapInteractions();
+      // capture pointer so move/up are delivered even if finger leaves handle
+      try{ sheetHandle.setPointerCapture(e.pointerId); }catch(_){}
+    }
+
+    function onHandlePointerMove(e){
+      if(!sheetEnabled || !dragging) return;
+      const dy = e.clientY - startY;
+      if(Math.abs(dy) > 3) didMove = true;
+      setSheetTranslate(startTranslate + dy, false);
+    }
+
+    function endDrag(){
+      if(!sheetEnabled) return;
+      if(!dragging) return;
+      dragging = false;
+      panel.classList.remove("is-dragging");
+      enableMapInteractions();
+      snapToNearest();
+    }
+
+    function onHandlePointerUp(e){
+      if(!sheetEnabled) return;
+      try{ sheetHandle.releasePointerCapture(e.pointerId); }catch(_){}
+      endDrag();
+      // tap-to-toggle (only if it wasn't a drag)
+      if(!didMove){
+        // toggle between collapsed and mid/expanded
+        const nearCollapsed = Math.abs(currentTranslate - SNAP_COLLAPSED) < Math.max(18, maxTranslate*0.08);
+        setSheetTranslate(nearCollapsed ? SNAP_MID : SNAP_COLLAPSED, true);
+        setTimeout(() => tilemap.invalidateSize(), 50);
+      }
+    }
+
+    function onHandleKeyDown(e){
+      if(!sheetEnabled) return;
+      if(e.key === "Enter" || e.key === " "){
+        e.preventDefault();
+        const nearCollapsed = Math.abs(currentTranslate - SNAP_COLLAPSED) < Math.max(18, maxTranslate*0.08);
+        setSheetTranslate(nearCollapsed ? SNAP_MID : SNAP_COLLAPSED, true);
+        setTimeout(() => tilemap.invalidateSize(), 50);
+      }
+      if(e.key === "ArrowUp"){
+        e.preventDefault();
+        setSheetTranslate(SNAP_MID, true);
+      }
+      if(e.key === "ArrowDown"){
+        e.preventDefault();
+        setSheetTranslate(SNAP_COLLAPSED, true);
+      }
+    }
+
+    function enableSheet(){
+      if(sheetEnabled) return;
+      sheetEnabled = true;
+      // initial: collapsed peek
+      measureSheet();
+      setSheetTranslate(SNAP_COLLAPSED, true);
+
+      sheetHandle.addEventListener("pointerdown", onHandlePointerDown, {passive:true});
+      sheetHandle.addEventListener("pointermove", onHandlePointerMove, {passive:true});
+      sheetHandle.addEventListener("pointerup", onHandlePointerUp, {passive:true});
+      sheetHandle.addEventListener("pointercancel", onHandlePointerUp, {passive:true});
+      sheetHandle.addEventListener("keydown", onHandleKeyDown);
+
+      window.addEventListener("resize", () => {
+        if(!sheetEnabled) return;
+        measureSheet();
+        // keep snapped feeling on resize
+        setSheetTranslate(currentTranslate, true);
+        setTimeout(() => tilemap.invalidateSize(), 50);
+      });
+    }
+
+    function disableSheet(){
+      if(!sheetEnabled) return;
+      sheetEnabled = false;
+
+      sheetHandle.removeEventListener("pointerdown", onHandlePointerDown);
+      sheetHandle.removeEventListener("pointermove", onHandlePointerMove);
+      sheetHandle.removeEventListener("pointerup", onHandlePointerUp);
+      sheetHandle.removeEventListener("pointercancel", onHandlePointerUp);
+      sheetHandle.removeEventListener("keydown", onHandleKeyDown);
+
+      // reset transform var so desktop overlay uses its own layout
+      document.documentElement.style.removeProperty("--sheet-ty");
+    }
+
+    function syncSheetMode(){
+      if(mq.matches){
+        enableSheet();
+      }else{
+        disableSheet();
+      }
+      setTimeout(() => tilemap.invalidateSize(), 50);
+    }
+
+    // init after first layout
+    window.addEventListener("load", () => {
+      syncSheetMode();
+    });
+    mq.addEventListener?.("change", syncSheetMode);
   </script>
 </body>
 </html>
