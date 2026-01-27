@@ -510,6 +510,10 @@ def ask():
 def tilemap():
     return render_template("tilemap.html")
 
+@app.get("/recipe_agent")
+def recipe_agent():
+    return render_template("recipe_agent.html")
+
 @app.get("/thanks")
 def thanks():
     plan = (request.args.get("plan") or "entrance").strip()
