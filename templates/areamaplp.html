@@ -134,7 +134,7 @@
           <a href="#what">概要</a>
           <a href="#why">なぜ必要？</a>
           <a href="#plans">料金</a>
-          <a class="btn primary" href="/ask">無料で相談</a>
+          <a class="btn primary" href="/ask" data-track="consultation_free">無料で相談</a>
         </nav>
       </div>
     </div>
@@ -153,7 +153,7 @@
             <div class="actions">
               <a class="btn primary" href="#why">▶ 60秒デモで「必要性」を確認</a>
               <a class="btn" href="#plans">料金を見る</a>
-              <a class="btn ghost" href="/ask">無料で相談</a>
+              <a class="btn ghost" href="/ask" data-track="consultation_ask">無料で相談</a>
             </div>
             <div class="kpis">
               <span class="pill">入口/駐車場/目印を整理</span>
@@ -170,9 +170,9 @@
               <b>③ 相談する</b> → 30秒フォーム
             </p>
             <div class="actions">
-              <a class="btn primary" href="#why">デモを見る</a>
-              <a class="btn" href="https://areamap.onrender.com/areamap-lite" target="_blank" rel="noopener">サンプル（Entrance）</a>
-              <a class="btn" href="https://areamap.onrender.com/areamap-pro" target="_blank" rel="noopener">サンプル（Last30）</a>
+              <a class="btn primary" href="#why" data-track="see_demo">デモを見る</a>
+              <a class="btn" href="https://areamap.onrender.com/areamap-lite" target="_blank" rel="noopener" data-track="see_entrance">サンプル（Entrance）</a>
+              <a class="btn" href="https://areamap.onrender.com/areamap-pro" target="_blank" rel="noopener" data-track="see_last30">サンプル（Last30）</a>
             </div>
             <p class="mini" style="margin-top:12px;color:var(--muted);">
               ※お店名や住所は未入力でもOK。まずは「迷いポイント」だけ共有してください。
@@ -238,7 +238,7 @@
                 その場で「迷い削減がどれだけ回収につながるか」を自動計算できます。
               </div>
             </div>
-            <a class="btn" href="/tilemap" target="_blank" rel="noopener">デモを別タブで開く</a>
+            <a class="btn" href="/tilemap" target="_blank" rel="noopener" data-track="see_tilemap">デモを別タブで開く</a>
           </div>
           <iframe src="/tilemap?mode=embed" title="秘書問題デモ（AreaMap Tilemap）" loading="lazy"></iframe>
         </div>
@@ -294,7 +294,7 @@
             </ul>
             <div class="actions">
               <a class="btn primary" href="https://areamap.onrender.com/areamap-lite" target="_blank" rel="noopener">Entranceを体験</a>
-              <a class="btn" href="/ask?plan=entrance">相談する</a>
+              <a class="btn" href="/ask?plan=entrance" data-track="consultation_entrancepack">相談する</a>
             </div>
           </div>
 
@@ -312,7 +312,7 @@
             </ul>
             <div class="actions">
               <a class="btn primary" href="https://areamap.onrender.com/areamap-pro" target="_blank" rel="noopener">Last30を体験</a>
-              <a class="btn" href="/ask?plan=last30">相談する</a>
+              <a class="btn" href="/ask?plan=last30" data-track="consultation_last30pack">相談する</a>
             </div>
           </div>
         </div>
@@ -350,7 +350,7 @@
         <div class="card" style="padding:16px;margin-top:14px;">
           <h3 style="margin:0 0 6px;">無料で相談（30秒）</h3>
           <p style="margin:0 0 12px;">「うちの場合、どれが一番効く？」だけ聞きに来てください。</p>
-          <a class="btn primary" href="/ask">相談フォームへ</a>
+          <a class="btn primary" href="/ask" data-track="ask_form">相談フォームへ</a>
         </div>
 
         <div class="faq">
@@ -387,7 +387,7 @@
 
   <div class="sticky">
     <a class="btn primary" href="#why">デモ</a>
-    <a class="btn" href="/ask">相談</a>
+    <a class="btn" href="/ask" data-track="lp_cta_demo" data-track="ask_cta_demo">相談</a>
   </div>
 
   <script>
@@ -399,6 +399,17 @@
         e.preventDefault();
         el.scrollIntoView({behavior:'smooth', block:'start'});
       });
+    });
+  </script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const t = AreamapMetrics.createTracker({ endpoint: "/api/metrics/log" });
+
+      // クリック自動計測（data-track を付けた要素だけ拾う）
+      t.bindAutoClicks(document);
+
+      // ✅ LPのPV（アクセス数）
+      t.trackPageView("areamaplp_page_view");
     });
   </script>
 </body>
