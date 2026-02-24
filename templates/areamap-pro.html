@@ -45,6 +45,13 @@
       background: #f3f3f3;
       position: relative;
     }
+    #areamap-leaflet .top-image {
+      background-image: url("web_map.jpg");
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
     .leaflet-container { background: transparent; }
 
     /* ===== Direction chips (top overlay) ===== */
@@ -247,6 +254,7 @@
         data-track="map_view"
         aria-label="AreaMap"
       >
+        <div class="top-image"></div>
         <!-- Direction chips overlay -->
         <div class="route-chip-bar" id="route-chip-bar">
           <button class="route-chip" type="button" data-route="north" data-track="route_chip_north_click">
