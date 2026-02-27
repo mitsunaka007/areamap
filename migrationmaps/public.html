@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <title>イラスト地図（公開）</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <style>
+    body { margin:0; font-family: system-ui, sans-serif; }
+    header { padding: 10px 14px; border-bottom: 1px solid #ddd; }
+    #map { height: calc(100vh - 52px); }
+  </style>
+</head>
+<body>
+<header>
+  <strong id="title">読み込み中…</strong>
+</header>
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  const PROJECT_ID = {{ project_id }};
+</script>
+<script src="/static/migrationmaps/public.js"></script>
+</body>
+</html>
