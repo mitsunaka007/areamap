@@ -178,3 +178,47 @@ class Shop(db.Model):
     # name / category 等はDBにはある前提。APIでは返さない。
     lat = db.Column(db.Float, nullable=False)
     lng = db.Column(db.Float, nullable=False)
+
+# =========================
+# MigrationMaps (イラスト地図→OSM重ね合わせ) 用モデル
+# =========================
+class MapProject(db.Model):
+    __tablename__ = "map_projects"
+    id = db.Column(db.Integer, primary_key=True)
+
+    name = db.Column(db.Text, nullable=False)  # 地図名
+    image_filename = db.Column(db.Text, nullable=False)
+    image_width = db.Column(db.Integer, nullable=False)
+    image_height = db.Column(db.Integer, nullable=False)
+
+    # 画像->WebMercator(3857) アフィン変換係数
+    # X = a*x + b*y + c
+    # Y = d*x + e*y + f
+    a = db.Column(db.Float, nullable=False)
+    b = db.Column(db.Float, nullable=False)
+    c = db.Column(db.Float, nullable=False)
+    d = db.Column(db.Float, nullable=False)
+    e = db.Column(db.Float, nullable=False)
+    f = db.Column(db.Float, nullable=False)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    points = db.relationship("MapPoint", backref="project", cascade="all, delete-orphan")
+
+
+class MapPoint(db.Model):
+    __tablename__ = "map_points"
+    id = db.Column(db.Integer, primary_key=True)
+
+    project_id = db.Column(db.Integer, db.ForeignKey("map_projects.id", ondelete="CASCADE"), nullable=False)
+
+    label = db.Column(db.Text, nullable=False)  # center / p1 / p2 / ...
+    kind = db.Column(db.Text, nullable=False)   # center or point
+
+    # 画像内ピクセル座標
+    img_x = db.Column(db.Float, nullable=False)
+    img_y = db.Column(db.Float, nullable=False)
+
+    # 緯度経度
+    lat = db.Column(db.Float, nullable=False)
+    lng = db.Column(db.Float, nullable=False)

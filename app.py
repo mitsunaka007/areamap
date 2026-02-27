@@ -1,10 +1,15 @@
-from flask import Flask, render_template, request, jsonify, flash, url_for, redirect, current_app
+from flask import Flask, render_template, request, jsonify, flash, url_for, redirect, current_app, send_from_directory, abort
 import os
+import uuid
 import hashlib
+import math
+from pathlib import Path
 from sqlalchemy import func, case
 from werkzeug.middleware.proxy_fix import ProxyFix
+from werkzeug.utils import secure_filename
+from PIL import Image
 from flask_mail import Mail, Message
-from models import  AreamapClickEvent, ContactInquiry, Shop
+from models import  AreamapClickEvent, ContactInquiry, Shop, MapProject, MapPoint
 from forms import AskForm
 from extensions import db
 from dotenv import load_dotenv
@@ -47,6 +52,63 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
 
 db.init_app(app)
+
+# =========================
+# MigrationMaps 設定
+# =========================
+MIGRATIONMAPS_ALLOWED_EXT = {".png", ".jpg", ".jpeg", ".webp"}
+
+# 画像保存先（migrationmaps専用）
+app.config["MIGRATIONMAPS_UPLOAD_DIR"] = os.environ.get("MIGRATIONMAPS_UPLOAD_DIR", "migrationmaps_uploads")
+Path(app.config["MIGRATIONMAPS_UPLOAD_DIR"]).mkdir(parents=True, exist_ok=True)
+
+# ---- 座標変換ユーティリティ（EPSG:4326 -> EPSG:3857）----
+_R = 6378137.0
+
+def _lonlat_to_mercator(lon, lat):
+    x = _R * math.radians(lon)
+    lat = max(min(lat, 85.05112878), -85.05112878)
+    y = _R * math.log(math.tan(math.pi/4 + math.radians(lat)/2))
+    return x, y
+
+def _mercator_to_lonlat(x, y):
+    lon = math.degrees(x / _R)
+    lat = math.degrees(2 * math.atan(math.exp(y / _R)) - math.pi/2)
+    return lon, lat
+
+def _fit_affine(img_pts, ll_pts):
+    """img_pts: [(x,y)], ll_pts: [(lat,lng)] -> (a,b,c,d,e,f)  (X,YはWebMercator)"""
+    import numpy as np
+    n = len(img_pts)
+    if n < 3:
+        raise ValueError("アフィン変換には最低3点が必要です（中心+2点など）")
+    XY = []
+    for (lat, lng) in ll_pts:
+        X, Y = _lonlat_to_mercator(lng, lat)
+        XY.append((X, Y))
+
+    A = np.zeros((2*n, 6), dtype=float)
+    b = np.zeros((2*n,), dtype=float)
+    for i, ((x, y), (X, Y)) in enumerate(zip(img_pts, XY)):
+        A[2*i,   0] = x
+        A[2*i,   1] = y
+        A[2*i,   2] = 1
+        b[2*i]      = X
+        A[2*i+1, 3] = x
+        A[2*i+1, 4] = y
+        A[2*i+1, 5] = 1
+        b[2*i+1]    = Y
+
+    coef, *_ = np.linalg.lstsq(A, b, rcond=None)
+    a,b_,c,d,e,f = coef.tolist()
+    return a,b_,c,d,e,f
+
+def _img_to_latlng(a,b,c,d,e,f, x, y):
+    X = a*x + b*y + c
+    Y = d*x + e*y + f
+    lon, lat = _mercator_to_lonlat(X, Y)
+    return lat, lon
+
 
 # =========================
 # 既存ルート
@@ -540,3 +602,133 @@ def api_shops():
 
 
 
+
+
+
+# =========================
+# MigrationMaps ルート（管理画面 + API + 公開ページ）
+# =========================
+@app.get("/migrationmaps/admin")
+def migrationmaps_admin():
+    return render_template("migrationmaps/admin.html")
+
+@app.get("/migrationmaps/m/<int:project_id>")
+def migrationmaps_public(project_id: int):
+    return render_template("migrationmaps/public.html", project_id=project_id)
+
+@app.get("/migrationmaps/uploads/<path:filename>")
+def migrationmaps_uploaded_file(filename):
+    return send_from_directory(app.config["MIGRATIONMAPS_UPLOAD_DIR"], filename)
+
+@app.post("/api/migrationmaps/upload")
+def api_migrationmaps_upload():
+    f = request.files.get("file")
+    name = request.form.get("name", "").strip()
+    if not f or not name:
+        return jsonify({"error": "file と name は必須です"}), 400
+
+    ext = Path(f.filename).suffix.lower()
+    if ext not in MIGRATIONMAPS_ALLOWED_EXT:
+        return jsonify({"error": f"拡張子が不正です: {ext}"}), 400
+
+    safe = secure_filename(Path(f.filename).stem)
+    filename = f"{safe}_{uuid.uuid4().hex}{ext}"
+    save_path = Path(app.config["MIGRATIONMAPS_UPLOAD_DIR"]) / filename
+    f.save(save_path)
+
+    with Image.open(save_path) as im:
+        w, h = im.size
+
+    return jsonify({
+        "image_url": f"/migrationmaps/uploads/{filename}",
+        "image_filename": filename,
+        "image_width": w,
+        "image_height": h
+    })
+
+@app.post("/api/migrationmaps/save")
+def api_migrationmaps_save():
+    data = request.get_json(force=True)
+    name = (data.get("name") or "").strip()
+    image_filename = data.get("image_filename")
+    w = data.get("image_width")
+    h = data.get("image_height")
+    points = data.get("points") or []
+
+    if not name or not image_filename or not w or not h:
+        return jsonify({"error": "name/image_filename/image_width/image_height は必須です"}), 400
+    if len(points) < 3:
+        return jsonify({"error": "点が少なすぎます。中心+他2点以上（合計3点以上）必要です"}), 400
+
+    img_pts = [(p["img_x"], p["img_y"]) for p in points]
+    ll_pts  = [(p["lat"], p["lng"]) for p in points]
+    try:
+        a,b_,c,d,e,f = _fit_affine(img_pts, ll_pts)
+    except Exception as ex:
+        return jsonify({"error": str(ex)}), 400
+
+    proj = MapProject(
+        name=name,
+        image_filename=image_filename,
+        image_width=int(w),
+        image_height=int(h),
+        a=a, b=b_, c=c, d=d, e=e, f=f,
+    )
+    db.session.add(proj)
+    db.session.flush()
+
+    for p in points:
+        db.session.add(MapPoint(
+            project_id=proj.id,
+            label=p["label"],
+            kind=p["kind"],
+            img_x=float(p["img_x"]),
+            img_y=float(p["img_y"]),
+            lat=float(p["lat"]),
+            lng=float(p["lng"]),
+        ))
+
+    db.session.commit()
+    return jsonify({"project_id": proj.id})
+
+@app.get("/api/migrationmaps/<int:project_id>")
+def api_migrationmaps_get(project_id: int):
+    proj = MapProject.query.get(project_id)
+    if not proj:
+        abort(404)
+
+    pts = []
+    for p in proj.points:
+        pts.append({
+            "id": p.id,
+            "label": p.label,
+            "kind": p.kind,
+            "img_x": p.img_x,
+            "img_y": p.img_y,
+            "lat": p.lat,
+            "lng": p.lng,
+        })
+
+    return jsonify({
+        "id": proj.id,
+        "name": proj.name,
+        "image_url": f"/migrationmaps/uploads/{proj.image_filename}",
+        "image_width": proj.image_width,
+        "image_height": proj.image_height,
+        "affine": {"a":proj.a,"b":proj.b,"c":proj.c,"d":proj.d,"e":proj.e,"f":proj.f},
+        "points": pts
+    })
+
+@app.get("/api/migrationmaps/<int:project_id>/overlay_bounds")
+def api_migrationmaps_overlay_bounds(project_id: int):
+    proj = MapProject.query.get(project_id)
+    if not proj:
+        abort(404)
+
+    corners = [(0,0),(proj.image_width,0),(proj.image_width,proj.image_height),(0,proj.image_height)]
+    latlngs = [_img_to_latlng(proj.a,proj.b,proj.c,proj.d,proj.e,proj.f, x,y) for (x,y) in corners]
+    lats = [ll[0] for ll in latlngs]
+    lngs = [ll[1] for ll in latlngs]
+    sw = [min(lats), min(lngs)]
+    ne = [max(lats), max(lngs)]
+    return jsonify({"bounds": [sw, ne], "corners": latlngs})
