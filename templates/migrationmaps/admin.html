@@ -2,58 +2,42 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>MigrationMaps 管理画面</title>
+  <title>管理画面：イラスト地図→OSM重ね合わせ</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
   <style>
-    body { font-family: system-ui, sans-serif; margin: 0; background:#f7f7f8; }
-    header { padding: 12px 16px; border-bottom: 1px solid #ddd; display:flex; gap:12px; align-items:center; background:#fff; }
-    main { display:grid; grid-template-columns: 320px 1fr 1fr; gap:12px; padding:12px; min-height:calc(100vh - 58px); box-sizing:border-box; }
-    .panel { border:1px solid #ddd; border-radius:12px; overflow:hidden; display:flex; flex-direction:column; background:#fff; min-height:0; }
-    .panel header { border:0; border-bottom:1px solid #eee; background:#fafafa; }
-    .panel .content { padding:12px; flex:1; overflow:auto; }
+    body { font-family: system-ui, sans-serif; margin: 0; }
+    header { padding: 12px 16px; border-bottom: 1px solid #ddd; display:flex; gap:12px; align-items:center; }
+    main { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 12px; height: calc(100vh - 58px); box-sizing: border-box; }
+    .panel { border: 1px solid #ddd; border-radius: 10px; overflow: hidden; display:flex; flex-direction:column; }
+    .panel header { border: 0; border-bottom: 1px solid #eee; background:#fafafa; }
+    .panel .content { padding: 12px; flex:1; overflow:auto; }
+    #imgWrap { position: relative; display:inline-block; border: 1px solid #ccc; border-radius: 8px; overflow:hidden; }
+    #imgCanvas { display:block; max-width: 100%; height: auto; cursor: crosshair; }
+    #map { height: 100%; min-height: 420px; }
     .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-    input[type="text"], input[type="number"] { padding:8px; }
-    input[type="text"] { width: 240px; }
-    button { padding:8px 10px; cursor:pointer; }
-    #imgWrap { position:relative; display:inline-block; width:100%; border:1px solid #ccc; border-radius:8px; overflow:auto; background:#f2f2f2; }
-    #imgCanvas { display:block; max-width:100%; height:auto; cursor:crosshair; }
-    #currentLocationBadge { position:absolute; top:8px; right:8px; background:rgba(255,255,255,.92); padding:6px 10px; border-radius:999px; font-size:12px; border:1px solid #ddd; }
-    #map { height:100%; min-height:460px; }
-    .log { font-size:12px; white-space:pre-wrap; background:#0b1020; color:#e7e7e7; padding:10px; border-radius:8px; max-height:200px; overflow:auto; }
-    table { width:100%; border-collapse:collapse; font-size:12px; }
-    th, td { border-bottom:1px solid #eee; padding:6px; text-align:left; vertical-align:top; }
-    th { background:#fafafa; position:sticky; top:0; }
-    .pill { display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; border:1px solid #ddd; background:#fff; }
+    input[type="text"] { padding: 8px; width: 260px; }
+    button { padding: 8px 10px; cursor:pointer; }
+    .log { font-size: 12px; white-space: pre-wrap; background:#0b1020; color:#e7e7e7; padding: 10px; border-radius: 8px; }
+    table { width:100%; border-collapse: collapse; font-size: 12px; }
+    th, td { border-bottom: 1px solid #eee; padding: 6px; text-align:left; }
+    th { background:#fafafa; position: sticky; top: 0; }
+    .pill { display:inline-block; padding:2px 8px; border-radius: 999px; font-size: 12px; border:1px solid #ddd; background:#fff; }
     .ok { border-color:#2b8a3e; color:#2b8a3e; }
     .ng { border-color:#b02a37; color:#b02a37; }
-    .project-list { display:flex; flex-direction:column; gap:8px; }
-    .project-item { border:1px solid #e4e4e7; border-radius:10px; padding:10px; background:#fff; }
-    .project-item strong { display:block; margin-bottom:6px; }
-    .project-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
-    .muted { color:#666; font-size:12px; }
-    .small-btn { padding:4px 8px; font-size:12px; }
-    .coord-inputs { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:4px; }
-    .coord-inputs input { width:100%; box-sizing:border-box; }
-    .table-wrap { max-height:340px; overflow:auto; border:1px solid #eee; border-radius:8px; }
   </style>
 </head>
 <body>
 <header>
-  <strong>MigrationMaps 管理画面</strong>
+  <strong>管理画面</strong>
   <span class="pill">中心 + 2点以上（合計3点以上）で保存可能</span>
   <span id="status" class="pill ng">未保存</span>
-  <span id="editingProject" class="pill">新規作成</span>
 </header>
-<main>
-  <aside class="panel">
-    <header><div class="row"><strong>保存済みセット</strong><button id="btnRefreshProjects" class="small-btn">更新</button></div></header>
-    <div class="content">
-      <div class="muted">スクショ画像 + リアル地図のセットを一覧表示します。読み込むと再編集できます。</div>
-      <div id="projectList" class="project-list" style="margin-top:10px;"></div>
-    </div>
-  </aside>
 
+<main>
   <section class="panel">
     <header>
       <div class="row">
@@ -61,39 +45,50 @@
         <input id="fileInput" type="file" accept="image/*" />
         <button id="btnSetCenter">中心を選択</button>
         <button id="btnAddPoint">地点を追加</button>
-        <button id="btnCurrentLocation">現在地を取得</button>
       </div>
     </header>
     <div class="content">
       <div id="imgWrap">
         <canvas id="imgCanvas"></canvas>
-        <div id="currentLocationBadge">現在地: 未取得</div>
       </div>
+
       <h3>点の一覧（画像座標↔緯度経度のペア）</h3>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr><th>label</th><th>画像(x,y)</th><th>緯度経度</th><th>状態</th></tr>
-          </thead>
-          <tbody id="pointsTbody"></tbody>
-        </table>
-      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>label</th>
+            <th>画像(x,y)</th>
+            <th>緯度経度</th>
+            <th>状態</th>
+          </tr>
+        </thead>
+        <tbody id="pointsTbody"></tbody>
+      </table>
+
       <div class="row" style="margin-top:10px;">
         <button id="btnSave">DBへ保存</button>
-        <button id="btnPreviewOverlay">重ね合わせプレビュー</button>
         <span id="publicLink"></span>
       </div>
+
       <h3>ログ</h3>
       <div class="log" id="log"></div>
     </div>
   </section>
 
   <section class="panel">
-    <header><div class="row"><span class="pill">OSM上をクリックすると割当</span></div></header>
-    <div class="content" style="padding:0;"><div id="map"></div></div>
+    <header>
+      <div class="row">
+        <span class="pill">OSM上をクリックして緯度経度を割当</span>
+        <button id="btnPreviewOverlay">重ね合わせプレビュー</button>
+      </div>
+    </header>
+    <div class="content" style="padding:0;">
+      <div id="map"></div>
+    </div>
   </section>
 </main>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="/static/migrationmaps/admin.js"></script>
+<script src="/static/admin.js"></script>
 </body>
 </html>
