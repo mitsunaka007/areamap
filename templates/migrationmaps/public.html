@@ -4,23 +4,106 @@
   <meta charset="utf-8" />
   <title>イラスト地図（公開）</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
   <style>
-    body { margin:0; font-family: system-ui, sans-serif; }
-    header { padding: 10px 14px; border-bottom: 1px solid #ddd; }
-    #map { height: calc(100vh - 52px); }
+    body {
+      margin: 0;
+      font-family: system-ui, sans-serif;
+      background: #f7f7f8;
+      color: #222;
+    }
+
+    header {
+      padding: 10px 14px;
+      border-bottom: 1px solid #ddd;
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .top-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    button {
+      padding: 8px 10px;
+      cursor: pointer;
+      border: 1px solid #ccc;
+      background: #fff;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    button:hover {
+      background: #f3f4f6;
+    }
+
+    .pill {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      border: 1px solid #ddd;
+      background: #fff;
+    }
+
+    .muted {
+      color: #666;
+      font-size: 12px;
+    }
+
+    #locationStatus {
+      font-size: 13px;
+      color: #333;
+    }
+
+    #map {
+      height: calc(100vh - 88px);
+      min-height: 420px;
+    }
+
+    @media (max-width: 720px) {
+      #map {
+        height: calc(100vh - 126px);
+      }
+    }
   </style>
 </head>
 <body>
 <header>
-  <strong id="title">読み込み中…</strong>
+  <div class="top-row">
+    <strong id="title">読み込み中…</strong>
+    <div class="controls">
+      <button id="btnToggleLocation">現在地表示: OFF</button>
+      <span id="locationStatus" class="pill">現在地は未取得です</span>
+    </div>
+  </div>
+  <div class="muted">
+    スクショ画像の表示範囲に合わせて地図を固定しています。現在地が範囲外の場合は地図上に表示しません。
+  </div>
 </header>
+
 <div id="map"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
   const PROJECT_ID = {{ project_id }};
 </script>
-<script src="/static/public.js"></script>
+<script src="/static/migrationmaps/public.js"></script>
 </body>
 </html>
