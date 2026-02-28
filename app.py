@@ -649,6 +649,7 @@ def api_migrationmaps_upload():
 @app.post("/api/migrationmaps/save")
 def api_migrationmaps_save():
     data = request.get_json(force=True)
+    project_id = data.get("project_id")
     name = (data.get("name") or "").strip()
     image_filename = data.get("image_filename")
     w = data.get("image_width")
@@ -660,36 +661,86 @@ def api_migrationmaps_save():
     if len(points) < 3:
         return jsonify({"error": "点が少なすぎます。中心+他2点以上（合計3点以上）必要です"}), 400
 
-    img_pts = [(p["img_x"], p["img_y"]) for p in points]
-    ll_pts  = [(p["lat"], p["lng"]) for p in points]
+    # 手入力フォームの空文字対策
+    normalized_points = []
+    for p in points:
+        try:
+            normalized_points.append({
+                "label": p["label"],
+                "kind": p["kind"],
+                "img_x": float(p["img_x"]),
+                "img_y": float(p["img_y"]),
+                "lat": float(p["lat"]),
+                "lng": float(p["lng"]),
+            })
+        except Exception:
+            return jsonify({"error": f"点 {p.get('label', '?')} の値が不正です"}), 400
+
+    img_pts = [(p["img_x"], p["img_y"]) for p in normalized_points]
+    ll_pts  = [(p["lat"], p["lng"]) for p in normalized_points]
     try:
         a,b_,c,d,e,f = _fit_affine(img_pts, ll_pts)
     except Exception as ex:
         return jsonify({"error": str(ex)}), 400
 
-    proj = MapProject(
-        name=name,
-        image_filename=image_filename,
-        image_width=int(w),
-        image_height=int(h),
-        a=a, b=b_, c=c, d=d, e=e, f=f,
-    )
-    db.session.add(proj)
-    db.session.flush()
+    try:
+        if project_id:
+            proj = MapProject.query.get(int(project_id))
+            if not proj:
+                return jsonify({"error": "更新対象のプロジェクトが見つかりません"}), 404
+            proj.name = name
+            proj.image_filename = image_filename
+            proj.image_width = int(w)
+            proj.image_height = int(h)
+            proj.a, proj.b, proj.c, proj.d, proj.e, proj.f = a, b_, c, d, e, f
+            MapPoint.query.filter_by(project_id=proj.id).delete()
+        else:
+            proj = MapProject(
+                name=name,
+                image_filename=image_filename,
+                image_width=int(w),
+                image_height=int(h),
+                a=a, b=b_, c=c, d=d, e=e, f=f,
+            )
+            db.session.add(proj)
+            db.session.flush()
 
-    for p in points:
-        db.session.add(MapPoint(
-            project_id=proj.id,
-            label=p["label"],
-            kind=p["kind"],
-            img_x=float(p["img_x"]),
-            img_y=float(p["img_y"]),
-            lat=float(p["lat"]),
-            lng=float(p["lng"]),
-        ))
+        for p in normalized_points:
+            db.session.add(MapPoint(
+                project_id=proj.id,
+                label=p["label"],
+                kind=p["kind"],
+                img_x=p["img_x"],
+                img_y=p["img_y"],
+                lat=p["lat"],
+                lng=p["lng"],
+            ))
 
-    db.session.commit()
-    return jsonify({"project_id": proj.id})
+        db.session.commit()
+        return jsonify({"project_id": proj.id, "updated": bool(project_id)})
+    except Exception as ex:
+        db.session.rollback()
+        return jsonify({
+            "error": "DB保存に失敗しました。テーブル未作成・スキーマ不一致・権限不足などを確認してください。",
+            "detail": str(ex),
+        }), 500
+
+@app.get("/api/migrationmaps/projects")
+def api_migrationmaps_projects():
+    rows = MapProject.query.order_by(MapProject.created_at.desc(), MapProject.id.desc()).limit(100).all()
+    return jsonify({
+        "projects": [
+            {
+                "id": p.id,
+                "name": p.name,
+                "image_url": f"/migrationmaps/uploads/{p.image_filename}",
+                "created_at": p.created_at.isoformat() if p.created_at else None,
+                "public_url": f"/migrationmaps/m/{p.id}",
+                "admin_url": f"/migrationmaps/admin?project_id={p.id}",
+            }
+            for p in rows
+        ]
+    })
 
 @app.get("/api/migrationmaps/<int:project_id>")
 def api_migrationmaps_get(project_id: int):
