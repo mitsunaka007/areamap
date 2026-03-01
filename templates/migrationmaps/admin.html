@@ -6,206 +6,102 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
-    body {
-      font-family: system-ui, sans-serif;
-      margin: 0;
-      background: #f7f7f8;
-      color: #222;
-    }
-    header {
-      padding: 12px 16px;
-      border-bottom: 1px solid #ddd;
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      background: #fff;
-      flex-wrap: wrap;
-    }
-    main {
-      display: grid;
-      grid-template-columns: 320px 1fr 1fr;
-      gap: 12px;
+    body { font-family: system-ui, sans-serif; margin: 0; background:#f7f7f8; }
+    header { padding: 12px 16px; border-bottom: 1px solid #ddd; display:flex; gap:12px; align-items:center; background:#fff; }
+    main { display:grid; grid-template-columns: 320px 1fr 1fr; gap:12px; padding:12px; min-height:calc(100vh - 58px); box-sizing:border-box; }
+    .panel { border:1px solid #ddd; border-radius:12px; overflow:hidden; display:flex; flex-direction:column; background:#fff; min-height:0; }
+    .panel header { border:0; border-bottom:1px solid #eee; background:#fafafa; }
+    .panel .content { padding:12px; flex:1; overflow:auto; }
+    .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    input[type="text"], input[type="number"] { padding:8px; }
+    input[type="text"] { width: 240px; }
+    button { padding:8px 10px; cursor:pointer; }
+    #imgWrap { position:relative; display:inline-block; width:100%; border:1px solid #ccc; border-radius:8px; overflow:auto; background:#f2f2f2; }
+    #imgCanvas { display:block; max-width:100%; height:auto; cursor:crosshair; }
+    #currentLocationBadge { position:absolute; top:8px; right:8px; background:rgba(255,255,255,.92); padding:6px 10px; border-radius:999px; font-size:12px; border:1px solid #ddd; }
+    #map { height:100%; min-height:460px; }
+    .log { font-size:12px; white-space:pre-wrap; background:#0b1020; color:#e7e7e7; padding:10px; border-radius:8px; max-height:200px; overflow:auto; }
+    table { width:100%; border-collapse:collapse; font-size:12px; }
+    th, td { border-bottom:1px solid #eee; padding:6px; text-align:left; vertical-align:top; }
+    th { background:#fafafa; position:sticky; top:0; }
+    .pill { display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; border:1px solid #ddd; background:#fff; }
+    .ok { border-color:#2b8a3e; color:#2b8a3e; }
+    .ng { border-color:#b02a37; color:#b02a37; }
+    .project-list { display:flex; flex-direction:column; gap:8px; }
+    .project-item { border:1px solid #e4e4e7; border-radius:10px; padding:10px; background:#fff; }
+    .project-item strong { display:block; margin-bottom:6px; }
+    .project-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+    .muted { color:#666; font-size:12px; }
+    .small-btn { padding:4px 8px; font-size:12px; }
+    .coord-inputs { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:4px; }
+    .coord-inputs input { width:100%; box-sizing:border-box; }
+    .table-wrap { max-height:340px; overflow:auto; border:1px solid #eee; border-radius:8px; }
+
+    /* ---- 店舗登録フォーム ---- */
+    .registform {
+      border-top: 1px solid #eee;
       padding: 12px;
-      min-height: calc(100vh - 58px);
-      box-sizing: border-box;
     }
-    .panel {
-      border: 1px solid #ddd;
-      border-radius: 12px;
-      overflow: hidden;
+    .registform h3 {
+      margin: 0 0 10px;
+      font-size: 13px;
+      color: #333;
+    }
+    .form-row {
       display: flex;
       flex-direction: column;
-      background: #fff;
-      min-height: 0;
+      gap: 3px;
+      margin-bottom: 8px;
     }
-    .panel header {
-      border: 0;
-      border-bottom: 1px solid #eee;
-      background: #fafafa;
+    .form-row label {
+      font-size: 11px;
+      font-weight: bold;
+      color: #444;
     }
-    .panel .content {
-      padding: 12px;
-      flex: 1;
-      overflow: auto;
-    }
-    .row {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-    input[type="text"],
-    input[type="number"] {
-      padding: 8px;
+    .form-row input[type="text"],
+    .form-row input[type="email"],
+    .form-row input[type="tel"],
+    .form-row input[type="url"],
+    .form-row input[type="number"] {
+      padding: 6px 8px;
       border: 1px solid #ccc;
       border-radius: 8px;
+      font-size: 12px;
+      width: 100%;
       box-sizing: border-box;
     }
-    input[type="text"] {
-      width: 240px;
-    }
-    button {
-      padding: 8px 10px;
-      cursor: pointer;
-      border: 1px solid #ccc;
-      background: #fff;
-      border-radius: 8px;
-    }
-    button:hover {
-      background: #f3f4f6;
-    }
-    #imgWrap {
-      position: relative;
-      display: inline-block;
-      width: 100%;
+    .form-row textarea {
+      padding: 6px 8px;
       border: 1px solid #ccc;
       border-radius: 8px;
-      overflow: auto;
-      background: #f2f2f2;
-      min-height: 240px;
-    }
-    #imgCanvas {
-      display: block;
-      max-width: 100%;
-      height: auto;
-      cursor: crosshair;
-    }
-    #currentLocationBadge {
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      background: rgba(255,255,255,.92);
-      padding: 6px 10px;
-      border-radius: 999px;
       font-size: 12px;
-      border: 1px solid #ddd;
-      z-index: 2;
-    }
-    #map {
-      height: 100%;
-      min-height: 460px;
-    }
-    .log {
-      font-size: 12px;
-      white-space: pre-wrap;
-      background: #0b1020;
-      color: #e7e7e7;
-      padding: 10px;
-      border-radius: 8px;
-      max-height: 220px;
-      overflow: auto;
-    }
-    table {
       width: 100%;
-      border-collapse: collapse;
-      font-size: 12px;
+      box-sizing: border-box;
+      resize: vertical;
     }
-    th, td {
-      border-bottom: 1px solid #eee;
-      padding: 6px;
-      text-align: left;
-      vertical-align: top;
-    }
-    th {
-      background: #fafafa;
-      position: sticky;
-      top: 0;
-      z-index: 1;
-    }
-    .pill {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 999px;
-      font-size: 12px;
-      border: 1px solid #ddd;
-      background: #fff;
-    }
-    .ok {
-      border-color: #2b8a3e;
-      color: #2b8a3e;
-    }
-    .ng {
-      border-color: #b02a37;
-      color: #b02a37;
-    }
-    .project-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .project-item {
-      border: 1px solid #e4e4e7;
-      border-radius: 10px;
-      padding: 10px;
-      background: #fff;
-    }
-    .project-item strong {
-      display: block;
-      margin-bottom: 6px;
-    }
-    .project-actions {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-top: 8px;
-    }
-    .muted {
-      color: #666;
-      font-size: 12px;
-    }
-    .small-btn {
-      padding: 4px 8px;
-      font-size: 12px;
-    }
-    .coord-inputs {
+    .form-row .row-2col {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 6px;
-      margin-top: 4px;
     }
-    .coord-inputs input {
-      width: 100%;
-      box-sizing: border-box;
+    .required { color: #b02a37; }
+    .image-slots { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+    .image-slot { display: flex; align-items: center; gap: 8px; }
+    .image-slot .slot-label { font-size: 11px; color: #666; width: 32px; flex-shrink: 0; }
+    .image-slot input[type="file"] { font-size: 11px; flex: 1; }
+    .image-preview img {
+      width: 44px; height: 44px; object-fit: cover;
+      border-radius: 6px; border: 1px solid #ddd;
     }
-    .table-wrap {
-      max-height: 360px;
-      overflow: auto;
-      border: 1px solid #eee;
-      border-radius: 8px;
-    }
-    .note {
+    #shopRegisterResult {
+      margin-top: 8px;
       font-size: 12px;
-      color: #555;
-      margin-top: 6px;
+      padding: 6px 8px;
+      border-radius: 8px;
+      display: none;
     }
-    @media (max-width: 1200px) {
-      main {
-        grid-template-columns: 1fr;
-      }
-      #map {
-        min-height: 420px;
-      }
-    }
+    #shopRegisterResult.ok  { background: #d3f9d8; color: #2b8a3e; border: 1px solid #2b8a3e; }
+    #shopRegisterResult.err { background: #ffe3e3; color: #b02a37; border: 1px solid #b02a37; }
   </style>
 </head>
 <body>
@@ -215,30 +111,142 @@
   <span id="status" class="pill ng">未保存</span>
   <span id="editingProject" class="pill">新規作成</span>
 </header>
-
 <main>
   <aside class="panel">
-    <header>
-      <div class="row">
-        <strong>保存済みセット</strong>
-        <button id="btnRefreshProjects" class="small-btn">更新</button>
-      </div>
-    </header>
+    <header><div class="row"><strong>保存済みセット</strong><button id="btnRefreshProjects" class="small-btn">更新</button></div></header>
     <div class="content">
-      <div class="muted">
-        スクショ画像 + リアル地図のセットを一覧表示します。<br>
-        「管理画面で編集」で読み込むと再編集できます。
-      </div>
+      <div class="muted">スクショ画像 + リアル地図のセットを一覧表示します。読み込むと再編集できます。</div>
       <div id="projectList" class="project-list" style="margin-top:10px;"></div>
+    </div>
+    <div class="registform">
+      <h3>店舗を登録する</h3>
+      <form id="shopRegisterForm" enctype="multipart/form-data">
+
+        <div class="form-row">
+          <label for="r_shopname">店名 <span class="required">*</span></label>
+          <input type="text" id="r_shopname" name="shopname"
+                 placeholder="例：○○カフェ" maxlength="100" required />
+        </div>
+
+        <div class="form-row">
+          <label for="r_address">住所 <span class="required">*</span></label>
+          <input type="text" id="r_address" name="address"
+                 placeholder="例：福井県福井市大手1丁目" maxlength="255" required />
+        </div>
+
+        <div class="form-row">
+          <label for="r_floorlevel">階層</label>
+          <input type="text" id="r_floorlevel" name="floorlevel"
+                 placeholder="例：2F" maxlength="20" />
+        </div>
+
+        <div class="form-row">
+          <label for="r_tel">電話番号</label>
+          <input type="tel" id="r_tel" name="tel"
+                 placeholder="例：0776-00-0000" maxlength="50" />
+        </div>
+
+        <div class="form-row">
+          <label for="r_email">メールアドレス <span class="required">*</span></label>
+          <input type="email" id="r_email" name="email"
+                 placeholder="例：info@example.com" maxlength="255" required />
+        </div>
+
+        <div class="form-row">
+          <label for="r_instagram">Instagramアカウント</label>
+          <input type="text" id="r_instagram" name="instagram_account"
+                 placeholder="例：@yourshop" maxlength="255" />
+        </div>
+
+        <div class="form-row">
+          <label>緯度 / 経度 <span class="required">*</span></label>
+          <div class="row-2col">
+            <input type="number" id="r_lat" name="lat"
+                   step="0.0000001" placeholder="緯度 例：36.0610000" required />
+            <input type="number" id="r_lng" name="lng"
+                   step="0.0000001" placeholder="経度 例：136.2230000" required />
+          </div>
+          <div style="margin-top:4px;">
+            <button type="button" id="btnPickLatLng" class="small-btn">現在地を緯度経度に反映</button>
+            <span id="latlngStatus" class="muted" style="margin-left:6px;"></span>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+            <input type="checkbox" id="r_is_active" name="is_active" value="1" checked />
+            <span>営業中</span>
+          </label>
+        </div>
+
+        <div class="form-row">
+          <label for="r_description">詳細説明</label>
+          <textarea id="r_description" name="description"
+                    placeholder="店舗の説明を入力してください"
+                    maxlength="255" rows="3"></textarea>
+        </div>
+
+        <div class="form-row">
+          <label for="r_website_url">サイトURL</label>
+          <input type="url" id="r_website_url" name="website_url"
+                 placeholder="https://example.com" maxlength="255" />
+        </div>
+
+        <div class="form-row">
+          <label for="r_map_project_id">
+            イラスト地図ID <span class="required">*</span>
+          </label>
+          <input type="number" id="r_map_project_id" name="map_project_id"
+                 placeholder="上の一覧のIDを入力" min="1" required />
+          <span class="muted">保存済みセットに表示されているIDを入力してください</span>
+        </div>
+
+        <!-- 画像：最大5枚 / sort_order=1〜5 -->
+        <div class="form-row">
+          <label>ショップ画像（最大5枚）</label>
+          <div class="image-slots">
+            <div class="image-slot">
+              <span class="slot-label">画像1</span>
+              <input type="file" id="r_img1" name="shop_image_1" accept="image/*" />
+              <div class="image-preview" id="r_preview1"></div>
+            </div>
+            <div class="image-slot">
+              <span class="slot-label">画像2</span>
+              <input type="file" id="r_img2" name="shop_image_2" accept="image/*" />
+              <div class="image-preview" id="r_preview2"></div>
+            </div>
+            <div class="image-slot">
+              <span class="slot-label">画像3</span>
+              <input type="file" id="r_img3" name="shop_image_3" accept="image/*" />
+              <div class="image-preview" id="r_preview3"></div>
+            </div>
+            <div class="image-slot">
+              <span class="slot-label">画像4</span>
+              <input type="file" id="r_img4" name="shop_image_4" accept="image/*" />
+              <div class="image-preview" id="r_preview4"></div>
+            </div>
+            <div class="image-slot">
+              <span class="slot-label">画像5</span>
+              <input type="file" id="r_img5" name="shop_image_5" accept="image/*" />
+              <div class="image-preview" id="r_preview5"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row" style="margin-top:10px;">
+          <button type="button" id="btnRegisterShop">店舗を登録する</button>
+        </div>
+
+        <div id="shopRegisterResult"></div>
+
+      </form>
     </div>
   </aside>
 
   <section class="panel">
     <header>
       <div class="row">
-        <label>地図名
-          <input id="mapName" type="text" placeholder="例：FukuiSta_駅前イラスト" />
-        </label>
+        <label>地図名 <input id="mapName" type="text" placeholder="例：FukuiSta_駅前イラスト" /></label>
         <input id="fileInput" type="file" accept="image/*" />
         <button id="btnSetCenter">中心を選択</button>
         <button id="btnAddPoint">地点を追加</button>
@@ -250,50 +258,105 @@
         <canvas id="imgCanvas"></canvas>
         <div id="currentLocationBadge">現在地: 未取得</div>
       </div>
-      <div class="note">
-        画像上で座標を取り、その後に OSM クリックまたは手入力で緯度経度を設定できます。<br>
-        保存済みデータを読み込んだ場合も lat/lng を編集して再保存できます。
-      </div>
-
-      <h3>点の一覧（画像座標 ↔ 緯度経度のペア）</h3>
+      <h3>点の一覧（画像座標↔緯度経度のペア）</h3>
       <div class="table-wrap">
         <table>
           <thead>
-            <tr>
-              <th>label</th>
-              <th>画像(x, y)</th>
-              <th>緯度経度</th>
-              <th>状態</th>
-            </tr>
+            <tr><th>label</th><th>画像(x,y)</th><th>緯度経度</th><th>状態</th></tr>
           </thead>
           <tbody id="pointsTbody"></tbody>
         </table>
       </div>
-
       <div class="row" style="margin-top:10px;">
         <button id="btnSave">DBへ保存</button>
         <button id="btnPreviewOverlay">重ね合わせプレビュー</button>
         <span id="publicLink"></span>
       </div>
-
       <h3>ログ</h3>
       <div class="log" id="log"></div>
     </div>
   </section>
 
   <section class="panel">
-    <header>
-      <div class="row">
-        <span class="pill">OSM上をクリックすると割当</span>
-      </div>
-    </header>
-    <div class="content" style="padding:0;">
-      <div id="map"></div>
-    </div>
+    <header><div class="row"><span class="pill">OSM上をクリックすると割当</span></div></header>
+    <div class="content" style="padding:0;"><div id="map"></div></div>
   </section>
 </main>
-
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="/static/migrationmaps/admin.js"></script>
+<script>
+  // --- 画像プレビュー ---
+  for (let i = 1; i <= 5; i++) {
+    document.getElementById(`r_img${i}`)
+      .addEventListener("change", function () {
+        const preview = document.getElementById(`r_preview${i}`);
+        preview.innerHTML = "";
+        const file = this.files?.[0];
+        if (!file) return;
+        const url = URL.createObjectURL(file);
+        const img = document.createElement("img");
+        img.src = url;
+        img.onload = () => URL.revokeObjectURL(url);
+        preview.appendChild(img);
+      });
+  }
+
+  // --- 現在地を緯度経度フィールドに反映 ---
+  document.getElementById("btnPickLatLng")
+    .addEventListener("click", () => {
+      // admin.js のグローバル変数 currentLocation を参照
+      if (typeof currentLocation === "undefined" || !currentLocation) {
+        alert("先にヘッダーの「現在地を取得」ボタンを押してください");
+        return;
+      }
+      document.getElementById("r_lat").value = currentLocation.lat.toFixed(7);
+      document.getElementById("r_lng").value = currentLocation.lng.toFixed(7);
+      document.getElementById("latlngStatus").textContent =
+        `取得済み ±${Math.round(currentLocation.accuracy)}m`;
+    });
+
+  // --- 店舗登録送信 ---
+  document.getElementById("btnRegisterShop")
+    .addEventListener("click", async () => {
+      const form = document.getElementById("shopRegisterForm");
+      if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+      }
+
+      const resultEl = document.getElementById("shopRegisterResult");
+      resultEl.style.display = "none";
+      resultEl.className = "";
+
+      const fd = new FormData(form);
+
+      try {
+        const res = await fetch("/api/migrationmaps/shop/register", {
+          method: "POST",
+          body: fd
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          resultEl.textContent = `エラー: ${data.error || res.status}`;
+          resultEl.className = "err";
+        } else {
+          resultEl.textContent =
+            `✓ 登録完了（shop_id=${data.shop_id}、画像${data.image_count}枚）`;
+          resultEl.className = "ok";
+          form.reset();
+          // プレビューもクリア
+          for (let i = 1; i <= 5; i++) {
+            document.getElementById(`r_preview${i}`).innerHTML = "";
+          }
+        }
+      } catch (err) {
+        resultEl.textContent = `通信エラー: ${err.message}`;
+        resultEl.className = "err";
+      }
+
+      resultEl.style.display = "block";
+    });
+</script>
 </body>
 </html>
