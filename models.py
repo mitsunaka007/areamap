@@ -202,9 +202,12 @@ class MapProject(db.Model):
     f = db.Column(db.Float, nullable=False)
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-
     points = db.relationship("MapPoint", backref="project", cascade="all, delete-orphan")
-
+    shops = db.relationship(
+        "MigrationShop",
+        backref="map_project",
+        passive_deletes=True
+    )
 
 class MapPoint(db.Model):
     __tablename__ = "map_points"
@@ -222,3 +225,70 @@ class MapPoint(db.Model):
     # 緯度経度
     lat = db.Column(db.Float, nullable=False)
     lng = db.Column(db.Float, nullable=False)
+
+from datetime import datetime
+from extensions import db
+
+class MigrationShop(db.Model):
+    __tablename__ = "migrationshop"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    shopname = db.Column(db.Text, nullable=False)
+    address = db.Column(db.Text, nullable=False)
+    floorlevel = db.Column(db.String(20))
+    tel = db.Column(db.String(50))
+    email = db.Column(db.String(255))
+    instagram_account = db.Column(db.String(255))
+
+    # 緯度経度
+    lat = db.Column(db.Numeric(10, 7), nullable=False)
+    lng = db.Column(db.Numeric(11, 7), nullable=False)
+
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
+
+    created_at = db.Column(db.DateTime, default=datetime.now, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.now, nullable=False)
+
+    description = db.Column(db.Text)
+    website_url = db.Column(db.String(255))
+
+    # どの MapProject に紐づく店か
+    map_project_id = db.Column(
+        db.Integer,
+        db.ForeignKey("map_projects.id", ondelete="SET NULL"),
+        nullable=True
+    )
+
+    # 親 -> 子（1対多）
+    shopimages = db.relationship(
+        "MapShopImages",
+        backref="shop",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="MapShopImages.sort_order"
+    )
+
+
+class MapShopImages(db.Model):
+    __tablename__ = "mapshopimages"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    migrationshop_id = db.Column(
+        db.Integer,
+        db.ForeignKey("migrationshop.id", ondelete="CASCADE"),
+        nullable=False
+    )
+
+    image_url = db.Column(db.String(255), nullable=False)
+
+    # 1〜5を想定
+    sort_order = db.Column(db.Integer, nullable=False, default=1)
+
+    created_at = db.Column(db.DateTime, default=datetime.now, nullable=False)
+
+    __table_args__ = (
+        db.UniqueConstraint("migrationshop_id", "sort_order", name="uq_mapshopimages_shop_sort"),
+        db.CheckConstraint("sort_order >= 1 AND sort_order <= 5", name="ck_mapshopimages_sort_order_1_5"),
+    )

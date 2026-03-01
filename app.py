@@ -9,12 +9,18 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.utils import secure_filename
 from PIL import Image
 from flask_mail import Mail, Message
-from models import  AreamapClickEvent, ContactInquiry, Shop, MapProject, MapPoint
+from models import  AreamapClickEvent, ContactInquiry, Shop, MapProject, MapPoint, MigrationShop, MapShopImages
 from forms import AskForm
 from extensions import db
 from dotenv import load_dotenv
+
 load_dotenv()
 app = Flask(__name__)
+MIGRATIONSHOP_ALLOWED_EXT = {".png", ".jpg", ".jpeg", ".webp"}
+app.config["MIGRATIONSHOP_UPLOAD_DIR"] = os.environ.get(
+    "MIGRATIONSHOP_UPLOAD_DIR", "migrationshop_uploads"
+)
+Path(app.config["MIGRATIONSHOP_UPLOAD_DIR"]).mkdir(parents=True, exist_ok=True)
 
 # ----------------------------
 # Flask/WTForms (CSRF) 設定
@@ -783,3 +789,142 @@ def api_migrationmaps_overlay_bounds(project_id: int):
     sw = [min(lats), min(lngs)]
     ne = [max(lats), max(lngs)]
     return jsonify({"bounds": [sw, ne], "corners": latlngs})
+
+# ----------------------------------------------------------------
+# 【2】ルート定義（既存の MigrationMaps ルート群の末尾に追加）
+# ----------------------------------------------------------------
+
+@app.post("/api/migrationmaps/shop/register")
+def api_migrationshop_register():
+    """
+    店舗登録エンドポイント（multipart/form-data）
+
+    処理フロー：
+      1. MigrationShop を flush して id を確定（commit はまだしない）
+      2. shop_image_1〜5 を受け取り、MapShopImages に INSERT（sort_order=1〜5）
+         ※ DB の CHECK 制約: sort_order BETWEEN 1 AND 5
+         ※ DB の UNIQUE 制約: (migrationshop_id, sort_order)
+      3. まとめて commit
+    """
+    from models import MigrationShop, MapShopImages, MapProject
+
+    # ---------- テキストフィールド ----------
+    shopname          = (request.form.get("shopname")          or "").strip()
+    address           = (request.form.get("address")           or "").strip()
+    floorlevel        = (request.form.get("floorlevel")        or "").strip() or None
+    tel               = (request.form.get("tel")               or "").strip() or None
+    email             = (request.form.get("email")             or "").strip() or None
+    instagram_account = (request.form.get("instagram_account") or "").strip() or None
+    description       = (request.form.get("description")       or "").strip() or None
+    website_url       = (request.form.get("website_url")       or "").strip() or None
+    is_active         = bool(request.form.get("is_active"))   # checkbox: 値があれば True
+
+    map_project_id_raw = (request.form.get("map_project_id") or "").strip()
+    lat_raw            = (request.form.get("lat")             or "").strip()
+    lng_raw            = (request.form.get("lng")             or "").strip()
+
+    # ---------- バリデーション ----------
+    errors = {}
+    if not shopname:
+        errors["shopname"] = "店名は必須です"
+    if not address:
+        errors["address"] = "住所は必須です"
+    if not email:
+        errors["email"] = "メールアドレスは必須です"
+    if not map_project_id_raw:
+        errors["map_project_id"] = "イラスト地図IDは必須です"
+    if not lat_raw or not lng_raw:
+        errors["lat_lng"] = "緯度・経度は必須です"
+
+    if errors:
+        return jsonify({"error": "入力エラー", "detail": errors}), 400
+
+    try:
+        map_project_id = int(map_project_id_raw)
+    except ValueError:
+        return jsonify({"error": "イラスト地図IDは整数で入力してください"}), 400
+
+    try:
+        lat = float(lat_raw)
+        lng = float(lng_raw)
+    except ValueError:
+        return jsonify({"error": "緯度・経度は数値で入力してください"}), 400
+
+    # MapProject の存在確認
+    if not MapProject.query.get(map_project_id):
+        return jsonify({"error": f"イラスト地図ID={map_project_id} が見つかりません"}), 404
+
+    # ---------- ① MigrationShop を仮登録（flush で id 確定） ----------
+    shop = MigrationShop(
+        shopname          = shopname,
+        address           = address,
+        floorlevel        = floorlevel,
+        tel               = tel,
+        email             = email,
+        instagram_account = instagram_account,
+        lat               = lat,
+        lng               = lng,
+        is_active         = is_active,
+        description       = description,
+        website_url       = website_url,
+        map_project_id    = map_project_id,
+    )
+
+    try:
+        db.session.add(shop)
+        db.session.flush()          # shop.id を確定、まだ commit しない
+    except Exception as ex:
+        db.session.rollback()
+        return jsonify({"error": "店舗の仮登録に失敗しました", "detail": str(ex)}), 500
+
+    # ---------- ② 画像を保存して MapShopImages を INSERT ----------
+    upload_dir = Path(app.config.get("MIGRATIONSHOP_UPLOAD_DIR", "migrationshop_uploads"))
+    upload_dir.mkdir(parents=True, exist_ok=True)
+
+    image_count = 0
+
+    for slot in range(1, 6):                       # sort_order = 1〜5
+        file = request.files.get(f"shop_image_{slot}")
+        if not file or file.filename == "":
+            continue                               # 未選択スロットはスキップ
+
+        ext = Path(file.filename).suffix.lower()
+        if ext not in MIGRATIONSHOP_ALLOWED_EXT:
+            db.session.rollback()
+            return jsonify({
+                "error": f"画像{slot}の拡張子が不正です（{ext}）。"
+                         f"使用可能: {', '.join(MIGRATIONSHOP_ALLOWED_EXT)}"
+            }), 400
+
+        filename  = f"shop_{shop.id}_{slot}_{uuid.uuid4().hex}{ext}"
+        save_path = upload_dir / filename
+        file.save(save_path)
+
+        img_row = MapShopImages(
+            migrationshop_id = shop.id,
+            image_url        = f"/migrationmaps/shop_uploads/{filename}",
+            sort_order       = slot,              # CHECK 制約: 1〜5
+        )
+        db.session.add(img_row)
+        image_count += 1
+
+    # ---------- ③ まとめて commit ----------
+    try:
+        db.session.commit()
+    except Exception as ex:
+        db.session.rollback()
+        return jsonify({"error": "DB保存に失敗しました", "detail": str(ex)}), 500
+
+    return jsonify({
+        "ok":          True,
+        "shop_id":     shop.id,
+        "image_count": image_count,
+        "message":     f"店舗「{shopname}」を登録しました",
+    }), 201
+
+
+@app.get("/migrationmaps/shop_uploads/<path:filename>")
+def migrationshop_uploaded_file(filename):
+    """ショップ画像の配信ルート"""
+    upload_dir = app.config.get("MIGRATIONSHOP_UPLOAD_DIR", "migrationshop_uploads")
+    return send_from_directory(upload_dir, filename)
