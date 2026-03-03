@@ -790,6 +790,38 @@ def api_migrationmaps_overlay_bounds(project_id: int):
     ne = [max(lats), max(lngs)]
     return jsonify({"bounds": [sw, ne], "corners": latlngs})
 
+@app.get("/api/migrationmaps/<int:project_id>/shops")
+def api_migrationmaps_shops(project_id: int):
+    proj = MapProject.query.get(project_id)
+    if not proj:
+        abort(404)
+
+    shops = (
+        MigrationShop.query
+        .filter(
+            MigrationShop.map_project_id == project_id,
+            MigrationShop.is_active.is_(True)
+        )
+        .order_by(MigrationShop.id.asc())
+        .all()
+    )
+
+    return jsonify({
+        "shops": [
+            {
+                "id": s.id,
+                "shopname": s.shopname,
+                "address": s.address,
+                "floorlevel": s.floorlevel,
+                "tel": s.tel,
+                "instagram_account": s.instagram_account,
+                "lat": float(s.lat),
+                "lng": float(s.lng),
+            }
+            for s in shops
+        ]
+    })
+
 # ----------------------------------------------------------------
 # 【2】ルート定義（既存の MigrationMaps ルート群の末尾に追加）
 # ----------------------------------------------------------------
