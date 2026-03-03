@@ -72,6 +72,73 @@
       color: #333;
     }
 
+
+    .shop-popup {
+      min-width: 220px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .shop-name {
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .shop-meta {
+      display: grid;
+      grid-template-columns: 72px 1fr;
+      gap: 6px;
+      margin-bottom: 4px;
+      align-items: center;
+    }
+
+    .shop-label {
+      color: #666;
+      font-size: 12px;
+    }
+
+    .shop-ig-link {
+      color: #2563eb;
+      text-decoration: none;
+    }
+
+    .shop-ig-link:hover {
+      text-decoration: underline;
+    }
+
+    .shop-ig-none {
+      color: #666;
+    }
+
+    .building-illustration {
+      display: block;
+      width: auto;
+      height: 200px;
+      margin: 0 auto 10px;
+    }
+
+    .floor-switch {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .floor-btn {
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      background: #fff;
+      padding: 4px 8px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .floor-btn.is-active {
+      background: #2563eb;
+      border-color: #2563eb;
+      color: #fff;
+    }
+
     #map {
       height: calc(100vh - 88px);
       min-height: 420px;
@@ -92,9 +159,6 @@
       <button id="btnToggleLocation">現在地表示: OFF</button>
       <span id="locationStatus" class="pill">現在地は未取得です</span>
     </div>
-  </div>
-  <div class="muted">
-    スクショ画像の表示範囲に合わせて地図を固定しています。現在地が範囲外の場合は地図上に表示しません。
   </div>
 </header>
 
