@@ -102,6 +102,69 @@
     }
     #shopRegisterResult.ok  { background: #d3f9d8; color: #2b8a3e; border: 1px solid #2b8a3e; }
     #shopRegisterResult.err { background: #ffe3e3; color: #b02a37; border: 1px solid #b02a37; }
+    .shop-menu-toggle {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 700;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      background: #fafafa;
+    }
+
+    .shop-menu-body {
+      margin-top: 10px;
+    }
+
+    .shop-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .registered-shop-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 220px;
+      overflow: auto;
+      border: 1px solid #eee;
+      border-radius: 8px;
+      padding: 8px;
+      background: #fcfcfc;
+    }
+
+    .registered-shop-item {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      background: #fff;
+      padding: 8px 10px;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .registered-shop-item:hover {
+      background: #f3f4f6;
+    }
+
+    .registered-shop-item.is-active {
+      border-color: #2563eb;
+      background: #eff6ff;
+    }
+
+    .registered-shop-name {
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    .registered-shop-meta {
+      margin-top: 4px;
+      font-size: 11px;
+      color: #666;
+    }
   </style>
 </head>
 <body>
@@ -118,129 +181,145 @@
       <div class="muted">スクショ画像 + リアル地図のセットを一覧表示します。読み込むと再編集できます。</div>
       <div id="projectList" class="project-list" style="margin-top:10px;"></div>
     </div>
-    <div class="registform">
-      <h3>店舗を登録する</h3>
-      <form id="shopRegisterForm" enctype="multipart/form-data">
+    <div class="registform shop-panel">
+  <button type="button" id="shopMenuToggle" class="shop-menu-toggle" aria-expanded="false">
+    <span>☰ 店舗を登録・編集する</span>
+    <span id="shopMenuToggleIcon">＋</span>
+  </button>
 
-        <div class="form-row">
-          <label for="r_shopname">店名 <span class="required">*</span></label>
-          <input type="text" id="r_shopname" name="shopname"
-                 placeholder="例：○○カフェ" maxlength="100" required />
-        </div>
-
-        <div class="form-row">
-          <label for="r_address">住所 <span class="required">*</span></label>
-          <input type="text" id="r_address" name="address"
-                 placeholder="例：福井県福井市大手1丁目" maxlength="255" required />
-        </div>
-
-        <div class="form-row">
-          <label for="r_floorlevel">階層</label>
-          <input type="text" id="r_floorlevel" name="floorlevel"
-                 placeholder="例：2F" maxlength="20" />
-        </div>
-
-        <div class="form-row">
-          <label for="r_tel">電話番号</label>
-          <input type="tel" id="r_tel" name="tel"
-                 placeholder="例：0776-00-0000" maxlength="50" />
-        </div>
-
-        <div class="form-row">
-          <label for="r_email">メールアドレス <span class="required">*</span></label>
-          <input type="email" id="r_email" name="email"
-                 placeholder="例：info@example.com" maxlength="255" required />
-        </div>
-
-        <div class="form-row">
-          <label for="r_instagram">Instagramアカウント</label>
-          <input type="text" id="r_instagram" name="instagram_account"
-                 placeholder="例：@yourshop" maxlength="255" />
-        </div>
-
-        <div class="form-row">
-          <label>緯度 / 経度 <span class="required">*</span></label>
-          <div class="row-2col">
-            <input type="number" id="r_lat" name="lat"
-                   step="0.0000001" placeholder="緯度 例：36.0610000" required />
-            <input type="number" id="r_lng" name="lng"
-                   step="0.0000001" placeholder="経度 例：136.2230000" required />
-          </div>
-          <div style="margin-top:4px;">
-            <button type="button" id="btnPickLatLng" class="small-btn">現在地を緯度経度に反映</button>
-            <span id="latlngStatus" class="muted" style="margin-left:6px;"></span>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
-            <input type="checkbox" id="r_is_active" name="is_active" value="1" checked />
-            <span>営業中</span>
-          </label>
-        </div>
-
-        <div class="form-row">
-          <label for="r_description">詳細説明</label>
-          <textarea id="r_description" name="description"
-                    placeholder="店舗の説明を入力してください"
-                    maxlength="255" rows="3"></textarea>
-        </div>
-
-        <div class="form-row">
-          <label for="r_website_url">サイトURL</label>
-          <input type="url" id="r_website_url" name="website_url"
-                 placeholder="https://example.com" maxlength="255" />
-        </div>
-
-        <div class="form-row">
-          <label for="r_map_project_id">
-            イラスト地図ID <span class="required">*</span>
-          </label>
-          <input type="number" id="r_map_project_id" name="map_project_id"
-                 placeholder="上の一覧のIDを入力" min="1" required />
-          <span class="muted">保存済みセットに表示されているIDを入力してください</span>
-        </div>
-
-        <!-- 画像：最大5枚 / sort_order=1〜5 -->
-        <div class="form-row">
-          <label>ショップ画像（最大5枚）</label>
-          <div class="image-slots">
-            <div class="image-slot">
-              <span class="slot-label">画像1</span>
-              <input type="file" id="r_img1" name="shop_image_1" accept="image/*" />
-              <div class="image-preview" id="r_preview1"></div>
-            </div>
-            <div class="image-slot">
-              <span class="slot-label">画像2</span>
-              <input type="file" id="r_img2" name="shop_image_2" accept="image/*" />
-              <div class="image-preview" id="r_preview2"></div>
-            </div>
-            <div class="image-slot">
-              <span class="slot-label">画像3</span>
-              <input type="file" id="r_img3" name="shop_image_3" accept="image/*" />
-              <div class="image-preview" id="r_preview3"></div>
-            </div>
-            <div class="image-slot">
-              <span class="slot-label">画像4</span>
-              <input type="file" id="r_img4" name="shop_image_4" accept="image/*" />
-              <div class="image-preview" id="r_preview4"></div>
-            </div>
-            <div class="image-slot">
-              <span class="slot-label">画像5</span>
-              <input type="file" id="r_img5" name="shop_image_5" accept="image/*" />
-              <div class="image-preview" id="r_preview5"></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="form-row" style="margin-top:10px;">
-          <button type="button" id="btnRegisterShop">店舗を登録する</button>
-        </div>
-
-        <div id="shopRegisterResult"></div>
-
-      </form>
+  <div id="shopMenuBody" class="shop-menu-body" hidden>
+    <div class="shop-toolbar">
+      <div class="muted">登録済み店舗を選ぶと、下のフォームに値を読み込みます。</div>
+      <button type="button" id="btnRefreshShopList" class="small-btn">店舗一覧を更新</button>
     </div>
+
+    <div id="registeredShopList" class="registered-shop-list">
+      <div class="muted">読み込み中…</div>
+    </div>
+
+    <hr style="margin:12px 0; border:0; border-top:1px solid #eee;" />
+
+    <h3 id="shopFormTitle">店舗を新規登録する</h3>
+    <form id="shopRegisterForm" enctype="multipart/form-data">
+      <input type="hidden" id="r_shop_id" name="shop_id" value="" />
+
+      <div class="form-row">
+        <label for="r_shopname">店名 <span class="required">*</span></label>
+        <input type="text" id="r_shopname" name="shopname"
+               placeholder="例：○○カフェ" maxlength="100" required />
+      </div>
+
+      <div class="form-row">
+        <label for="r_address">住所 <span class="required">*</span></label>
+        <input type="text" id="r_address" name="address"
+               placeholder="例：福井県福井市大手1丁目" maxlength="255" required />
+      </div>
+
+      <div class="form-row">
+        <label for="r_floorlevel">階層</label>
+        <input type="text" id="r_floorlevel" name="floorlevel"
+               placeholder="例：2F" maxlength="20" />
+      </div>
+
+      <div class="form-row">
+        <label for="r_tel">電話番号</label>
+        <input type="tel" id="r_tel" name="tel"
+               placeholder="例：0776-00-0000" maxlength="50" />
+      </div>
+
+      <div class="form-row">
+        <label for="r_email">メールアドレス <span class="required">*</span></label>
+        <input type="email" id="r_email" name="email"
+               placeholder="例：info@example.com" maxlength="255" required />
+      </div>
+
+      <div class="form-row">
+        <label for="r_instagram">Instagramアカウント</label>
+        <input type="text" id="r_instagram" name="instagram_account"
+               placeholder="例：@yourshop" maxlength="255" />
+      </div>
+
+      <div class="form-row">
+        <label>緯度 / 経度 <span class="required">*</span></label>
+        <div class="row-2col">
+          <input type="number" id="r_lat" name="lat"
+                 step="0.0000001" placeholder="緯度 例：36.0610000" required />
+          <input type="number" id="r_lng" name="lng"
+                 step="0.0000001" placeholder="経度 例：136.2230000" required />
+        </div>
+        <div style="margin-top:4px;">
+          <button type="button" id="btnPickLatLng" class="small-btn">現在地を緯度経度に反映</button>
+          <span id="latlngStatus" class="muted" style="margin-left:6px;"></span>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+          <input type="checkbox" id="r_is_active" name="is_active" value="1" checked />
+          <span>営業中</span>
+        </label>
+      </div>
+
+      <div class="form-row">
+        <label for="r_description">詳細説明</label>
+        <textarea id="r_description" name="description"
+                  placeholder="店舗の説明を入力してください"
+                  maxlength="255" rows="3"></textarea>
+      </div>
+
+      <div class="form-row">
+        <label for="r_website_url">サイトURL</label>
+        <input type="url" id="r_website_url" name="website_url"
+               placeholder="https://example.com" maxlength="255" />
+      </div>
+
+      <div class="form-row">
+        <label for="r_map_project_id">イラスト地図ID <span class="required">*</span></label>
+        <input type="number" id="r_map_project_id" name="map_project_id"
+               placeholder="上の一覧のIDを入力" min="1" required />
+        <span class="muted">保存済みセットに表示されているIDを入力してください</span>
+      </div>
+
+      <div class="form-row">
+        <label>ショップ画像（最大5枚）</label>
+        <div class="image-slots">
+          <div class="image-slot">
+            <span class="slot-label">画像1</span>
+            <input type="file" id="r_img1" name="shop_image_1" accept="image/*" />
+            <div class="image-preview" id="r_preview1"></div>
+          </div>
+          <div class="image-slot">
+            <span class="slot-label">画像2</span>
+            <input type="file" id="r_img2" name="shop_image_2" accept="image/*" />
+            <div class="image-preview" id="r_preview2"></div>
+          </div>
+          <div class="image-slot">
+            <span class="slot-label">画像3</span>
+            <input type="file" id="r_img3" name="shop_image_3" accept="image/*" />
+            <div class="image-preview" id="r_preview3"></div>
+          </div>
+          <div class="image-slot">
+            <span class="slot-label">画像4</span>
+            <input type="file" id="r_img4" name="shop_image_4" accept="image/*" />
+            <div class="image-preview" id="r_preview4"></div>
+          </div>
+          <div class="image-slot">
+            <span class="slot-label">画像5</span>
+            <input type="file" id="r_img5" name="shop_image_5" accept="image/*" />
+            <div class="image-preview" id="r_preview5"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:10px; gap:8px;">
+        <button type="button" id="btnRegisterShop">店舗を登録する</button>
+        <button type="button" id="btnResetShopForm" class="small-btn">新規入力に戻す</button>
+      </div>
+
+      <div id="shopRegisterResult"></div>
+    </form>
+  </div>
+</div>
   </aside>
 
   <section class="panel">
@@ -285,7 +364,6 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="/static/migrationmaps/admin.js"></script>
 <script>
-  // --- 画像プレビュー ---
   for (let i = 1; i <= 5; i++) {
     document.getElementById(`r_img${i}`)
       .addEventListener("change", function () {
@@ -301,10 +379,8 @@
       });
   }
 
-  // --- 現在地を緯度経度フィールドに反映 ---
   document.getElementById("btnPickLatLng")
     .addEventListener("click", () => {
-      // admin.js のグローバル変数 currentLocation を参照
       if (typeof currentLocation === "undefined" || !currentLocation) {
         alert("先にヘッダーの「現在地を取得」ボタンを押してください");
         return;
@@ -315,7 +391,6 @@
         `取得済み ±${Math.round(currentLocation.accuracy)}m`;
     });
 
-  // --- 店舗登録送信 ---
   document.getElementById("btnRegisterShop")
     .addEventListener("click", async () => {
       const form = document.getElementById("shopRegisterForm");
@@ -341,13 +416,17 @@
           resultEl.textContent = `エラー: ${data.error || res.status}`;
           resultEl.className = "err";
         } else {
-          resultEl.textContent =
-            `✓ 登録完了（shop_id=${data.shop_id}、画像${data.image_count}枚）`;
+          resultEl.textContent = data.updated
+            ? `✓ 更新完了（shop_id=${data.shop_id}、画像更新${data.image_count}枚）`
+            : `✓ 登録完了（shop_id=${data.shop_id}、画像${data.image_count}枚）`;
           resultEl.className = "ok";
-          form.reset();
-          // プレビューもクリア
-          for (let i = 1; i <= 5; i++) {
-            document.getElementById(`r_preview${i}`).innerHTML = "";
+
+          if (typeof refreshShopList === "function") {
+            await refreshShopList();
+          }
+
+          if (!data.updated && typeof resetShopForm === "function") {
+            resetShopForm(true);
           }
         }
       } catch (err) {
@@ -357,6 +436,15 @@
 
       resultEl.style.display = "block";
     });
+
+  window.addEventListener("DOMContentLoaded", async () => {
+    if (typeof refreshShopList === "function") {
+      await refreshShopList();
+    }
+    if (typeof setShopMenuOpen === "function") {
+      setShopMenuOpen(false);
+    }
+  });
 </script>
 </body>
 </html>
