@@ -2,15 +2,14 @@ const map = L.map("map", {
   zoomControl: true
 }).setView([35.0, 135.0], 14);
 
-// イラスト画像用pane
+// pane
 map.createPane("migrationOverlayPane");
 map.getPane("migrationOverlayPane").style.zIndex = 350;
 map.getPane("migrationOverlayPane").style.pointerEvents = "none";
 
-// マーカー用レイヤ
-const markerLayer = L.layerGroup().addTo(map);
+map.createPane("migrationMarkerPane");
+map.getPane("migrationMarkerPane").style.zIndex = 650;
 
-// OSM背面
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   maxZoom: 20,
   attribution: "&copy; OpenStreetMap contributors"
@@ -23,18 +22,15 @@ let overlayLatLngBounds = null;
 let overlayCorners = null;
 let shopData = [];
 
-// 現在地関連
 let locationEnabled = false;
 let locationWatchId = null;
 let currentLocationMarker = null;
 let currentLocationCircle = null;
 
-// DOM
 const titleEl = document.getElementById("title");
 const btnToggleLocation = document.getElementById("btnToggleLocation");
 const locationStatusEl = document.getElementById("locationStatus");
 
-// ---------- Utils ----------
 function escapeHtml(str) {
   return String(str ?? "")
     .replaceAll("&", "&amp;")
@@ -59,37 +55,23 @@ function sanitizeTel(tel) {
 
 function buildTelPart(shop) {
   const telRaw = (shop.tel || "").trim();
-  if (!telRaw) {
-    return `<span class="shop-ig-none">📞 -</span>`;
-  }
+  if (!telRaw) return `<span class="shop-ig-none">-</span>`;
 
   const telHref = sanitizeTel(telRaw);
-  if (!telHref) {
-    return `<span class="shop-ig-none">📞 ${escapeHtml(telRaw)}</span>`;
-  }
+  if (!telHref) return `<span class="shop-ig-none">${escapeHtml(telRaw)}</span>`;
 
-  return `
-    <a href="tel:${escapeHtml(telHref)}" class="shop-ig-link" title="電話をかける">
-      📞 ${escapeHtml(telRaw)}
-    </a>
-  `;
+  return `<a href="tel:${escapeHtml(telHref)}" class="shop-ig-link">📞 ${escapeHtml(telRaw)}</a>`;
 }
 
 function buildInstagramPart(shop) {
   const igRaw = (shop.instagram_account || "").trim();
-  if (!igRaw) {
-    return `<span class="shop-ig-none">📷 -</span>`;
-  }
+  if (!igRaw) return `<span class="shop-ig-none">-</span>`;
 
   const account = igRaw.replace(/^@/, "");
   const igHref = `https://www.instagram.com/${encodeURIComponent(account)}/`;
   const label = igRaw.startsWith("@") ? igRaw : `@${igRaw}`;
 
-  return `
-    <a href="${igHref}" target="_blank" rel="noopener noreferrer" class="shop-ig-link" title="Instagramを開く">
-      📷 ${escapeHtml(label)}
-    </a>
-  `;
+  return `<a href="${igHref}" target="_blank" rel="noopener noreferrer" class="shop-ig-link">📷 ${escapeHtml(label)}</a>`;
 }
 
 function buildSingleShopPopup(shop) {
@@ -125,7 +107,12 @@ function buildBuildingPopup(groupShops, groupKey) {
     groupShops.find((s) => normalizeFloorLevel(s.floorlevel) === initialFloor) || groupShops[0];
 
   return `
-    <div class="shop-popup multi-floor-popup" data-group-key="${escapeHtml(groupKey)}">
+    <div class="shop-popup multi-floor-popup">
+      <img
+        class="building-illustration"
+        alt="ビルイメージ"
+        src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='200' viewBox='0 0 140 200'%3E%3Crect x='24' y='8' width='92' height='184' rx='4' fill='%23e5e7eb' stroke='%236b7280' stroke-width='3'/%3E%3Cg fill='%239ca3af'%3E%3Crect x='38' y='22' width='14' height='14'/%3E%3Crect x='62' y='22' width='14' height='14'/%3E%3Crect x='86' y='22' width='14' height='14'/%3E%3Crect x='38' y='48' width='14' height='14'/%3E%3Crect x='62' y='48' width='14' height='14'/%3E%3Crect x='86' y='48' width='14' height='14'/%3E%3Crect x='38' y='74' width='14' height='14'/%3E%3Crect x='62' y='74' width='14' height='14'/%3E%3Crect x='86' y='74' width='14' height='14'/%3E%3Crect x='38' y='100' width='14' height='14'/%3E%3Crect x='62' y='100' width='14' height='14'/%3E%3Crect x='86' y='100' width='14' height='14'/%3E%3C/g%3E%3Crect x='62' y='148' width='16' height='44' fill='%236b7280'/%3E%3C/svg%3E"
+      />
       <div class="floor-switch">${floorButtons}</div>
       <div class="floor-shop-detail" id="floor-shop-${escapeHtml(groupKey)}">
         ${buildSingleShopPopup(initialShop)}
@@ -150,23 +137,26 @@ function attachFloorSwitcherHandlers(popupRoot, groupedShops) {
 
       detailEl.innerHTML = buildSingleShopPopup(selected);
 
-      popupRoot
-        .querySelectorAll(`.floor-btn[data-group-key="${CSS.escape(groupKey)}"]`)
-        .forEach((node) => node.classList.remove("is-active"));
-
+      popupRoot.querySelectorAll(".floor-btn").forEach((node) => {
+        node.classList.remove("is-active");
+      });
       btn.classList.add("is-active");
     });
   });
 }
 
 function addShopMarkers() {
-  markerLayer.clearLayers();
-
-  if (!Array.isArray(shopData) || shopData.length === 0) return;
+  if (!Array.isArray(shopData) || shopData.length === 0) {
+    console.warn("shopData is empty");
+    return;
+  }
 
   const validShops = shopData.filter((shop) =>
     Number.isFinite(Number(shop.lat)) && Number.isFinite(Number(shop.lng))
   );
+
+  console.log("shopData raw:", shopData);
+  console.log("shopData valid:", validShops);
 
   const groupedShops = validShops.reduce((acc, shop) => {
     const key = latLngGroupKey(shop.lat, shop.lng);
@@ -176,19 +166,22 @@ function addShopMarkers() {
   }, {});
 
   Object.entries(groupedShops).forEach(([groupKey, shopsAtSamePoint]) => {
-    const { lat, lng } = shopsAtSamePoint[0];
-    const marker = L.marker([lat, lng]);
+    const lat = Number(shopsAtSamePoint[0].lat);
+    const lng = Number(shopsAtSamePoint[0].lng);
+
+    const marker = L.marker([lat, lng], {
+      pane: "migrationMarkerPane"
+    }).addTo(map);
 
     if (shopsAtSamePoint.length === 1) {
-      marker.bindPopup(buildSingleShopPopup(shopsAtSamePoint[0]), { maxWidth: 360 });
-    } else {
-      marker.bindPopup(buildBuildingPopup(shopsAtSamePoint, groupKey), { maxWidth: 360 });
-      marker.on("popupopen", (e) => {
-        attachFloorSwitcherHandlers(e.popup.getElement(), groupedShops);
-      });
+      marker.bindPopup(buildSingleShopPopup(shopsAtSamePoint[0]), { maxWidth: 320 });
+      return;
     }
 
-    marker.addTo(markerLayer);
+    marker.bindPopup(buildBuildingPopup(shopsAtSamePoint, groupKey), { maxWidth: 340 });
+    marker.on("popupopen", (e) => {
+      attachFloorSwitcherHandlers(e.popup.getElement(), groupedShops);
+    });
   });
 }
 
@@ -235,7 +228,9 @@ function updateLocationInsideBounds(lat, lng, accuracy) {
   if (currentLocationMarker) {
     currentLocationMarker.setLatLng([lat, lng]);
   } else {
-    currentLocationMarker = L.marker([lat, lng]).addTo(map);
+    currentLocationMarker = L.marker([lat, lng], {
+      pane: "migrationMarkerPane"
+    }).addTo(map);
     currentLocationMarker.bindPopup("現在地");
   }
 
@@ -297,6 +292,10 @@ btnToggleLocation.addEventListener("click", () => {
 });
 
 function renderDistortedOverlay(imageUrl, corners) {
+  if (typeof L.distortableImageOverlay !== "function") {
+    throw new Error("Leaflet.DistortableImage が読み込まれていません");
+  }
+
   if (overlay) {
     map.removeLayer(overlay);
     overlay = null;
@@ -313,7 +312,24 @@ function renderDistortedOverlay(imageUrl, corners) {
   }).addTo(map);
 }
 
-// ---------- 初期化 ----------
+function fitMapForViewport(bounds) {
+  const isPortrait = window.innerHeight > window.innerWidth;
+
+  const paddingTopLeft = isPortrait ? [18, 12] : [12, 12];
+  const paddingBottomRight = isPortrait ? [18, 24] : [12, 12];
+
+  map.fitBounds(bounds, {
+    paddingTopLeft,
+    paddingBottomRight
+  });
+
+  map.setMaxBounds(bounds.pad(isPortrait ? 0.02 : 0.03));
+  map.options.maxBoundsViscosity = 1.0;
+
+  const minZoom = map.getBoundsZoom(bounds, false, paddingBottomRight);
+  map.setMinZoom(minZoom);
+}
+
 (async () => {
   try {
     const [projRes, boundsRes, shopsRes] = await Promise.all([
@@ -346,24 +362,26 @@ function renderDistortedOverlay(imageUrl, corners) {
       const shopsJson = await shopsRes.json();
       shopData = Array.isArray(shopsJson.shops) ? shopsJson.shops : [];
     } else {
+      console.warn("shops api failed:", shopsRes.status);
       shopData = [];
     }
 
+    console.log("overlayBounds:", overlayBounds);
+    console.log("overlayCorners:", overlayCorners);
+
     renderDistortedOverlay(projectData.image_url, overlayCorners);
-
-    // 画像四隅から作った範囲を表示ベースにする
-    map.fitBounds(overlayLatLngBounds, { padding: [8, 8] });
-    map.setMaxBounds(overlayLatLngBounds.pad(0.03));
-    map.options.maxBoundsViscosity = 1.0;
-
-    const minZoom = map.getBoundsZoom(overlayLatLngBounds);
-    map.setMinZoom(minZoom);
-
+    fitMapForViewport(overlayLatLngBounds);
     addShopMarkers();
 
     locationStatusEl.textContent = "現在地表示はOFFです";
+
+    window.addEventListener("resize", () => {
+      if (overlayLatLngBounds) {
+        fitMapForViewport(overlayLatLngBounds);
+      }
+    });
   } catch (err) {
-    console.error(err);
+    console.error("map init error:", err);
     titleEl.textContent = "地図の初期化に失敗しました";
     locationStatusEl.textContent = "読込失敗";
   }
