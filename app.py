@@ -782,8 +782,7 @@ def api_migrationmaps_overlay_bounds(project_id: int):
     if not proj:
         abort(404)
 
-    # 元画像の四隅（画像サイズベース）
-    # TL, TR, BR, BL
+    # 元画像の四隅（TL, TR, BR, BL）
     corners_xy = [
         (0, 0),
         (proj.image_width, 0),
@@ -804,7 +803,7 @@ def api_migrationmaps_overlay_bounds(project_id: int):
 
     pts = [{"lat": lat, "lng": lng} for (lat, lng) in latlngs]
 
-    # DistortableImage 用に NW, NE, SW, SE の順へ整列
+    # DistortableImage 用: NW, NE, SW, SE
     by_lat = sorted(pts, key=lambda p: p["lat"], reverse=True)
     top2 = sorted(by_lat[:2], key=lambda p: p["lng"])
     bottom2 = sorted(by_lat[2:], key=lambda p: p["lng"])
