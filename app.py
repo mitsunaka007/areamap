@@ -782,13 +782,54 @@ def api_migrationmaps_overlay_bounds(project_id: int):
     if not proj:
         abort(404)
 
-    corners = [(0,0),(proj.image_width,0),(proj.image_width,proj.image_height),(0,proj.image_height)]
-    latlngs = [_img_to_latlng(proj.a,proj.b,proj.c,proj.d,proj.e,proj.f, x,y) for (x,y) in corners]
-    lats = [ll[0] for ll in latlngs]
-    lngs = [ll[1] for ll in latlngs]
+    # 元画像の四隅（画像サイズベース）
+    # TL, TR, BR, BL
+    corners_xy = [
+        (0, 0),
+        (proj.image_width, 0),
+        (proj.image_width, proj.image_height),
+        (0, proj.image_height),
+    ]
+
+    latlngs = [
+        _img_to_latlng(proj.a, proj.b, proj.c, proj.d, proj.e, proj.f, x, y)
+        for (x, y) in corners_xy
+    ]
+    # latlngs = [TL, TR, BR, BL]
+
+    lats = [lat for lat, lng in latlngs]
+    lngs = [lng for lat, lng in latlngs]
     sw = [min(lats), min(lngs)]
     ne = [max(lats), max(lngs)]
-    return jsonify({"bounds": [sw, ne], "corners": latlngs})
+
+    pts = [{"lat": lat, "lng": lng} for (lat, lng) in latlngs]
+
+    # DistortableImage 用に NW, NE, SW, SE の順へ整列
+    by_lat = sorted(pts, key=lambda p: p["lat"], reverse=True)
+    top2 = sorted(by_lat[:2], key=lambda p: p["lng"])
+    bottom2 = sorted(by_lat[2:], key=lambda p: p["lng"])
+
+    distortable_corners = [
+        top2[0],     # NW
+        top2[1],     # NE
+        bottom2[0],  # SW
+        bottom2[1],  # SE
+    ]
+
+    return jsonify({
+        "bounds": [sw, ne],
+        "image_corners": [
+            {"lat": latlngs[0][0], "lng": latlngs[0][1]},  # TL
+            {"lat": latlngs[1][0], "lng": latlngs[1][1]},  # TR
+            {"lat": latlngs[2][0], "lng": latlngs[2][1]},  # BR
+            {"lat": latlngs[3][0], "lng": latlngs[3][1]},  # BL
+        ],
+        "distortable_corners": distortable_corners,
+        "image_size": {
+            "width": proj.image_width,
+            "height": proj.image_height,
+        }
+    })
 
 @app.get("/api/migrationmaps/<int:project_id>/shops")
 def api_migrationmaps_shops(project_id: int):
