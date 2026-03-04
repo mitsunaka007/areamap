@@ -738,3 +738,142 @@ const initialProjectId = params.get("project_id");
 if (initialProjectId) {
   loadProject(initialProjectId);
 }
+let currentEditingShopId = null;
+
+const shopMenuToggle = document.getElementById("shopMenuToggle");
+const shopMenuBody = document.getElementById("shopMenuBody");
+const shopMenuToggleIcon = document.getElementById("shopMenuToggleIcon");
+const registeredShopListEl = document.getElementById("registeredShopList");
+const shopFormTitleEl = document.getElementById("shopFormTitle");
+const shopRegisterFormEl = document.getElementById("shopRegisterForm");
+const shopRegisterResultEl = document.getElementById("shopRegisterResult");
+
+function setShopMenuOpen(open) {
+  shopMenuBody.hidden = !open;
+  shopMenuToggle.setAttribute("aria-expanded", open ? "true" : "false");
+  shopMenuToggleIcon.textContent = open ? "－" : "＋";
+}
+
+shopMenuToggle?.addEventListener("click", () => {
+  const expanded = shopMenuToggle.getAttribute("aria-expanded") === "true";
+  setShopMenuOpen(!expanded);
+});
+
+function clearShopImagePreviews() {
+  for (let i = 1; i <= 5; i++) {
+    const preview = document.getElementById(`r_preview${i}`);
+    if (preview) preview.innerHTML = "";
+    const input = document.getElementById(`r_img${i}`);
+    if (input) input.value = "";
+  }
+}
+
+function fillShopPreviewImages(images = []) {
+  for (let i = 1; i <= 5; i++) {
+    const preview = document.getElementById(`r_preview${i}`);
+    if (preview) preview.innerHTML = "";
+  }
+
+  for (const img of images) {
+    const preview = document.getElementById(`r_preview${img.sort_order}`);
+    if (!preview) continue;
+    preview.innerHTML = `<img src="${img.image_url}" alt="shop image ${img.sort_order}" />`;
+  }
+}
+
+function resetShopForm(toCreate = true) {
+  currentEditingShopId = null;
+  shopRegisterFormEl.reset();
+  document.getElementById("r_shop_id").value = "";
+  document.getElementById("r_is_active").checked = true;
+  clearShopImagePreviews();
+  shopFormTitleEl.textContent = toCreate ? "店舗を新規登録する" : "店舗を編集する";
+  shopRegisterResultEl.style.display = "none";
+  shopRegisterResultEl.className = "";
+  document.querySelectorAll(".registered-shop-item").forEach((el) => {
+    el.classList.remove("is-active");
+  });
+}
+
+function fillShopForm(shop) {
+  currentEditingShopId = shop.id;
+  document.getElementById("r_shop_id").value = shop.id ?? "";
+  document.getElementById("r_shopname").value = shop.shopname ?? "";
+  document.getElementById("r_address").value = shop.address ?? "";
+  document.getElementById("r_floorlevel").value = shop.floorlevel ?? "";
+  document.getElementById("r_tel").value = shop.tel ?? "";
+  document.getElementById("r_email").value = shop.email ?? "";
+  document.getElementById("r_instagram").value = shop.instagram_account ?? "";
+  document.getElementById("r_lat").value = shop.lat ?? "";
+  document.getElementById("r_lng").value = shop.lng ?? "";
+  document.getElementById("r_is_active").checked = !!shop.is_active;
+  document.getElementById("r_description").value = shop.description ?? "";
+  document.getElementById("r_website_url").value = shop.website_url ?? "";
+  document.getElementById("r_map_project_id").value = shop.map_project_id ?? "";
+
+  clearShopImagePreviews();
+  fillShopPreviewImages(shop.images || []);
+  shopFormTitleEl.textContent = `店舗を編集する #${shop.id}`;
+  setShopMenuOpen(true);
+}
+
+async function fetchShopDetail(shopId) {
+  const res = await fetch(`/api/migrationmaps/shops/${shopId}`);
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || "店舗詳細の取得に失敗しました");
+  }
+  return data.shop;
+}
+
+async function refreshShopList() {
+  const query = currentProjectId ? `?project_id=${encodeURIComponent(currentProjectId)}` : "";
+  const res = await fetch(`/api/migrationmaps/shops${query}`);
+  const data = await res.json();
+
+  registeredShopListEl.innerHTML = "";
+
+  if (!res.ok) {
+    registeredShopListEl.innerHTML = `<div class="muted">店舗一覧の取得に失敗しました</div>`;
+    return;
+  }
+
+  if (!data.shops?.length) {
+    registeredShopListEl.innerHTML = `<div class="muted">登録済み店舗はありません</div>`;
+    return;
+  }
+
+  for (const shop of data.shops) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "registered-shop-item";
+    btn.dataset.shopId = shop.id;
+    btn.innerHTML = `
+      <div class="registered-shop-name">${shop.shopname}</div>
+      <div class="registered-shop-meta">
+        ID: ${shop.id} / 地図ID: ${shop.map_project_id ?? "-"} / ${shop.floorlevel || "-"} / ${shop.is_active ? "営業中" : "非表示"}
+      </div>
+    `;
+    registeredShopListEl.appendChild(btn);
+  }
+}
+
+registeredShopListEl?.addEventListener("click", async (ev) => {
+  const btn = ev.target.closest(".registered-shop-item");
+  if (!btn) return;
+
+  try {
+    document.querySelectorAll(".registered-shop-item").forEach((el) => {
+      el.classList.remove("is-active");
+    });
+    btn.classList.add("is-active");
+
+    const shop = await fetchShopDetail(btn.dataset.shopId);
+    fillShopForm(shop);
+  } catch (err) {
+    alert(err.message);
+  }
+});
+
+document.getElementById("btnRefreshShopList")?.addEventListener("click", refreshShopList);
+document.getElementById("btnResetShopForm")?.addEventListener("click", () => resetShopForm(true));
