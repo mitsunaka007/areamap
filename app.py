@@ -868,34 +868,22 @@ def api_migrationmaps_shops(project_id: int):
 
 @app.post("/api/migrationmaps/shop/register")
 def api_migrationshop_register():
-    """
-    店舗登録エンドポイント（multipart/form-data）
+    from datetime import datetime
 
-    処理フロー：
-      1. MigrationShop を flush して id を確定（commit はまだしない）
-      2. shop_image_1〜5 を受け取り、MapShopImages に INSERT（sort_order=1〜5）
-         ※ DB の CHECK 制約: sort_order BETWEEN 1 AND 5
-         ※ DB の UNIQUE 制約: (migrationshop_id, sort_order)
-      3. まとめて commit
-    """
-    from models import MigrationShop, MapShopImages, MapProject
-
-    # ---------- テキストフィールド ----------
-    shopname          = (request.form.get("shopname")          or "").strip()
-    address           = (request.form.get("address")           or "").strip()
-    floorlevel        = (request.form.get("floorlevel")        or "").strip() or None
-    tel               = (request.form.get("tel")               or "").strip() or None
-    email             = (request.form.get("email")             or "").strip() or None
-    instagram_account = (request.form.get("instagram_account") or "").strip() or None
-    description       = (request.form.get("description")       or "").strip() or None
-    website_url       = (request.form.get("website_url")       or "").strip() or None
-    is_active         = bool(request.form.get("is_active"))   # checkbox: 値があれば True
-
+    shop_id_raw        = (request.form.get("shop_id") or "").strip()
+    shopname           = (request.form.get("shopname") or "").strip()
+    address            = (request.form.get("address") or "").strip()
+    floorlevel         = (request.form.get("floorlevel") or "").strip() or None
+    tel                = (request.form.get("tel") or "").strip() or None
+    email              = (request.form.get("email") or "").strip()
+    instagram_account  = (request.form.get("instagram_account") or "").strip() or None
+    description        = (request.form.get("description") or "").strip() or None
+    website_url        = (request.form.get("website_url") or "").strip() or None
     map_project_id_raw = (request.form.get("map_project_id") or "").strip()
-    lat_raw            = (request.form.get("lat")             or "").strip()
-    lng_raw            = (request.form.get("lng")             or "").strip()
+    lat_raw            = (request.form.get("lat") or "").strip()
+    lng_raw            = (request.form.get("lng") or "").strip()
+    is_active          = request.form.get("is_active") == "1"
 
-    # ---------- バリデーション ----------
     errors = {}
     if not shopname:
         errors["shopname"] = "店名は必須です"
@@ -905,95 +893,162 @@ def api_migrationshop_register():
         errors["email"] = "メールアドレスは必須です"
     if not map_project_id_raw:
         errors["map_project_id"] = "イラスト地図IDは必須です"
-    if not lat_raw or not lng_raw:
-        errors["lat_lng"] = "緯度・経度は必須です"
-
-    if errors:
-        return jsonify({"error": "入力エラー", "detail": errors}), 400
+    if not lat_raw:
+        errors["lat"] = "緯度は必須です"
+    if not lng_raw:
+        errors["lng"] = "経度は必須です"
 
     try:
         map_project_id = int(map_project_id_raw)
-    except ValueError:
-        return jsonify({"error": "イラスト地図IDは整数で入力してください"}), 400
+    except Exception:
+        map_project_id = None
+        errors["map_project_id"] = "イラスト地図IDが不正です"
 
     try:
         lat = float(lat_raw)
+    except Exception:
+        lat = None
+        errors["lat"] = "緯度が不正です"
+
+    try:
         lng = float(lng_raw)
-    except ValueError:
-        return jsonify({"error": "緯度・経度は数値で入力してください"}), 400
+    except Exception:
+        lng = None
+        errors["lng"] = "経度が不正です"
 
-    # MapProject の存在確認
-    if not MapProject.query.get(map_project_id):
-        return jsonify({"error": f"イラスト地図ID={map_project_id} が見つかりません"}), 404
+    if map_project_id is not None:
+        proj = MapProject.query.get(map_project_id)
+        if not proj:
+            errors["map_project_id"] = "指定したイラスト地図IDが存在しません"
 
-    # ---------- ① MigrationShop を仮登録（flush で id 確定） ----------
-    shop = MigrationShop(
-        shopname          = shopname,
-        address           = address,
-        floorlevel        = floorlevel,
-        tel               = tel,
-        email             = email,
-        instagram_account = instagram_account,
-        lat               = lat,
-        lng               = lng,
-        is_active         = is_active,
-        description       = description,
-        website_url       = website_url,
-        map_project_id    = map_project_id,
-    )
+    if errors:
+        return jsonify({"error": "入力エラー", "fields": errors}), 400
 
     try:
-        db.session.add(shop)
-        db.session.flush()          # shop.id を確定、まだ commit しない
-    except Exception as ex:
-        db.session.rollback()
-        return jsonify({"error": "店舗の仮登録に失敗しました", "detail": str(ex)}), 500
+        if shop_id_raw:
+            shop = MigrationShop.query.get(int(shop_id_raw))
+            if not shop:
+                return jsonify({"error": "更新対象の店舗が見つかりません"}), 404
+            is_update = True
+        else:
+            shop = MigrationShop()
+            db.session.add(shop)
+            is_update = False
 
-    # ---------- ② 画像を保存して MapShopImages を INSERT ----------
-    upload_dir = Path(app.config.get("MIGRATIONSHOP_UPLOAD_DIR", "migrationshop_uploads"))
-    upload_dir.mkdir(parents=True, exist_ok=True)
+        shop.shopname = shopname
+        shop.address = address
+        shop.floorlevel = floorlevel
+        shop.tel = tel
+        shop.email = email
+        shop.instagram_account = instagram_account
+        shop.lat = lat
+        shop.lng = lng
+        shop.is_active = is_active
+        shop.description = description
+        shop.website_url = website_url
+        shop.map_project_id = map_project_id
+        shop.updated_at = datetime.now()
 
-    image_count = 0
+        db.session.flush()
 
-    for slot in range(1, 6):                       # sort_order = 1〜5
-        file = request.files.get(f"shop_image_{slot}")
-        if not file or file.filename == "":
-            continue                               # 未選択スロットはスキップ
+        image_count = 0
+        for sort_order in range(1, 6):
+            f = request.files.get(f"shop_image_{sort_order}")
+            if not f or not f.filename:
+                continue
 
-        ext = Path(file.filename).suffix.lower()
-        if ext not in MIGRATIONSHOP_ALLOWED_EXT:
-            db.session.rollback()
-            return jsonify({
-                "error": f"画像{slot}の拡張子が不正です（{ext}）。"
-                         f"使用可能: {', '.join(MIGRATIONSHOP_ALLOWED_EXT)}"
-            }), 400
+            ext = Path(f.filename).suffix.lower()
+            if ext not in MIGRATIONSHOP_ALLOWED_EXT:
+                db.session.rollback()
+                return jsonify({"error": f"画像{sort_order}の拡張子が不正です: {ext}"}), 400
 
-        filename  = f"shop_{shop.id}_{slot}_{uuid.uuid4().hex}{ext}"
-        save_path = upload_dir / filename
-        file.save(save_path)
+            safe = secure_filename(Path(f.filename).stem)
+            filename = f"shop_{shop.id}_{sort_order}_{uuid.uuid4().hex}{ext}"
+            save_path = Path(app.config["MIGRATIONSHOP_UPLOAD_DIR"]) / filename
+            f.save(save_path)
+            image_url = f"/migrationshop_uploads/{filename}"
 
-        img_row = MapShopImages(
-            migrationshop_id = shop.id,
-            image_url        = f"/migrationmaps/shop_uploads/{filename}",
-            sort_order       = slot,              # CHECK 制約: 1〜5
-        )
-        db.session.add(img_row)
-        image_count += 1
+            existing = MapShopImages.query.filter_by(
+                migrationshop_id=shop.id,
+                sort_order=sort_order
+            ).first()
 
-    # ---------- ③ まとめて commit ----------
-    try:
+            if existing:
+                existing.image_url = image_url
+            else:
+                db.session.add(MapShopImages(
+                    migrationshop_id=shop.id,
+                    image_url=image_url,
+                    sort_order=sort_order,
+                ))
+            image_count += 1
+
         db.session.commit()
-    except Exception as ex:
+        return jsonify({
+            "ok": True,
+            "shop_id": shop.id,
+            "image_count": image_count,
+            "updated": is_update,
+        })
+    except Exception as e:
         db.session.rollback()
-        return jsonify({"error": "DB保存に失敗しました", "detail": str(ex)}), 500
+        return jsonify({"error": f"db_error: {repr(e)}"}), 500
+
+@app.get("/api/migrationmaps/shops")
+def api_migrationshop_list():
+    project_id = request.args.get("project_id", type=int)
+
+    q = MigrationShop.query.order_by(MigrationShop.updated_at.desc(), MigrationShop.id.desc())
+    if project_id:
+        q = q.filter(MigrationShop.map_project_id == project_id)
+
+    shops = q.all()
+    return jsonify({
+        "shops": [
+            {
+                "id": s.id,
+                "shopname": s.shopname,
+                "address": s.address,
+                "floorlevel": s.floorlevel,
+                "map_project_id": s.map_project_id,
+                "is_active": bool(s.is_active),
+                "updated_at": s.updated_at.isoformat() if s.updated_at else None,
+            }
+            for s in shops
+        ]
+    })
+
+@app.get("/api/migrationmaps/shops/<int:shop_id>")
+def api_migrationshop_detail(shop_id: int):
+    shop = MigrationShop.query.get(shop_id)
+    if not shop:
+        return jsonify({"error": "店舗が見つかりません"}), 404
 
     return jsonify({
-        "ok":          True,
-        "shop_id":     shop.id,
-        "image_count": image_count,
-        "message":     f"店舗「{shopname}」を登録しました",
-    }), 201
-
+        "shop": {
+            "id": shop.id,
+            "shopname": shop.shopname,
+            "address": shop.address,
+            "floorlevel": shop.floorlevel,
+            "tel": shop.tel,
+            "email": shop.email,
+            "instagram_account": shop.instagram_account,
+            "lat": float(shop.lat) if shop.lat is not None else None,
+            "lng": float(shop.lng) if shop.lng is not None else None,
+            "is_active": bool(shop.is_active),
+            "description": shop.description,
+            "website_url": shop.website_url,
+            "map_project_id": shop.map_project_id,
+            "images": [
+                {
+                    "id": img.id,
+                    "image_url": img.image_url,
+                    "sort_order": img.sort_order,
+                }
+                for img in shop.shopimages
+            ]
+        }
+    })
 
 @app.get("/migrationmaps/shop_uploads/<path:filename>")
 def migrationshop_uploaded_file(filename):
