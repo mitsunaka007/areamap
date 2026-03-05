@@ -1,5 +1,6 @@
 const map = L.map("map", {
-  zoomControl: true
+  zoomControl: true,
+  maxZoom: 22,
 }).setView([35.0, 135.0], 14);
 
 // pane
@@ -11,8 +12,9 @@ map.createPane("migrationMarkerPane");
 map.getPane("migrationMarkerPane").style.zIndex = 650;
 
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-  maxZoom: 20,
-  attribution: "&copy; OpenStreetMap contributors"
+  attribution: "&copy; OpenStreetMap contributors",
+  maxNativeZoom: 19, // ← 実タイルは19まで
+  maxZoom: 22,       // ← 22までは拡大を許可（19を引き伸ばして表示）
 }).addTo(map);
 
 let overlay = null;
