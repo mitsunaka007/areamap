@@ -292,3 +292,35 @@ class MapShopImages(db.Model):
         db.UniqueConstraint("migrationshop_id", "sort_order", name="uq_mapshopimages_shop_sort"),
         db.CheckConstraint("sort_order >= 1 AND sort_order <= 5", name="ck_mapshopimages_sort_order_1_5"),
     )
+
+class BuildingGuide(db.Model):
+    __tablename__ = "building_guides"
+
+    id = db.Column(db.Integer, primary_key=True)
+    map_project_id = db.Column(db.Integer, db.ForeignKey("map_projects.id", ondelete="SET NULL"))
+    lat = db.Column(db.Numeric(10, 7), nullable=False)
+    lng = db.Column(db.Numeric(11, 7), nullable=False)
+
+    building_name = db.Column(db.String(255))
+    image_url = db.Column(db.String(255), nullable=False)   # ビル全体写真
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
+
+    created_at = db.Column(db.DateTime, default=datetime.now, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.now, nullable=False)
+
+class BuildingGuideFloor(db.Model):
+    __tablename__ = "building_guide_floors"
+
+    id = db.Column(db.Integer, primary_key=True)
+    building_guide_id = db.Column(
+        db.Integer,
+        db.ForeignKey("building_guides.id", ondelete="CASCADE"),
+        nullable=False
+    )
+
+    floorlevel = db.Column(db.String(20), nullable=False)   # 1F / 2F / 3F
+    area_x = db.Column(db.Integer, nullable=False)          # 画像左上X
+    area_y = db.Column(db.Integer, nullable=False)          # 画像左上Y
+    area_width = db.Column(db.Integer, nullable=False)
+    area_height = db.Column(db.Integer, nullable=False)
+    sort_order = db.Column(db.Integer, nullable=False, default=1)
