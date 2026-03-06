@@ -388,3 +388,14 @@ function fitMapForViewport(bounds) {
     locationStatusEl.textContent = "読込失敗";
   }
 })();
+
+const appState = {
+  selectedDestinationShopId: null, // 目的地
+  autoGuideOpen: false,            // 案内パネル開閉
+  activeBuildingFloor: null,       // 1F / 2F / 3F
+  shownGuideKey: null              // 同じものを連続表示しない
+};
+// 同一ビルの判定をlat,lngで行い、誤差を丸める
+function buildingKey(shop) {
+  return `${Number(shop.lat).toFixed(7)},${Number(shop.lng).toFixed(7)}`;
+}
