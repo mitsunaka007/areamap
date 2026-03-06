@@ -165,6 +165,23 @@
       font-size: 11px;
       color: #666;
     }
+    /* ---- Responsive (phone/tablet) ---- */
+    @media (max-width: 1024px) {
+      /* 3カラム → 1カラムにして、panelを縦積みにする */
+      main {
+        grid-template-columns: 1fr;
+      }
+
+      /* section.panel も含めてフル幅で縦に並ぶ */
+      .panel {
+        width: 100%;
+      }
+
+      /* 地図は縦積みだと潰れやすいので最低高さを確保 */
+      #map {
+        min-height: 420px;
+      }
+    }
   </style>
 </head>
 <body>
