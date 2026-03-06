@@ -13,147 +13,148 @@
     href="https://cdn.jsdelivr.net/npm/leaflet-distortableimage@0.21.9/dist/leaflet.distortableimage.css"
   />
   <style>
-    body {
-      margin: 0;
-      font-family: system-ui, sans-serif;
-      background: #f7f7f8;
-      color: #222;
-    }
+  body {
+    margin: 0;
+    font-family: system-ui, sans-serif;
+    background: #f7f7f8;
+    color: #222;
+  }
 
-    header {
-      padding: 10px 14px;
-      border-bottom: 1px solid #ddd;
-      background: #fff;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
+  header {
+    padding: 10px 14px;
+    border-bottom: 1px solid #ddd;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
 
-    .top-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
+  .top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
 
-    .controls {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
+  .controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
 
-    button {
-      padding: 8px 10px;
-      cursor: pointer;
-      border: 1px solid #ccc;
-      background: #fff;
-      border-radius: 8px;
-      font-size: 14px;
-    }
+  button {
+    padding: 8px 10px;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    background: #fff;
+    border-radius: 8px;
+    font-size: 14px;
+  }
 
-    button:hover {
-      background: #f3f4f6;
-    }
+  button:hover {
+    background: #f3f4f6;
+  }
 
-    .pill {
-      display: inline-block;
-      padding: 4px 10px;
-      border-radius: 999px;
-      font-size: 12px;
-      border: 1px solid #ddd;
-      background: #fff;
-    }
+  .pill {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    border: 1px solid #ddd;
+    background: #fff;
+  }
 
-    .muted {
-      color: #666;
-      font-size: 12px;
-    }
+  #locationStatus {
+    font-size: 13px;
+    color: #333;
+  }
 
-    #locationStatus {
-      font-size: 13px;
-      color: #333;
-    }
+  .shop-popup {
+    min-width: 220px;
+    max-width: 280px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
 
+  .shop-name {
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
 
-    .shop-popup {
-      min-width: 220px;
-      font-size: 13px;
-      line-height: 1.5;
-    }
+  .shop-meta {
+    display: grid;
+    grid-template-columns: 72px 1fr;
+    gap: 6px;
+    margin-bottom: 4px;
+    align-items: start;
+  }
 
-    .shop-name {
-      font-weight: 700;
-      margin-bottom: 6px;
-    }
+  .shop-label {
+    color: #666;
+    font-size: 12px;
+  }
 
-    .shop-meta {
-      display: grid;
-      grid-template-columns: 72px 1fr;
-      gap: 6px;
-      margin-bottom: 4px;
-      align-items: center;
-    }
+  .shop-ig-link {
+    color: #2563eb;
+    text-decoration: none;
+  }
 
-    .shop-label {
-      color: #666;
-      font-size: 12px;
-    }
+  .shop-ig-link:hover {
+    text-decoration: underline;
+  }
 
-    .shop-ig-link {
-      color: #2563eb;
-      text-decoration: none;
-    }
+  .shop-ig-none {
+    color: #666;
+  }
 
-    .shop-ig-link:hover {
-      text-decoration: underline;
-    }
+  .building-illustration {
+    display: block;
+    width: auto;
+    height: 180px;
+    margin: 0 auto 10px;
+  }
 
-    .shop-ig-none {
-      color: #666;
-    }
+  .floor-switch {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
 
-    .building-illustration {
-      display: block;
-      width: auto;
-      height: 200px;
-      margin: 0 auto 10px;
-    }
+  .floor-btn {
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: #fff;
+    padding: 4px 8px;
+    font-size: 12px;
+    cursor: pointer;
+  }
 
-    .floor-switch {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-bottom: 8px;
-    }
+  .floor-btn.is-active {
+    background: #2563eb;
+    border-color: #2563eb;
+    color: #fff;
+  }
 
-    .floor-btn {
-      border: 1px solid #d1d5db;
-      border-radius: 6px;
-      background: #fff;
-      padding: 4px 8px;
-      font-size: 12px;
-      cursor: pointer;
-    }
+  #map {
+    height: calc(100dvh - 92px);
+    min-height: 420px;
+    width: 100%;
+  }
 
-    .floor-btn.is-active {
-      background: #2563eb;
-      border-color: #2563eb;
-      color: #fff;
-    }
-
+  @media (max-width: 720px) {
     #map {
-      height: calc(100vh - 88px);
-      min-height: 420px;
+      height: calc(100dvh - 126px);
+      min-height: 520px;
     }
 
-    @media (max-width: 720px) {
-      #map {
-        height: calc(100vh - 126px);
-      }
+    .leaflet-control-zoom {
+      margin-top: 10px !important;
     }
-  </style>
+  }
+</style>
 </head>
 <body>
 <header>
@@ -167,11 +168,31 @@
 </header>
 
 <div id="map"></div>
+<div class="building-guide">
+  <div class="building-photo-wrap">
+    <img src="..." class="building-photo">
+    <button class="floor-hotspot" data-floor="1F" style="left:20px;top:140px;width:220px;height:80px;"></button>
+    <button class="floor-hotspot" data-floor="2F" style="left:20px;top:60px;width:220px;height:80px;"></button>
+  </div>
 
+  <div id="floorShopGrid"></div>
+</div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/leaflet-distortableimage@0.21.9/dist/leaflet.distortableimage.js"></script>
 <script>
   const PROJECT_ID = {{ project_id }};
+  function renderFloorShopGrid(groupShops, floorlevel) {
+    const floorShops = groupShops.filter(
+      s => String(s.floorlevel || "").trim().toUpperCase() === floorlevel
+    );
+
+    return floorShops.map(shop => `
+      <button class="shop-card" data-shop-id="${shop.id}">
+        <div class="shop-card-name">${escapeHtml(shop.shopname)}</div>
+        <div class="shop-card-floor">${escapeHtml(shop.floorlevel || "")}</div>
+      </button>
+    `).join("");
+  }
 </script>
 <script src="/static/migrationmaps/public.js"></script>
 </body>
