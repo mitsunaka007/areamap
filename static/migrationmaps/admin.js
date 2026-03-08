@@ -875,5 +875,283 @@ registeredShopListEl?.addEventListener("click", async (ev) => {
   }
 });
 
+await refreshBuildingGuideList();
+
 document.getElementById("btnRefreshShopList")?.addEventListener("click", refreshShopList);
 document.getElementById("btnResetShopForm")?.addEventListener("click", () => resetShopForm(true));
+
+function normalizeFloorLevel(value) {
+  const v = String(value || "").trim().toUpperCase();
+  if (!v) return "";
+  return v.replaceAll("Ｆ", "F").replaceAll("　", "").replaceAll(" ", "");
+}
+
+let currentEditingBuildingGuideId = null;
+let buildingFloorDrafts = [];
+
+const buildingGuideFormEl = document.getElementById("buildingGuideForm");
+const buildingGuideListEl = document.getElementById("buildingGuideList");
+const buildingGuideResultEl = document.getElementById("buildingGuideResult");
+const buildingFloorListEl = document.getElementById("buildingFloorList");
+
+function setBuildingGuideResult(message, ok = true) {
+  buildingGuideResultEl.style.display = "block";
+  buildingGuideResultEl.textContent = message;
+  buildingGuideResultEl.className = ok ? "ok" : "err";
+  buildingGuideResultEl.style.background = ok ? "#d3f9d8" : "#ffe3e3";
+  buildingGuideResultEl.style.color = ok ? "#2b8a3e" : "#b02a37";
+  buildingGuideResultEl.style.border = `1px solid ${ok ? "#2b8a3e" : "#b02a37"}`;
+}
+
+function renderBuildingImagePreview(imageUrl) {
+  const wrap = document.getElementById("bg_image_preview");
+  if (!wrap) return;
+  wrap.innerHTML = imageUrl
+    ? `<img src="${imageUrl}" alt="building preview" class="building-thumb" />`
+    : "";
+}
+
+function renderBuildingFloorList() {
+  buildingFloorListEl.innerHTML = "";
+
+  if (!buildingFloorDrafts.length) {
+    buildingFloorListEl.innerHTML = `<div class="muted">階は未登録です。必要な階だけ追加してください。</div>`;
+    return;
+  }
+
+  buildingFloorDrafts.forEach((row, index) => {
+    const div = document.createElement("div");
+    div.className = "building-floor-row";
+    div.innerHTML = `
+      <input type="text" class="bg-floorlevel" data-index="${index}" value="${row.floorlevel || ""}" placeholder="例：1F" />
+      <input type="number" class="bg-sort-order" data-index="${index}" value="${row.sort_order ?? index + 1}" placeholder="順序" />
+      <button type="button" class="small-btn btnRemoveBuildingFloor" data-index="${index}">削除</button>
+    `;
+    buildingFloorListEl.appendChild(div);
+  });
+}
+
+function addBuildingFloorRow(floorlevel = "", sortOrder = null) {
+  buildingFloorDrafts.push({
+    floorlevel: normalizeFloorLevel(floorlevel),
+    sort_order: sortOrder ?? (buildingFloorDrafts.length + 1),
+  });
+  renderBuildingFloorList();
+}
+
+function collectBuildingFloorDrafts() {
+  const floorInputs = document.querySelectorAll(".bg-floorlevel");
+  const sortInputs = document.querySelectorAll(".bg-sort-order");
+
+  const rows = [];
+  const seen = new Set();
+
+  floorInputs.forEach((input, idx) => {
+    const floorlevel = normalizeFloorLevel(input.value);
+    const sortOrder = Number(sortInputs[idx]?.value || idx + 1);
+
+    if (!floorlevel) return;
+    if (seen.has(floorlevel)) return;
+    seen.add(floorlevel);
+
+    rows.push({
+      floorlevel,
+      sort_order: Number.isFinite(sortOrder) ? sortOrder : (idx + 1)
+    });
+  });
+
+  rows.sort((a, b) => a.sort_order - b.sort_order);
+  buildingFloorDrafts = rows;
+  return rows;
+}
+
+function resetBuildingGuideForm(toCreate = true) {
+  currentEditingBuildingGuideId = null;
+  buildingGuideFormEl.reset();
+  document.getElementById("bg_id").value = "";
+  document.getElementById("bg_is_active").checked = true;
+  buildingFloorDrafts = [];
+  renderBuildingFloorList();
+  renderBuildingImagePreview("");
+  buildingGuideResultEl.style.display = "none";
+}
+
+function fillBuildingGuideForm(guide) {
+  currentEditingBuildingGuideId = guide.id;
+  document.getElementById("bg_id").value = guide.id ?? "";
+  document.getElementById("bg_building_name").value = guide.building_name ?? "";
+  document.getElementById("bg_map_project_id").value = guide.map_project_id ?? "";
+  document.getElementById("bg_lat").value = guide.lat ?? "";
+  document.getElementById("bg_lng").value = guide.lng ?? "";
+  document.getElementById("bg_is_active").checked = !!guide.is_active;
+
+  buildingFloorDrafts = Array.isArray(guide.floors)
+    ? guide.floors.map((f, idx) => ({
+        floorlevel: normalizeFloorLevel(f.floorlevel),
+        sort_order: f.sort_order ?? (idx + 1)
+      }))
+    : [];
+
+  renderBuildingFloorList();
+  renderBuildingImagePreview(guide.image_url || "");
+}
+
+async function fetchBuildingGuideDetail(guideId) {
+  const res = await fetch(`/api/migrationmaps/building-guides/${guideId}`);
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || "ビル画像ガイド詳細の取得に失敗しました");
+  }
+  return data.guide;
+}
+
+async function refreshBuildingGuideList() {
+  const query = currentProjectId ? `?project_id=${encodeURIComponent(currentProjectId)}` : "";
+  const res = await fetch(`/api/migrationmaps/building-guides${query}`);
+  const data = await res.json();
+
+  buildingGuideListEl.innerHTML = "";
+
+  if (!res.ok) {
+    buildingGuideListEl.innerHTML = `<div class="muted">ビル画像ガイド一覧の取得に失敗しました</div>`;
+    return;
+  }
+
+  if (!data.guides?.length) {
+    buildingGuideListEl.innerHTML = `<div class="muted">登録済みビル画像ガイドはありません</div>`;
+    return;
+  }
+
+  for (const guide of data.guides) {
+    const item = document.createElement("div");
+    item.className = "building-guide-item";
+    item.innerHTML = `
+      <div><strong>${guide.building_name || "名称未設定"}</strong></div>
+      <div class="muted">ID: ${guide.id} / 地図ID: ${guide.map_project_id ?? "-"} / ${guide.group_key}</div>
+      <div class="muted">階: ${(guide.floors || []).map(f => f.floorlevel).join(", ") || "-"}</div>
+      <div class="building-guide-actions">
+        <button type="button" class="small-btn btnEditBuildingGuide" data-guide-id="${guide.id}">編集</button>
+        <button type="button" class="small-btn btnDeleteBuildingGuide" data-guide-id="${guide.id}">削除</button>
+      </div>
+    `;
+    buildingGuideListEl.appendChild(item);
+  }
+}
+
+buildingFloorListEl?.addEventListener("input", (ev) => {
+  const idx = Number(ev.target.dataset.index);
+  if (!Number.isFinite(idx) || !buildingFloorDrafts[idx]) return;
+
+  if (ev.target.classList.contains("bg-floorlevel")) {
+    buildingFloorDrafts[idx].floorlevel = normalizeFloorLevel(ev.target.value);
+  }
+  if (ev.target.classList.contains("bg-sort-order")) {
+    buildingFloorDrafts[idx].sort_order = Number(ev.target.value || idx + 1);
+  }
+});
+
+buildingFloorListEl?.addEventListener("click", (ev) => {
+  const btn = ev.target.closest(".btnRemoveBuildingFloor");
+  if (!btn) return;
+
+  const idx = Number(btn.dataset.index);
+  if (!Number.isFinite(idx)) return;
+
+  buildingFloorDrafts.splice(idx, 1);
+  renderBuildingFloorList();
+});
+
+document.getElementById("btnAddBuildingFloor")?.addEventListener("click", () => {
+  addBuildingFloorRow("", buildingFloorDrafts.length + 1);
+});
+
+document.getElementById("btnResetBuildingGuideForm")?.addEventListener("click", () => {
+  resetBuildingGuideForm(true);
+});
+
+document.getElementById("btnRefreshBuildingGuideList")?.addEventListener("click", refreshBuildingGuideList);
+
+document.getElementById("btnLoadBuildingGuideFromShop")?.addEventListener("click", () => {
+  document.getElementById("bg_map_project_id").value = document.getElementById("r_map_project_id").value || "";
+  document.getElementById("bg_lat").value = document.getElementById("r_lat").value || "";
+  document.getElementById("bg_lng").value = document.getElementById("r_lng").value || "";
+
+  const floorlevel = normalizeFloorLevel(document.getElementById("r_floorlevel").value);
+  if (floorlevel && !buildingFloorDrafts.some((x) => x.floorlevel === floorlevel)) {
+    addBuildingFloorRow(floorlevel, buildingFloorDrafts.length + 1);
+  }
+});
+
+buildingGuideListEl?.addEventListener("click", async (ev) => {
+  const editBtn = ev.target.closest(".btnEditBuildingGuide");
+  if (editBtn) {
+    try {
+      const guide = await fetchBuildingGuideDetail(editBtn.dataset.guideId);
+      fillBuildingGuideForm(guide);
+    } catch (err) {
+      alert(err.message);
+    }
+    return;
+  }
+
+  const deleteBtn = ev.target.closest(".btnDeleteBuildingGuide");
+  if (deleteBtn) {
+    if (!confirm("このビル画像ガイドを削除しますか？")) return;
+
+    try {
+      const res = await fetch(`/api/migrationmaps/building-guides/${deleteBtn.dataset.guideId}/delete`, {
+        method: "POST"
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "削除に失敗しました");
+
+      setBuildingGuideResult("ビル画像ガイドを削除しました", true);
+      await refreshBuildingGuideList();
+      resetBuildingGuideForm(true);
+    } catch (err) {
+      setBuildingGuideResult(err.message, false);
+    }
+  }
+});
+
+buildingGuideFormEl?.addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+
+  try {
+    const floors = collectBuildingFloorDrafts();
+
+    const fd = new FormData();
+    fd.append("building_guide_id", document.getElementById("bg_id").value || "");
+    fd.append("building_name", document.getElementById("bg_building_name").value.trim());
+    fd.append("map_project_id", document.getElementById("bg_map_project_id").value.trim());
+    fd.append("lat", document.getElementById("bg_lat").value.trim());
+    fd.append("lng", document.getElementById("bg_lng").value.trim());
+    fd.append("is_active", document.getElementById("bg_is_active").checked ? "1" : "0");
+    fd.append("floors", JSON.stringify(floors));
+
+    const file = document.getElementById("bg_image_file").files[0];
+    if (file) {
+      fd.append("image_file", file);
+    }
+
+    const res = await fetch("/api/migrationmaps/building-guides/save", {
+      method: "POST",
+      body: fd
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      const fieldMsg = data.fields ? Object.values(data.fields).join(" / ") : "";
+      throw new Error(data.error + (fieldMsg ? `: ${fieldMsg}` : ""));
+    }
+
+    fillBuildingGuideForm(data.guide);
+    setBuildingGuideResult("ビル画像ガイドを保存しました", true);
+    await refreshBuildingGuideList();
+  } catch (err) {
+    setBuildingGuideResult(err.message, false);
+  }
+});
+
+refreshBuildingGuideList();
+renderBuildingFloorList();
