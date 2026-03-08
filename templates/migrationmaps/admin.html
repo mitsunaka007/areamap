@@ -182,76 +182,6 @@
         min-height: 420px;
       }
     }
-    .building-guide-panel {
-      border-top: 1px solid #eee;
-      padding: 12px;
-    }
-
-    .building-guide-panel h3 {
-      margin: 0 0 10px;
-      font-size: 13px;
-      color: #333;
-    }
-
-    .building-floor-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin-top: 8px;
-    }
-
-    .building-floor-row {
-      display: grid;
-      grid-template-columns: 1fr 90px auto;
-      gap: 8px;
-      align-items: center;
-    }
-
-    .building-floor-row input {
-      width: 100%;
-      box-sizing: border-box;
-    }
-
-    .building-guide-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin-top: 10px;
-      max-height: 260px;
-      overflow: auto;
-      border: 1px solid #eee;
-      border-radius: 8px;
-      padding: 8px;
-      background: #fcfcfc;
-    }
-
-    .building-guide-item {
-      border: 1px solid #e5e7eb;
-      border-radius: 8px;
-      background: #fff;
-      padding: 8px 10px;
-    }
-
-    .building-guide-item.is-active {
-      border-color: #2563eb;
-      background: #eff6ff;
-    }
-
-    .building-guide-actions {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-top: 8px;
-    }
-
-    .building-thumb {
-      width: 100%;
-      max-height: 180px;
-      object-fit: cover;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      margin-top: 8px;
-    }
   </style>
 </head>
 <body>
@@ -269,208 +199,144 @@
       <div id="projectList" class="project-list" style="margin-top:10px;"></div>
     </div>
     <div class="registform shop-panel">
-      <button type="button" id="shopMenuToggle" class="shop-menu-toggle" aria-expanded="false">
-        <span>☰ 店舗を登録・編集する</span>
-        <span id="shopMenuToggleIcon">＋</span>
-      </button>
-      <div id="shopMenuBody" class="shop-menu-body" hidden>
-        <div class="shop-toolbar">
-          <div class="muted">登録済み店舗を選ぶと、下のフォームに値を読み込みます。</div>
-          <button type="button" id="btnRefreshShopList" class="small-btn">店舗一覧を更新</button>
-        </div>
+  <button type="button" id="shopMenuToggle" class="shop-menu-toggle" aria-expanded="false">
+    <span>☰ 店舗を登録・編集する</span>
+    <span id="shopMenuToggleIcon">＋</span>
+  </button>
 
-        <div id="registeredShopList" class="registered-shop-list">
-          <div class="muted">読み込み中…</div>
-        </div>
-
-        <hr style="margin:12px 0; border:0; border-top:1px solid #eee;" />
-
-        <h3 id="shopFormTitle">店舗を新規登録する</h3>
-        <form id="shopRegisterForm" enctype="multipart/form-data">
-          <input type="hidden" id="r_shop_id" name="shop_id" value="" />
-
-          <div class="form-row">
-            <label for="r_shopname">店名 <span class="required">*</span></label>
-            <input type="text" id="r_shopname" name="shopname"
-                  placeholder="例：○○カフェ" maxlength="100" required />
-          </div>
-
-          <div class="form-row">
-            <label for="r_address">住所 <span class="required">*</span></label>
-            <input type="text" id="r_address" name="address"
-                  placeholder="例：福井県福井市大手1丁目" maxlength="255" required />
-          </div>
-
-          <div class="form-row">
-            <label for="r_floorlevel">階層</label>
-            <input type="text" id="r_floorlevel" name="floorlevel"
-                  placeholder="例：2F" maxlength="20" />
-          </div>
-
-          <div class="form-row">
-            <label for="r_tel">電話番号</label>
-            <input type="tel" id="r_tel" name="tel"
-                  placeholder="例：0776-00-0000" maxlength="50" />
-          </div>
-
-          <div class="form-row">
-            <label for="r_email">メールアドレス <span class="required">*</span></label>
-            <input type="email" id="r_email" name="email"
-                  placeholder="例：info@example.com" maxlength="255" required />
-          </div>
-
-          <div class="form-row">
-            <label for="r_instagram">Instagramアカウント</label>
-            <input type="text" id="r_instagram" name="instagram_account"
-                  placeholder="例：@yourshop" maxlength="255" />
-          </div>
-
-          <div class="form-row">
-            <label>緯度 / 経度 <span class="required">*</span></label>
-            <div class="row-2col">
-              <input type="number" id="r_lat" name="lat"
-                    step="0.0000001" placeholder="緯度 例：36.0610000" required />
-              <input type="number" id="r_lng" name="lng"
-                    step="0.0000001" placeholder="経度 例：136.2230000" required />
-            </div>
-            <div style="margin-top:4px;">
-              <button type="button" id="btnPickLatLng" class="small-btn">現在地を緯度経度に反映</button>
-              <span id="latlngStatus" class="muted" style="margin-left:6px;"></span>
-            </div>
-          </div>
-
-          <div class="form-row">
-            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
-              <input type="checkbox" id="r_is_active" name="is_active" value="1" checked />
-              <span>営業中</span>
-            </label>
-          </div>
-
-          <div class="form-row">
-            <label for="r_description">詳細説明</label>
-            <textarea id="r_description" name="description"
-                      placeholder="店舗の説明を入力してください"
-                      maxlength="255" rows="3"></textarea>
-          </div>
-
-          <div class="form-row">
-            <label for="r_website_url">サイトURL</label>
-            <input type="url" id="r_website_url" name="website_url"
-                  placeholder="https://example.com" maxlength="255" />
-          </div>
-
-          <div class="form-row">
-            <label for="r_map_project_id">イラスト地図ID <span class="required">*</span></label>
-            <input type="number" id="r_map_project_id" name="map_project_id"
-                  placeholder="上の一覧のIDを入力" min="1" required />
-            <span class="muted">保存済みセットに表示されているIDを入力してください</span>
-          </div>
-
-          <div class="form-row">
-            <label>ショップ画像（最大5枚）</label>
-            <div class="image-slots">
-              <div class="image-slot">
-                <span class="slot-label">画像1</span>
-                <input type="file" id="r_img1" name="shop_image_1" accept="image/*" />
-                <div class="image-preview" id="r_preview1"></div>
-              </div>
-              <div class="image-slot">
-                <span class="slot-label">画像2</span>
-                <input type="file" id="r_img2" name="shop_image_2" accept="image/*" />
-                <div class="image-preview" id="r_preview2"></div>
-              </div>
-              <div class="image-slot">
-                <span class="slot-label">画像3</span>
-                <input type="file" id="r_img3" name="shop_image_3" accept="image/*" />
-                <div class="image-preview" id="r_preview3"></div>
-              </div>
-              <div class="image-slot">
-                <span class="slot-label">画像4</span>
-                <input type="file" id="r_img4" name="shop_image_4" accept="image/*" />
-                <div class="image-preview" id="r_preview4"></div>
-              </div>
-              <div class="image-slot">
-                <span class="slot-label">画像5</span>
-                <input type="file" id="r_img5" name="shop_image_5" accept="image/*" />
-                <div class="image-preview" id="r_preview5"></div>
-              </div>
-            </div>
-          </div>
-
-          <div class="row" style="margin-top:10px; gap:8px;">
-            <button type="button" id="btnRegisterShop">店舗を登録する</button>
-            <button type="button" id="btnResetShopForm" class="small-btn">新規入力に戻す</button>
-          </div>
-
-          <div id="shopRegisterResult"></div>
-        </form>
-      </div>
-      <div class="building-guide-panel">
-      <h3>ビル画像ガイドを登録・編集する</h3>
-
-      <form id="buildingGuideForm" enctype="multipart/form-data">
-        <input type="hidden" id="bg_id" name="building_guide_id" value="" />
-
-        <div class="form-row">
-          <label for="bg_building_name">ビル画像名</label>
-          <input type="text" id="bg_building_name" name="building_name" placeholder="例：〇〇ビル正面" maxlength="255" />
-        </div>
-
-        <div class="form-row">
-          <label for="bg_map_project_id">イラスト地図ID <span class="required">*</span></label>
-          <input type="number" id="bg_map_project_id" name="map_project_id" placeholder="例：3" required />
-        </div>
-
-        <div class="form-row">
-          <label>緯度経度 <span class="required">*</span></label>
-          <div class="row-2col">
-            <input type="text" id="bg_lat" name="lat" placeholder="lat" required />
-            <input type="text" id="bg_lng" name="lng" placeholder="lng" required />
-          </div>
-        </div>
-
-        <div class="form-row">
-          <label for="bg_image_file">ビル画像</label>
-          <input type="file" id="bg_image_file" name="image_file" accept=".png,.jpg,.jpeg,.webp" />
-          <div id="bg_image_preview"></div>
-        </div>
-
-        <div class="form-row">
-          <label>
-            <input type="checkbox" id="bg_is_active" name="is_active" checked />
-            有効
-          </label>
-        </div>
-
-        <div class="form-row">
-          <div class="row" style="justify-content:space-between;">
-            <label>表示候補の階</label>
-            <button type="button" id="btnAddBuildingFloor" class="small-btn">階を追加</button>
-          </div>
-          <div id="buildingFloorList" class="building-floor-list"></div>
-        </div>
-
-        <div class="row" style="margin-top:10px;">
-          <button type="submit">ビル画像を保存</button>
-          <button type="button" id="btnResetBuildingGuideForm">フォームをリセット</button>
-          <button type="button" id="btnLoadBuildingGuideFromShop">店舗フォームの座標を反映</button>
-        </div>
-
-        <div id="buildingGuideResult" style="display:none; margin-top:8px; font-size:12px; padding:6px 8px; border-radius:8px;"></div>
-      </form>
-
-      <hr style="margin:12px 0; border:0; border-top:1px solid #eee;" />
-
-      <div class="row" style="justify-content:space-between;">
-        <div class="muted">登録済みビル画像ガイド一覧</div>
-        <button type="button" id="btnRefreshBuildingGuideList" class="small-btn">一覧を更新</button>
-      </div>
-
-      <div id="buildingGuideList" class="building-guide-list">
-        <div class="muted">読み込み中…</div>
-      </div>
+  <div id="shopMenuBody" class="shop-menu-body" hidden>
+    <div class="shop-toolbar">
+      <div class="muted">登録済み店舗を選ぶと、下のフォームに値を読み込みます。</div>
+      <button type="button" id="btnRefreshShopList" class="small-btn">店舗一覧を更新</button>
     </div>
+
+    <div id="registeredShopList" class="registered-shop-list">
+      <div class="muted">読み込み中…</div>
     </div>
+
+    <hr style="margin:12px 0; border:0; border-top:1px solid #eee;" />
+
+    <h3 id="shopFormTitle">店舗を新規登録する</h3>
+    <form id="shopRegisterForm" enctype="multipart/form-data">
+      <input type="hidden" id="r_shop_id" name="shop_id" value="" />
+
+      <div class="form-row">
+        <label for="r_shopname">店名 <span class="required">*</span></label>
+        <input type="text" id="r_shopname" name="shopname"
+               placeholder="例：○○カフェ" maxlength="100" required />
+      </div>
+
+      <div class="form-row">
+        <label for="r_address">住所 <span class="required">*</span></label>
+        <input type="text" id="r_address" name="address"
+               placeholder="例：福井県福井市大手1丁目" maxlength="255" required />
+      </div>
+
+      <div class="form-row">
+        <label for="r_floorlevel">階層</label>
+        <input type="text" id="r_floorlevel" name="floorlevel"
+               placeholder="例：2F" maxlength="20" />
+      </div>
+
+      <div class="form-row">
+        <label for="r_tel">電話番号</label>
+        <input type="tel" id="r_tel" name="tel"
+               placeholder="例：0776-00-0000" maxlength="50" />
+      </div>
+
+      <div class="form-row">
+        <label for="r_email">メールアドレス <span class="required">*</span></label>
+        <input type="email" id="r_email" name="email"
+               placeholder="例：info@example.com" maxlength="255" required />
+      </div>
+
+      <div class="form-row">
+        <label for="r_instagram">Instagramアカウント</label>
+        <input type="text" id="r_instagram" name="instagram_account"
+               placeholder="例：@yourshop" maxlength="255" />
+      </div>
+
+      <div class="form-row">
+        <label>緯度 / 経度 <span class="required">*</span></label>
+        <div class="row-2col">
+          <input type="number" id="r_lat" name="lat"
+                 step="0.0000001" placeholder="緯度 例：36.0610000" required />
+          <input type="number" id="r_lng" name="lng"
+                 step="0.0000001" placeholder="経度 例：136.2230000" required />
+        </div>
+        <div style="margin-top:4px;">
+          <button type="button" id="btnPickLatLng" class="small-btn">現在地を緯度経度に反映</button>
+          <span id="latlngStatus" class="muted" style="margin-left:6px;"></span>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+          <input type="checkbox" id="r_is_active" name="is_active" value="1" checked />
+          <span>営業中</span>
+        </label>
+      </div>
+
+      <div class="form-row">
+        <label for="r_description">詳細説明</label>
+        <textarea id="r_description" name="description"
+                  placeholder="店舗の説明を入力してください"
+                  maxlength="255" rows="3"></textarea>
+      </div>
+
+      <div class="form-row">
+        <label for="r_website_url">サイトURL</label>
+        <input type="url" id="r_website_url" name="website_url"
+               placeholder="https://example.com" maxlength="255" />
+      </div>
+
+      <div class="form-row">
+        <label for="r_map_project_id">イラスト地図ID <span class="required">*</span></label>
+        <input type="number" id="r_map_project_id" name="map_project_id"
+               placeholder="上の一覧のIDを入力" min="1" required />
+        <span class="muted">保存済みセットに表示されているIDを入力してください</span>
+      </div>
+
+      <div class="form-row">
+        <label>ショップ画像（最大5枚）</label>
+        <div class="image-slots">
+          <div class="image-slot">
+            <span class="slot-label">画像1</span>
+            <input type="file" id="r_img1" name="shop_image_1" accept="image/*" />
+            <div class="image-preview" id="r_preview1"></div>
+          </div>
+          <div class="image-slot">
+            <span class="slot-label">画像2</span>
+            <input type="file" id="r_img2" name="shop_image_2" accept="image/*" />
+            <div class="image-preview" id="r_preview2"></div>
+          </div>
+          <div class="image-slot">
+            <span class="slot-label">画像3</span>
+            <input type="file" id="r_img3" name="shop_image_3" accept="image/*" />
+            <div class="image-preview" id="r_preview3"></div>
+          </div>
+          <div class="image-slot">
+            <span class="slot-label">画像4</span>
+            <input type="file" id="r_img4" name="shop_image_4" accept="image/*" />
+            <div class="image-preview" id="r_preview4"></div>
+          </div>
+          <div class="image-slot">
+            <span class="slot-label">画像5</span>
+            <input type="file" id="r_img5" name="shop_image_5" accept="image/*" />
+            <div class="image-preview" id="r_preview5"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:10px; gap:8px;">
+        <button type="button" id="btnRegisterShop">店舗を登録する</button>
+        <button type="button" id="btnResetShopForm" class="small-btn">新規入力に戻す</button>
+      </div>
+
+      <div id="shopRegisterResult"></div>
+    </form>
+  </div>
+</div>
   </aside>
 
   <section class="panel">
