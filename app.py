@@ -3,25 +3,13 @@ import os
 import uuid
 import hashlib
 import math
-import json
-from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 from sqlalchemy import func, case
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.utils import secure_filename
 from PIL import Image
 from flask_mail import Mail, Message
-from models import (
-    AreamapClickEvent,
-    ContactInquiry,
-    Shop,
-    MapProject,
-    MapPoint,
-    MigrationShop,
-    MapShopImages,
-    BuildingGuide,
-    BuildingGuideFloor,
-)
+from models import  AreamapClickEvent, ContactInquiry, Shop, MapProject, MapPoint, MigrationShop, MapShopImages
 from forms import AskForm
 from extensions import db
 from dotenv import load_dotenv
@@ -80,14 +68,6 @@ MIGRATIONMAPS_ALLOWED_EXT = {".png", ".jpg", ".jpeg", ".webp"}
 app.config["MIGRATIONMAPS_UPLOAD_DIR"] = os.environ.get("MIGRATIONMAPS_UPLOAD_DIR", "migrationmaps_uploads")
 Path(app.config["MIGRATIONMAPS_UPLOAD_DIR"]).mkdir(parents=True, exist_ok=True)
 
-BUILDINGGUIDE_ALLOWED_EXT = {".png", ".jpg", ".jpeg", ".webp"}
-
-app.config["BUILDINGGUIDE_UPLOAD_DIR"] = os.environ.get(
-    "BUILDINGGUIDE_UPLOAD_DIR",
-    os.path.join(app.config["MIGRATIONMAPS_UPLOAD_DIR"], "building_guides")
-)
-Path(app.config["BUILDINGGUIDE_UPLOAD_DIR"]).mkdir(parents=True, exist_ok=True)
-
 # ---- 座標変換ユーティリティ（EPSG:4326 -> EPSG:3857）----
 _R = 6378137.0
 
@@ -135,46 +115,7 @@ def _img_to_latlng(a,b,c,d,e,f, x, y):
     lon, lat = _mercator_to_lonlat(X, Y)
     return lat, lon
 
-def _normalize_floorlevel(value):
-    v = (value or "").strip().upper()
-    if not v:
-        return ""
-    return v.replace("Ｆ", "F").replace("　", "").replace(" ", "")
 
-def _quantize_latlng(value, places="0.0000001"):
-    return Decimal(str(value)).quantize(Decimal(places), rounding=ROUND_HALF_UP)
-
-def _latlng_group_key(lat, lng):
-    return f"{float(lat):.7f},{float(lng):.7f}"
-
-def _building_guide_to_dict(guide, include_floors=True):
-    floors = []
-    if include_floors:
-        floors = (
-            BuildingGuideFloor.query
-            .filter(BuildingGuideFloor.building_guide_id == guide.id)
-            .order_by(BuildingGuideFloor.sort_order.asc(), BuildingGuideFloor.id.asc())
-            .all()
-        )
-
-    return {
-        "id": guide.id,
-        "map_project_id": guide.map_project_id,
-        "lat": float(guide.lat),
-        "lng": float(guide.lng),
-        "group_key": _latlng_group_key(guide.lat, guide.lng),
-        "building_name": guide.building_name,
-        "image_url": guide.image_url,
-        "is_active": bool(guide.is_active),
-        "floors": [
-            {
-                "id": f.id,
-                "floorlevel": f.floorlevel,
-                "sort_order": f.sort_order,
-            }
-            for f in floors
-        ]
-    }
 # =========================
 # 既存ルート
 # =========================
@@ -916,16 +857,6 @@ def api_migrationmaps_shops(project_id: int):
                 "instagram_account": s.instagram_account,
                 "lat": float(s.lat),
                 "lng": float(s.lng),
-                "description": s.description,
-                "website_url": s.website_url,
-                "shop_images": [
-                    {
-                        "id": img.id,
-                        "image_url": img.image_url,
-                        "sort_order": img.sort_order,
-                    }
-                    for img in s.shopimages
-                ]
             }
             for s in shops
         ]
@@ -1124,208 +1055,3 @@ def migrationshop_uploaded_file(filename):
     """ショップ画像の配信ルート"""
     upload_dir = app.config.get("MIGRATIONSHOP_UPLOAD_DIR", "migrationshop_uploads")
     return send_from_directory(upload_dir, filename)
-@app.get("/migrationmaps/building_guides/<path:filename>")
-def migrationmaps_buildingguide_uploaded_file(filename):
-    upload_dir = app.config.get("BUILDINGGUIDE_UPLOAD_DIR")
-    return send_from_directory(upload_dir, filename)
-@app.get("/api/migrationmaps/<int:project_id>/building-guides")
-def api_migrationmaps_building_guides(project_id: int):
-    proj = MapProject.query.get(project_id)
-    if not proj:
-        abort(404)
-
-    guides = (
-        BuildingGuide.query
-        .filter(
-            BuildingGuide.map_project_id == project_id,
-            BuildingGuide.is_active.is_(True)
-        )
-        .order_by(BuildingGuide.id.asc())
-        .all()
-    )
-
-    return jsonify({
-        "guides": [_building_guide_to_dict(g) for g in guides]
-    })
-
-
-@app.get("/api/migrationmaps/building-guides")
-def api_buildingguide_list():
-    project_id = request.args.get("project_id", type=int)
-
-    q = BuildingGuide.query.order_by(BuildingGuide.updated_at.desc(), BuildingGuide.id.desc())
-    if project_id:
-        q = q.filter(BuildingGuide.map_project_id == project_id)
-
-    guides = q.all()
-    return jsonify({
-        "guides": [_building_guide_to_dict(g) for g in guides]
-    })
-
-
-@app.get("/api/migrationmaps/building-guides/<int:guide_id>")
-def api_buildingguide_detail(guide_id: int):
-    guide = BuildingGuide.query.get(guide_id)
-    if not guide:
-        return jsonify({"error": "ビル画像ガイドが見つかりません"}), 404
-
-    return jsonify({
-        "guide": _building_guide_to_dict(guide)
-    })
-
-
-@app.post("/api/migrationmaps/building-guides/save")
-def api_buildingguide_save():
-    from datetime import datetime
-
-    guide_id_raw = (request.form.get("building_guide_id") or "").strip()
-    building_name = (request.form.get("building_name") or "").strip() or None
-    map_project_id_raw = (request.form.get("map_project_id") or "").strip()
-    lat_raw = (request.form.get("lat") or "").strip()
-    lng_raw = (request.form.get("lng") or "").strip()
-    is_active = request.form.get("is_active") == "1"
-    floors_raw = request.form.get("floors") or "[]"
-    image_file = request.files.get("image_file")
-
-    errors = {}
-
-    if not map_project_id_raw:
-        errors["map_project_id"] = "イラスト地図IDは必須です"
-    if not lat_raw:
-        errors["lat"] = "緯度は必須です"
-    if not lng_raw:
-        errors["lng"] = "経度は必須です"
-
-    try:
-        map_project_id = int(map_project_id_raw)
-    except Exception:
-        map_project_id = None
-        errors["map_project_id"] = "イラスト地図IDが不正です"
-
-    try:
-        lat = _quantize_latlng(float(lat_raw))
-    except Exception:
-        lat = None
-        errors["lat"] = "緯度が不正です"
-
-    try:
-        lng = _quantize_latlng(float(lng_raw))
-    except Exception:
-        lng = None
-        errors["lng"] = "経度が不正です"
-
-    try:
-        floors_json = json.loads(floors_raw)
-        if not isinstance(floors_json, list):
-            raise ValueError()
-    except Exception:
-        floors_json = None
-        errors["floors"] = "階情報の形式が不正です"
-
-    normalized_floors = []
-    seen_floorlevels = set()
-
-    if floors_json is not None:
-        for idx, row in enumerate(floors_json, start=1):
-            floorlevel = _normalize_floorlevel((row or {}).get("floorlevel"))
-            if not floorlevel:
-                errors[f"floors_{idx}"] = f"{idx}行目の階が空です"
-                continue
-
-            if floorlevel in seen_floorlevels:
-                errors[f"floors_{idx}"] = f"{floorlevel} が重複しています"
-                continue
-
-            seen_floorlevels.add(floorlevel)
-
-            sort_order_raw = (row or {}).get("sort_order")
-            try:
-                sort_order = int(sort_order_raw) if sort_order_raw not in (None, "") else idx
-            except Exception:
-                sort_order = idx
-
-            normalized_floors.append({
-                "floorlevel": floorlevel,
-                "sort_order": sort_order,
-            })
-
-    if map_project_id is not None:
-        proj = MapProject.query.get(map_project_id)
-        if not proj:
-            errors["map_project_id"] = "指定したイラスト地図IDが存在しません"
-
-    if not guide_id_raw and (not image_file or not image_file.filename):
-        errors["image_file"] = "新規登録時はビル画像が必須です"
-
-    if image_file and image_file.filename:
-        ext = Path(image_file.filename).suffix.lower()
-        if ext not in BUILDINGGUIDE_ALLOWED_EXT:
-            errors["image_file"] = f"ビル画像の拡張子が不正です: {ext}"
-
-    if errors:
-        return jsonify({"error": "入力エラー", "fields": errors}), 400
-
-    try:
-        if guide_id_raw:
-            guide = BuildingGuide.query.get(int(guide_id_raw))
-            if not guide:
-                return jsonify({"error": "更新対象のビル画像ガイドが見つかりません"}), 404
-            is_update = True
-        else:
-            guide = BuildingGuide()
-            db.session.add(guide)
-            is_update = False
-
-        guide.building_name = building_name
-        guide.map_project_id = map_project_id
-        guide.lat = lat
-        guide.lng = lng
-        guide.is_active = is_active
-        guide.updated_at = datetime.now()
-
-        if image_file and image_file.filename:
-            ext = Path(image_file.filename).suffix.lower()
-            filename = f"building_guide_{uuid.uuid4().hex}{ext}"
-            save_path = Path(app.config["BUILDINGGUIDE_UPLOAD_DIR"]) / filename
-            image_file.save(save_path)
-            guide.image_url = f"/migrationmaps/building_guides/{filename}"
-
-        db.session.flush()
-
-        BuildingGuideFloor.query.filter_by(building_guide_id=guide.id).delete()
-
-        for idx, row in enumerate(sorted(normalized_floors, key=lambda x: (x["sort_order"], x["floorlevel"])), start=1):
-            db.session.add(BuildingGuideFloor(
-                building_guide_id=guide.id,
-                floorlevel=row["floorlevel"],
-                area_x=0,
-                area_y=0,
-                area_width=0,
-                area_height=0,
-                sort_order=idx,
-            ))
-
-        db.session.commit()
-
-        return jsonify({
-            "ok": True,
-            "updated": is_update,
-            "guide": _building_guide_to_dict(guide)
-        })
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"error": f"db_error: {repr(e)}"}), 500
-
-@app.post("/api/migrationmaps/building-guides/<int:guide_id>/delete")
-def api_buildingguide_delete(guide_id: int):
-    guide = BuildingGuide.query.get(guide_id)
-    if not guide:
-        return jsonify({"error": "ビル画像ガイドが見つかりません"}), 404
-
-    try:
-        db.session.delete(guide)
-        db.session.commit()
-        return jsonify({"ok": True})
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"error": f"db_error: {repr(e)}"}), 500
