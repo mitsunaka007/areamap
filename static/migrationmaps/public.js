@@ -3,8 +3,6 @@ const map = L.map("map", {
   maxZoom: 22,
 }).setView([35.0, 135.0], 14);
 
-let buildingGuideMap = new Map();
-
 // pane
 map.createPane("migrationOverlayPane");
 map.getPane("migrationOverlayPane").style.zIndex = 350;
@@ -94,111 +92,32 @@ function buildSingleShopPopup(shop) {
   `;
 }
 
-function sortFloorLevels(floors = []) {
-  return [...floors].sort((a, b) => a.localeCompare(b, "ja", { numeric: true }));
-}
-
-function buildGuideMap(guides = []) {
-  const m = new Map();
-  for (const guide of guides) {
-    const key = latLngGroupKey(guide.lat, guide.lng);
-    m.set(key, guide);
-  }
-  return m;
-}
-
-function collectExistingFloors(groupShops) {
-  const set = new Set();
-  groupShops.forEach((shop) => {
-    const floor = normalizeFloorLevel(shop.floorlevel);
-    if (floor) set.add(floor);
-  });
-  return sortFloorLevels([...set]);
-}
-
-function resolveDisplayFloors(groupShops, guide) {
-  const existingSet = new Set(collectExistingFloors(groupShops));
-
-  if (Array.isArray(guide?.floors) && guide.floors.length) {
-    return [...guide.floors]
-      .sort((a, b) => Number(a.sort_order || 999) - Number(b.sort_order || 999))
-      .map((row) => normalizeFloorLevel(row.floorlevel))
-      .filter((floor) => existingSet.has(floor));
-  }
-
-  return sortFloorLevels([...existingSet]);
-}
-
-function renderFloorShopGrid(groupShops, floorlevel) {
-  const floorShops = groupShops.filter(
-    (s) => normalizeFloorLevel(s.floorlevel) === floorlevel
-  );
-
-  if (!floorShops.length) {
-    return `<div class="shop-grid-empty">${escapeHtml(floorlevel || "未設定")} の店舗はありません</div>`;
-  }
-
-  return floorShops.map((shop) => {
-    const thumb = Array.isArray(shop.shop_images) && shop.shop_images.length
-      ? shop.shop_images.slice().sort((a, b) => a.sort_order - b.sort_order)[0].image_url
-      : "";
-
-    return `
-      <button type="button" class="shop-card" data-shop-id="${shop.id}">
-        <div class="shop-card-thumb">
-          ${
-            thumb
-              ? `<img src="${escapeHtml(thumb)}" alt="${escapeHtml(shop.shopname || "")}">`
-              : `<div class="shop-card-noimage">No Image</div>`
-          }
-        </div>
-        <div class="shop-card-name">${escapeHtml(shop.shopname || "店名未設定")}</div>
-        <div class="shop-card-floor">${escapeHtml(shop.floorlevel || "")}</div>
-      </button>
-    `;
-  }).join("");
-}
-
 function buildBuildingPopup(groupShops, groupKey) {
-  const guide = buildingGuideMap.get(groupKey);
-  const floors = resolveDisplayFloors(groupShops, guide);
-  const defaultFloor = floors[0] || "";
+  const floors = [...new Set(
+    groupShops.map((s) => normalizeFloorLevel(s.floorlevel)).filter(Boolean)
+  )].sort((a, b) => a.localeCompare(b, "ja", { numeric: true }));
 
-  const floorButtonsHtml = floors.length
-    ? floors.map((floor, i) => `
-        <button
-          type="button"
-          class="floor-btn ${i === 0 ? "is-active" : ""}"
-          data-group-key="${escapeHtml(groupKey)}"
-          data-floor="${escapeHtml(floor)}">
-          ${escapeHtml(floor)}
-        </button>
-      `).join("")
-    : `<div class="shop-grid-empty">表示できる階がありません</div>`;
+  const floorButtons = floors.length
+    ? floors.map((floor, i) => {
+        const active = i === 0 ? "is-active" : "";
+        return `<button type="button" class="floor-btn ${active}" data-group-key="${escapeHtml(groupKey)}" data-floor="${escapeHtml(floor)}">${escapeHtml(floor)}</button>`;
+      }).join("")
+    : `<button type="button" class="floor-btn is-active" data-group-key="${escapeHtml(groupKey)}" data-floor="">未設定</button>`;
 
-  const photoHtml = guide?.image_url
-    ? `<img src="${escapeHtml(guide.image_url)}" class="building-photo" alt="${escapeHtml(guide.building_name || "ビル画像")}">`
-    : `<div class="building-photo-empty">ビル画像未登録</div>`;
-
-  const gridHtml = defaultFloor
-    ? renderFloorShopGrid(groupShops, defaultFloor)
-    : `<div class="shop-grid-empty">店舗の階情報がありません</div>`;
+  const initialFloor = floors.length ? floors[0] : "";
+  const initialShop =
+    groupShops.find((s) => normalizeFloorLevel(s.floorlevel) === initialFloor) || groupShops[0];
 
   return `
-    <div class="building-popup" data-group-key="${escapeHtml(groupKey)}">
-      <div class="shop-name">${escapeHtml(guide?.building_name || "ビル案内")}</div>
-
-      <div class="building-popup-main">
-        <div class="building-popup-photo">
-          ${photoHtml}
-        </div>
-        <div class="building-popup-floors">
-          ${floorButtonsHtml}
-        </div>
-      </div>
-
-      <div class="floor-shop-grid" id="floor-shop-grid-${escapeHtml(groupKey)}">
-        ${gridHtml}
+    <div class="shop-popup multi-floor-popup">
+      <img
+        class="building-illustration"
+        alt="ビルイメージ"
+        src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='200' viewBox='0 0 140 200'%3E%3Crect x='24' y='8' width='92' height='184' rx='4' fill='%23e5e7eb' stroke='%236b7280' stroke-width='3'/%3E%3Cg fill='%239ca3af'%3E%3Crect x='38' y='22' width='14' height='14'/%3E%3Crect x='62' y='22' width='14' height='14'/%3E%3Crect x='86' y='22' width='14' height='14'/%3E%3Crect x='38' y='48' width='14' height='14'/%3E%3Crect x='62' y='48' width='14' height='14'/%3E%3Crect x='86' y='48' width='14' height='14'/%3E%3Crect x='38' y='74' width='14' height='14'/%3E%3Crect x='62' y='74' width='14' height='14'/%3E%3Crect x='86' y='74' width='14' height='14'/%3E%3Crect x='38' y='100' width='14' height='14'/%3E%3Crect x='62' y='100' width='14' height='14'/%3E%3Crect x='86' y='100' width='14' height='14'/%3E%3C/g%3E%3Crect x='62' y='148' width='16' height='44' fill='%236b7280'/%3E%3C/svg%3E"
+      />
+      <div class="floor-switch">${floorButtons}</div>
+      <div class="floor-shop-detail" id="floor-shop-${escapeHtml(groupKey)}">
+        ${buildSingleShopPopup(initialShop)}
       </div>
     </div>
   `;
@@ -212,11 +131,13 @@ function attachFloorSwitcherHandlers(popupRoot, groupedShops) {
       const groupKey = btn.dataset.groupKey || "";
       const floor = normalizeFloorLevel(btn.dataset.floor || "");
       const shops = groupedShops[groupKey] || [];
+      const selected =
+        shops.find((s) => normalizeFloorLevel(s.floorlevel) === floor) || shops[0];
 
-      const gridEl = popupRoot.querySelector(`#floor-shop-grid-${CSS.escape(groupKey)}`);
-      if (!gridEl) return;
+      const detailEl = popupRoot.querySelector(`#floor-shop-${CSS.escape(groupKey)}`);
+      if (!detailEl || !selected) return;
 
-      gridEl.innerHTML = renderFloorShopGrid(shops, floor);
+      detailEl.innerHTML = buildSingleShopPopup(selected);
 
       popupRoot.querySelectorAll(".floor-btn").forEach((node) => {
         node.classList.remove("is-active");
@@ -413,11 +334,10 @@ function fitMapForViewport(bounds) {
 
 (async () => {
   try {
-    const [projRes, boundsRes, shopsRes, guidesRes] = await Promise.all([
+    const [projRes, boundsRes, shopsRes] = await Promise.all([
       fetch(`/api/migrationmaps/${PROJECT_ID}`),
       fetch(`/api/migrationmaps/${PROJECT_ID}/overlay_bounds`),
-      fetch(`/api/migrationmaps/${PROJECT_ID}/shops`),
-      fetch(`/api/migrationmaps/${PROJECT_ID}/building-guides`)
+      fetch(`/api/migrationmaps/${PROJECT_ID}/shops`)
     ]);
 
     if (!projRes.ok) {
@@ -446,14 +366,6 @@ function fitMapForViewport(bounds) {
     } else {
       console.warn("shops api failed:", shopsRes.status);
       shopData = [];
-    }
-
-    if (guidesRes.ok) {
-      const guidesJson = await guidesRes.json();
-      buildingGuideMap = buildGuideMap(Array.isArray(guidesJson.guides) ? guidesJson.guides : []);
-    } else {
-      console.warn("building guides api failed:", guidesRes.status);
-      buildingGuideMap = new Map();
     }
 
     console.log("overlayBounds:", overlayBounds);
