@@ -154,6 +154,156 @@
       margin-top: 10px !important;
     }
   }
+  .shop-popup {
+    min-width: 240px;
+    max-width: 320px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .shop-name {
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  .shop-meta {
+    display: grid;
+    grid-template-columns: 72px 1fr;
+    gap: 6px;
+    margin-bottom: 4px;
+    align-items: start;
+  }
+
+  .shop-label {
+    color: #666;
+    font-size: 12px;
+  }
+
+  .shop-ig-link {
+    color: #2563eb;
+    text-decoration: none;
+  }
+
+  .shop-ig-link:hover {
+    text-decoration: underline;
+  }
+
+  .shop-ig-none {
+    color: #666;
+  }
+
+  .building-popup {
+    min-width: 260px;
+    max-width: 340px;
+    display: grid;
+    gap: 10px;
+  }
+
+  .building-popup-main {
+    display: grid;
+    grid-template-columns: minmax(150px, 1fr) 86px;
+    gap: 10px;
+    align-items: start;
+  }
+
+  .building-popup-photo img,
+  .building-photo {
+    width: 100%;
+    max-height: 220px;
+    object-fit: cover;
+    border-radius: 10px;
+    border: 1px solid #ddd;
+    display: block;
+  }
+
+  .building-photo-empty,
+  .shop-card-noimage {
+    display: grid;
+    place-items: center;
+    min-height: 120px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    background: #f8fafc;
+    color: #666;
+    font-size: 12px;
+  }
+
+  .building-popup-floors {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .floor-btn {
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background: #fff;
+    padding: 6px 8px;
+    font-size: 12px;
+    cursor: pointer;
+    width: 100%;
+  }
+
+  .floor-btn.is-active {
+    background: #2563eb;
+    border-color: #2563eb;
+    color: #fff;
+  }
+
+  .floor-shop-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .shop-card {
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    background: #fff;
+    padding: 8px;
+    text-align: left;
+  }
+
+  .shop-card-thumb img {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid #eee;
+    display: block;
+  }
+
+  .shop-card-name {
+    margin-top: 6px;
+    font-weight: 700;
+    font-size: 12px;
+  }
+
+  .shop-card-floor {
+    font-size: 11px;
+    color: #666;
+    margin-top: 2px;
+  }
+
+  .shop-grid-empty {
+    font-size: 12px;
+    color: #666;
+  }
+
+  @media (max-width: 640px) {
+    .building-popup-main {
+      grid-template-columns: 1fr;
+    }
+
+    .building-popup-floors {
+      flex-direction: row;
+      flex-wrap: wrap;
+    }
+
+    .floor-btn {
+      width: auto;
+    }
+  }
 </style>
 </head>
 <body>
@@ -168,19 +318,9 @@
 </header>
 
 <div id="map"></div>
-<div class="building-guide">
-  <div class="building-photo-wrap">
-    <img src="..." class="building-photo">
-    <button class="floor-hotspot" data-floor="1F" style="left:20px;top:140px;width:220px;height:80px;"></button>
-    <button class="floor-hotspot" data-floor="2F" style="left:20px;top:60px;width:220px;height:80px;"></button>
-  </div>
-
-  <div id="floorShopGrid"></div>
-</div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/leaflet-distortableimage@0.21.9/dist/leaflet.distortableimage.js"></script>
 <script>
-  const PROJECT_ID = {{ project_id }};
   function renderFloorShopGrid(groupShops, floorlevel) {
     const floorShops = groupShops.filter(
       s => String(s.floorlevel || "").trim().toUpperCase() === floorlevel
