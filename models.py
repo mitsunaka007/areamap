@@ -307,6 +307,13 @@ class BuildingGuide(db.Model):
 
     created_at = db.Column(db.DateTime, default=datetime.now, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.now, nullable=False)
+    floors = db.relationship(
+        "BuildingGuideFloor",
+        backref="building_guide",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="BuildingGuideFloor.sort_order"
+    )
 
 class BuildingGuideFloor(db.Model):
     __tablename__ = "building_guide_floors"
