@@ -316,14 +316,27 @@ btnToggleLocation?.addEventListener("click", () => {
 });
 
 async function loadProject() {
-  const res = await fetch(`/api/migrationmaps/${PROJECT_ID}`);
-  if (!res.ok) throw new Error("project load failed");
+  const [projectRes, boundsRes] = await Promise.all([
+    fetch(`/api/migrationmaps/${PROJECT_ID}`),
+    fetch(`/api/migrationmaps/${PROJECT_ID}/overlay_bounds`)
+  ]);
 
-  projectData = await res.json();
-  titleEl.textContent = projectData.project?.name || "公開地図";
+  if (!projectRes.ok) throw new Error("project load failed");
+  if (!boundsRes.ok) throw new Error("overlay bounds load failed");
+
+  const project = await projectRes.json();
+  const boundsData = await boundsRes.json();
+
+  projectData = {
+    ...project,
+    ...boundsData,
+  };
+
+  titleEl.textContent = projectData.name || "公開地図";
 
   overlayCorners = projectData.distortable_corners || projectData.image_corners;
   if (!Array.isArray(overlayCorners) || overlayCorners.length !== 4) {
+    console.error("projectData:", projectData);
     throw new Error("overlay corners invalid");
   }
 
