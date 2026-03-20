@@ -315,6 +315,25 @@ btnToggleLocation?.addEventListener("click", () => {
   else startLocationWatch();
 });
 
+function fitMapForViewport(bounds) {
+  const isPortrait = window.innerHeight > window.innerWidth;
+
+  const paddingTopLeft = isPortrait ? [18, 12] : [12, 12];
+  const paddingBottomRight = isPortrait ? [18, 24] : [12, 12];
+
+  map.fitBounds(bounds, {
+    paddingTopLeft,
+    paddingBottomRight
+  });
+
+  const restrictedBounds = bounds.pad(isPortrait ? 0.02 : 0.03);
+  map.setMaxBounds(restrictedBounds);
+  map.options.maxBoundsViscosity = 1.0;
+
+  const minZoom = map.getBoundsZoom(bounds, false, paddingBottomRight);
+  map.setMinZoom(minZoom);
+}
+
 async function loadProject() {
   const [projectRes, boundsRes] = await Promise.all([
     fetch(`/api/migrationmaps/${PROJECT_ID}`),
@@ -340,16 +359,29 @@ async function loadProject() {
     throw new Error("overlay corners invalid");
   }
 
+  if (overlay) {
+    map.removeLayer(overlay);
+    overlay = null;
+  }
+
   overlay = L.distortableImageOverlay(projectData.image_url, {
-    corners: overlayCorners.map((c) => L.latLng(c.lat, c.lng)),
+    corners: overlayCorners.map((c) => L.latLng(Number(c.lat), Number(c.lng))),
     pane: "migrationOverlayPane",
     selected: false,
     suppressToolbar: true,
+    editable: false,
+    mode: "lock",
+    opacity: 0.88,
   }).addTo(map);
 
-  const latlngs = overlayCorners.map((c) => [c.lat, c.lng]);
-  overlayLatLngBounds = L.latLngBounds(latlngs);
-  map.fitBounds(overlayLatLngBounds.pad(0.08));
+  if (Array.isArray(boundsData.bounds) && boundsData.bounds.length === 2) {
+    overlayLatLngBounds = L.latLngBounds(boundsData.bounds);
+  } else {
+    const latlngs = overlayCorners.map((c) => [Number(c.lat), Number(c.lng)]);
+    overlayLatLngBounds = L.latLngBounds(latlngs);
+  }
+
+  fitMapForViewport(overlayLatLngBounds);
 }
 
 async function loadShops() {
@@ -365,6 +397,14 @@ async function loadShops() {
   try {
     await loadProject();
     await loadShops();
+
+    locationStatusEl.textContent = "現在地表示はOFFです";
+
+    window.addEventListener("resize", () => {
+      if (overlayLatLngBounds) {
+        fitMapForViewport(overlayLatLngBounds);
+      }
+    });
   } catch (err) {
     console.error(err);
     alert("公開地図の読み込みに失敗しました");
