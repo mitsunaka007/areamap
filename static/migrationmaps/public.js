@@ -364,15 +364,62 @@ async function loadProject() {
     overlay = null;
   }
 
-  overlay = L.distortableImageOverlay(projectData.image_url, {
-    corners: overlayCorners.map((c) => L.latLng(Number(c.lat), Number(c.lng))),
-    pane: "migrationOverlayPane",
-    selected: false,
-    suppressToolbar: true,
-    editable: false,
-    mode: "lock",
-    opacity: 0.88,
-  }).addTo(map);
+  // image_url が相対パス（例: "uploads/foo.png" や "/uploads/foo.png"）の場合に
+  // 同一オリジンの絶対 URL へ正規化する。
+  // バックエンドが絶対 URL を返す場合はそのまま使われる。
+  const rawImageUrl = projectData.image_url || "";
+  const imageUrl = rawImageUrl.startsWith("http")
+    ? rawImageUrl
+    : new URL(rawImageUrl, window.location.origin).href;
+
+  // distortableImageOverlay が canvas に描画する際に crossOrigin が必要。
+  // 同一オリジンの場合でも明示的に設定しておくことで
+  // Flask の send_from_directory が CORS ヘッダを返していない場合の
+  // "Tainted canvas" エラーを防ぐ。
+  // distortableImageOverlay が crossOrigin オプションに対応していない場合は
+  // 通常の L.imageOverlay にフォールバックする。
+  const cornerLatLngs = overlayCorners.map((c) => L.latLng(Number(c.lat), Number(c.lng)));
+  const swLatLng = L.latLng(
+    Math.min(...cornerLatLngs.map((ll) => ll.lat)),
+    Math.min(...cornerLatLngs.map((ll) => ll.lng))
+  );
+  const neLatLng = L.latLng(
+    Math.max(...cornerLatLngs.map((ll) => ll.lat)),
+    Math.max(...cornerLatLngs.map((ll) => ll.lng))
+  );
+
+  const useDistortable =
+    typeof L.distortableImageOverlay === "function";
+
+  if (useDistortable) {
+    overlay = L.distortableImageOverlay(imageUrl, {
+      corners: cornerLatLngs,
+      pane: "migrationOverlayPane",
+      selected: false,
+      suppressToolbar: true,
+      editable: false,
+      mode: "lock",
+      opacity: 0.88,
+      // crossOrigin を明示することで canvas の tainted エラーを防ぐ
+      crossOrigin: true,
+    }).addTo(map);
+  } else {
+    // leaflet-distortableimage が読み込まれていない場合の安全フォールバック
+    console.warn("L.distortableImageOverlay が未定義のため L.imageOverlay にフォールバックします");
+    overlay = L.imageOverlay(imageUrl, L.latLngBounds(swLatLng, neLatLng), {
+      pane: "migrationOverlayPane",
+      opacity: 0.88,
+      crossOrigin: true,
+    }).addTo(map);
+  }
+
+  // 画像の読み込みエラーを検知してコンソールに出力する
+  overlay.on("error", () => {
+    console.error(
+      "[public.js] オーバーレイ画像の読み込みに失敗しました。image_url を確認してください:",
+      imageUrl
+    );
+  });
 
   if (Array.isArray(boundsData.bounds) && boundsData.bounds.length === 2) {
     overlayLatLngBounds = L.latLngBounds(boundsData.bounds);
