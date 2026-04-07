@@ -573,28 +573,37 @@ async function loadProject(projectId) {
 }
 
 async function refreshProjects() {
-  const res = await fetch("/api/migrationmaps/projects");
-  const data = await res.json();
+  try {
+    const res = await fetch("/api/migrationmaps/projects");
+    if (!res.ok) {
+      projectListEl.innerHTML = '<div class="muted">一覧の取得に失敗しました</div>';
+      return;
+    }
+    const data = await res.json();
 
-  projectListEl.innerHTML = "";
+    projectListEl.innerHTML = "";
 
-  for (const p of data.projects) {
-    const div = document.createElement("div");
-    div.className = "project-item";
-    div.innerHTML = `
-      <strong>${p.name}</strong>
-      <div class="muted">ID: ${p.id}</div>
-      <div class="muted">${p.created_at ? p.created_at.replace("T", " ").slice(0, 19) : ""}</div>
-      <div class="project-actions">
-        <button class="small-btn btnLoadProject" data-id="${p.id}">管理画面で編集</button>
-        <a class="small-btn" href="${p.public_url}" target="_blank" rel="noopener">公開ページ</a>
-      </div>
-    `;
-    projectListEl.appendChild(div);
-  }
+    if (!data.projects?.length) {
+      projectListEl.innerHTML = '<div class="muted">保存済みデータはありません</div>';
+      return;
+    }
 
-  if (!data.projects.length) {
-    projectListEl.innerHTML = '<div class="muted">保存済みデータはありません</div>';
+    for (const p of data.projects) {
+      const div = document.createElement("div");
+      div.className = "project-item";
+      div.innerHTML = `
+        <strong>${p.name}</strong>
+        <div class="muted">ID: ${p.id}</div>
+        <div class="muted">${p.created_at ? p.created_at.replace("T", " ").slice(0, 19) : ""}</div>
+        <div class="project-actions">
+          <button class="small-btn btnLoadProject" data-id="${p.id}">管理画面で編集</button>
+          <a class="small-btn" href="${p.public_url}" target="_blank" rel="noopener">公開ページ</a>
+        </div>
+      `;
+      projectListEl.appendChild(div);
+    }
+  } catch (err) {
+    projectListEl.innerHTML = '<div class="muted">一覧の取得に失敗しました</div>';
   }
 }
 
@@ -731,6 +740,7 @@ $("btnSave").addEventListener("click", async () => {
 
 redrawTable();
 refreshProjects();
+refreshShopList();
 log("準備OK：地図名→画像アップロード→中心/地点を設定→手入力またはOSMクリック→保存");
 
 const params = new URLSearchParams(location.search);
@@ -827,34 +837,38 @@ async function fetchShopDetail(shopId) {
 }
 
 async function refreshShopList() {
-  const query = currentProjectId ? `?project_id=${encodeURIComponent(currentProjectId)}` : "";
-  const res = await fetch(`/api/migrationmaps/shops${query}`);
-  const data = await res.json();
+  try {
+    const query = currentProjectId ? `?project_id=${encodeURIComponent(currentProjectId)}` : "";
+    const res = await fetch(`/api/migrationmaps/shops${query}`);
 
-  registeredShopListEl.innerHTML = "";
+    if (!res.ok) {
+      registeredShopListEl.innerHTML = `<div class="muted">店舗一覧の取得に失敗しました</div>`;
+      return;
+    }
 
-  if (!res.ok) {
+    const data = await res.json();
+    registeredShopListEl.innerHTML = "";
+
+    if (!data.shops?.length) {
+      registeredShopListEl.innerHTML = `<div class="muted">登録済み店舗はありません</div>`;
+      return;
+    }
+
+    for (const shop of data.shops) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "registered-shop-item";
+      btn.dataset.shopId = shop.id;
+      btn.innerHTML = `
+        <div class="registered-shop-name">${shop.shopname}</div>
+        <div class="registered-shop-meta">
+          ID: ${shop.id} / 地図ID: ${shop.map_project_id ?? "-"} / ${shop.floorlevel || "-"} / ${shop.is_active ? "営業中" : "非表示"}
+        </div>
+      `;
+      registeredShopListEl.appendChild(btn);
+    }
+  } catch (err) {
     registeredShopListEl.innerHTML = `<div class="muted">店舗一覧の取得に失敗しました</div>`;
-    return;
-  }
-
-  if (!data.shops?.length) {
-    registeredShopListEl.innerHTML = `<div class="muted">登録済み店舗はありません</div>`;
-    return;
-  }
-
-  for (const shop of data.shops) {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "registered-shop-item";
-    btn.dataset.shopId = shop.id;
-    btn.innerHTML = `
-      <div class="registered-shop-name">${shop.shopname}</div>
-      <div class="registered-shop-meta">
-        ID: ${shop.id} / 地図ID: ${shop.map_project_id ?? "-"} / ${shop.floorlevel || "-"} / ${shop.is_active ? "営業中" : "非表示"}
-      </div>
-    `;
-    registeredShopListEl.appendChild(btn);
   }
 }
 
