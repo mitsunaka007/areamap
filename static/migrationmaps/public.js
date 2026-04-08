@@ -479,16 +479,27 @@ async function loadProject() {
   const useDistortable = typeof L.distortableImageOverlay === "function";
 
   if (useDistortable) {
-    overlay = L.distortableImageOverlay(imageUrl, {
-      corners: cornerLatLngs,
-      pane: "migrationOverlayPane",
-      selected: false,
-      suppressToolbar: true,
-      editable: false,
-      mode: "lock",
-      opacity: 0.88,
-      crossOrigin: true,
-    }).addTo(map);
+    try {
+      // mode:"lock" / editable:false は v0.21.9 では無効なオプションのため除外
+      overlay = L.distortableImageOverlay(imageUrl, {
+        corners: cornerLatLngs,
+        pane: "migrationOverlayPane",
+        selected: false,
+        suppressToolbar: true,
+        opacity: 0.88,
+        crossOrigin: true,
+      }).addTo(map);
+    } catch (e) {
+      console.warn(
+        "L.distortableImageOverlay の初期化に失敗しました。L.imageOverlay にフォールバックします:",
+        e
+      );
+      overlay = L.imageOverlay(
+        imageUrl,
+        L.latLngBounds(swLatLng, neLatLng),
+        { pane: "migrationOverlayPane", opacity: 0.88, crossOrigin: true }
+      ).addTo(map);
+    }
   } else {
     console.warn(
       "L.distortableImageOverlay が未定義のため L.imageOverlay にフォールバックします"
