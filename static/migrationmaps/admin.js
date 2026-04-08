@@ -3,6 +3,8 @@ let mode = null;
 let nextPointIndex = 1;
 let currentProjectId = null;
 let currentAffine = null;
+
+const CLOUDINARY_BASE = "https://res.cloudinary.com/deqgg7rxd/image/upload/v1775654746/";
 let currentLocation = null;
 let geolocationWatchId = null;
 
@@ -596,7 +598,7 @@ $("btnAddPoint").addEventListener("click", () => {
   redrawTable();
 });
 
-$("fileInput").addEventListener("change", async (ev) => {
+$("fileInput").addEventListener("change", (ev) => {
   const file = ev.target.files?.[0];
   if (!file) return;
 
@@ -607,48 +609,56 @@ $("fileInput").addEventListener("change", async (ev) => {
     return;
   }
 
-  const fd = new FormData();
-  fd.append("file", file);
-  fd.append("name", name);
+  const imageUrl = CLOUDINARY_BASE + file.name;
 
-  const res = await fetch("/api/migrationmaps/upload", {
-    method: "POST",
-    body: fd
-  });
-  const data = await res.json();
+  // Cloudinaryから画像を読み込んでサイズ取得
+  const probe = new Image();
+  probe.crossOrigin = "anonymous";
 
-  if (!res.ok) {
-    alert(data.error || "upload failed");
-    return;
-  }
+  probe.onload = () => {
+    const w = probe.naturalWidth;
+    const h = probe.naturalHeight;
 
-  currentProjectId = null;
-  uploaded = data;
-  currentAffine = null;
+    currentProjectId = null;
+    uploaded = {
+      image_url: imageUrl,
+      image_filename: imageUrl,
+      image_width: w,
+      image_height: h,
+    };
+    currentAffine = null;
 
-  img = new Image();
-  img.onload = () => setCanvasToImage(img);
-  img.src = data.image_url;
+    img = new Image();
+    img.onload = () => setCanvasToImage(img);
+    img.src = imageUrl;
 
-  points.length = 0;
-  markers.forEach((m) => map.removeLayer(m));
-  markers.clear();
+    points.length = 0;
+    markers.forEach((m) => map.removeLayer(m));
+    markers.clear();
 
-  if (overlay) {
-    map.removeLayer(overlay);
-    overlay = null;
-  }
+    if (overlay) {
+      map.removeLayer(overlay);
+      overlay = null;
+    }
 
-  selectedPointLabel = null;
-  nextPointIndex = 1;
-  autoPreviewEnabled = false;
-  editingProjectEl.textContent = "新規作成";
-  $("publicLink").innerHTML = "";
-  setDirty(true);
-  redrawTable();
-  updateCurrentLocationOnCanvas();
+    selectedPointLabel = null;
+    nextPointIndex = 1;
+    autoPreviewEnabled = false;
+    editingProjectEl.textContent = "新規作成";
+    $("publicLink").innerHTML = "";
+    setDirty(true);
+    redrawTable();
+    updateCurrentLocationOnCanvas();
 
-  log(`[UPLOAD] ${data.image_filename} (${data.image_width}x${data.image_height})`);
+    log(`[CLOUDINARY] ${file.name} (${w}x${h})`);
+  };
+
+  probe.onerror = () => {
+    alert(`Cloudinaryから画像を読み込めませんでした。\nファイル名「${file.name}」がCloudinaryに存在するか確認してください。\nURL: ${imageUrl}`);
+    ev.target.value = "";
+  };
+
+  probe.src = imageUrl;
 });
 
 function haversineMeters(lat1, lng1, lat2, lng2) {

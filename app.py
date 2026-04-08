@@ -68,6 +68,23 @@ MIGRATIONMAPS_ALLOWED_EXT = {".png", ".jpg", ".jpeg", ".webp"}
 app.config["MIGRATIONMAPS_UPLOAD_DIR"] = os.environ.get("MIGRATIONMAPS_UPLOAD_DIR", "migrationmaps_uploads")
 Path(app.config["MIGRATIONMAPS_UPLOAD_DIR"]).mkdir(parents=True, exist_ok=True)
 
+# Cloudinary 設定（環境変数が揃っている場合のみ有効）
+_cld_cloud = os.environ.get("CLOUDINARY_CLOUD_NAME", "")
+_cld_key   = os.environ.get("CLOUDINARY_API_KEY", "")
+_cld_secret = os.environ.get("CLOUDINARY_API_SECRET", "")
+CLOUDINARY_ENABLED = bool(_cld_cloud and _cld_key and _cld_secret)
+if CLOUDINARY_ENABLED:
+    import cloudinary
+    import cloudinary.uploader
+    cloudinary.config(cloud_name=_cld_cloud, api_key=_cld_key, api_secret=_cld_secret)
+
+
+def _image_url_from_filename(image_filename: str) -> str:
+    """image_filename がフルURL(Cloudinary等)ならそのまま、そうでなければローカルパスに変換"""
+    if image_filename and image_filename.startswith("http"):
+        return image_filename
+    return f"/migrationmaps/uploads/{image_filename}"
+
 # ---- 座標変換ユーティリティ（EPSG:4326 -> EPSG:3857）----
 _R = 6378137.0
 
@@ -638,16 +655,34 @@ def api_migrationmaps_upload():
         return jsonify({"error": f"拡張子が不正です: {ext}"}), 400
 
     safe = secure_filename(Path(f.filename).stem)
-    filename = f"{safe}_{uuid.uuid4().hex}{ext}"
-    save_path = Path(app.config["MIGRATIONMAPS_UPLOAD_DIR"]) / filename
-    f.save(save_path)
+    unique_stem = f"{safe}_{uuid.uuid4().hex}"
 
-    with Image.open(save_path) as im:
-        w, h = im.size
+    if CLOUDINARY_ENABLED:
+        # Cloudinary にアップロード
+        result = cloudinary.uploader.upload(
+            f,
+            public_id=unique_stem,
+            folder="migrationmaps",
+            resource_type="image",
+        )
+        image_url = result["secure_url"]
+        image_filename = image_url  # フルURLをそのまま保存
+
+        # 画像サイズは Cloudinary のレスポンスから取得
+        w = result.get("width", 0)
+        h = result.get("height", 0)
+    else:
+        filename = f"{unique_stem}{ext}"
+        save_path = Path(app.config["MIGRATIONMAPS_UPLOAD_DIR"]) / filename
+        f.save(save_path)
+        with Image.open(save_path) as im:
+            w, h = im.size
+        image_url = f"/migrationmaps/uploads/{filename}"
+        image_filename = filename
 
     return jsonify({
-        "image_url": f"/migrationmaps/uploads/{filename}",
-        "image_filename": filename,
+        "image_url": image_url,
+        "image_filename": image_filename,
         "image_width": w,
         "image_height": h
     })
@@ -739,7 +774,7 @@ def api_migrationmaps_projects():
             {
                 "id": p.id,
                 "name": p.name,
-                "image_url": f"/migrationmaps/uploads/{p.image_filename}",
+                "image_url": _image_url_from_filename(p.image_filename),
                 "created_at": p.created_at.isoformat() if p.created_at else None,
                 "public_url": f"/migrationmaps/m/{p.id}",
                 "admin_url": f"/migrationmaps/admin?project_id={p.id}",
@@ -769,7 +804,7 @@ def api_migrationmaps_get(project_id: int):
     return jsonify({
         "id": proj.id,
         "name": proj.name,
-        "image_url": f"/migrationmaps/uploads/{proj.image_filename}",
+        "image_url": _image_url_from_filename(proj.image_filename),
         "image_width": proj.image_width,
         "image_height": proj.image_height,
         "affine": {"a":proj.a,"b":proj.b,"c":proj.c,"d":proj.d,"e":proj.e,"f":proj.f},

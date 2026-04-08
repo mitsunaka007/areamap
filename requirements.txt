@@ -36,3 +36,4 @@ email-validator==2.3.0
 
 numpy==2.2.2
 Pillow==11.1.0
+cloudinary==1.44.0
