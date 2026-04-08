@@ -76,6 +76,7 @@ CLOUDINARY_ENABLED = bool(_cld_cloud and _cld_key and _cld_secret)
 if CLOUDINARY_ENABLED:
     import cloudinary
     import cloudinary.uploader
+    import cloudinary.api
     cloudinary.config(cloud_name=_cld_cloud, api_key=_cld_key, api_secret=_cld_secret)
 
 
@@ -642,6 +643,30 @@ def migrationmaps_public(project_id: int):
 @app.get("/migrationmaps/uploads/<path:filename>")
 def migrationmaps_uploaded_file(filename):
     return send_from_directory(app.config["MIGRATIONMAPS_UPLOAD_DIR"], filename)
+
+@app.get("/api/migrationmaps/cloudinary-images")
+def api_cloudinary_images():
+    if not CLOUDINARY_ENABLED:
+        return jsonify({"error": "Cloudinaryが設定されていません"}), 503
+    try:
+        result = cloudinary.api.resources(
+            type="upload",
+            resource_type="image",
+            max_results=200,
+        )
+        images = [
+            {
+                "secure_url": r["secure_url"],
+                "public_id": r["public_id"],
+                "width": r.get("width", 0),
+                "height": r.get("height", 0),
+                "display_name": r["public_id"].split("/")[-1],
+            }
+            for r in result.get("resources", [])
+        ]
+        return jsonify({"images": images})
+    except Exception as ex:
+        return jsonify({"error": str(ex)}), 500
 
 @app.post("/api/migrationmaps/upload")
 def api_migrationmaps_upload():
