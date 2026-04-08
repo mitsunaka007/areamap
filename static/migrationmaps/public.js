@@ -542,8 +542,12 @@ async function loadShops() {
 }
 
 (async function init() {
+  const loadingEl = document.getElementById("mapLoadingOverlay");
   try {
     await loadProject();
+    // 地図範囲が確定したらローディングオーバーレイを解除
+    if (loadingEl) loadingEl.classList.add("hidden");
+
     await loadShops();
 
     locationStatusEl.textContent = "現在地表示はOFFです";
@@ -555,6 +559,7 @@ async function loadShops() {
     });
   } catch (err) {
     console.error(err);
+    if (loadingEl) loadingEl.classList.add("hidden");
     alert("公開地図の読み込みに失敗しました");
   }
 })();
