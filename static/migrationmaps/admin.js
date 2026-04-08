@@ -598,9 +598,10 @@ $("btnAddPoint").addEventListener("click", () => {
 });
 
 // ---- Cloudinary 画像ピッカー ----
-const cldOverlay = document.getElementById("cldPickerOverlay");
-const cldGrid    = document.getElementById("cldPickerGrid");
-const cldStatus  = document.getElementById("cldPickerStatus");
+const cldOverlay      = document.getElementById("cldPickerOverlay");
+const cldGrid         = document.getElementById("cldPickerGrid");
+const cldStatus       = document.getElementById("cldPickerStatus");
+const cldFolderSelect = document.getElementById("cldFolderSelect");
 
 function closeCldPicker() {
   cldOverlay.classList.remove("open");
@@ -609,19 +610,14 @@ function closeCldPicker() {
 document.getElementById("cldPickerClose").addEventListener("click", closeCldPicker);
 cldOverlay.addEventListener("click", (ev) => { if (ev.target === cldOverlay) closeCldPicker(); });
 
-document.getElementById("btnCloudinaryPicker").addEventListener("click", async () => {
-  const name = $("mapName").value.trim();
-  if (!name) {
-    alert("地図名を先に入力してください");
-    return;
-  }
-
+async function cldLoadImages(folder) {
   cldGrid.innerHTML = "";
   cldStatus.textContent = "読み込み中…";
-  cldOverlay.classList.add("open");
-
   try {
-    const res = await fetch("/api/migrationmaps/cloudinary-images");
+    const url = folder
+      ? `/api/migrationmaps/cloudinary-images?folder=${encodeURIComponent(folder)}`
+      : "/api/migrationmaps/cloudinary-images";
+    const res = await fetch(url);
     const data = await res.json();
     if (!res.ok) {
       cldStatus.textContent = data.error || "取得に失敗しました";
@@ -642,10 +638,76 @@ document.getElementById("btnCloudinaryPicker").addEventListener("click", async (
   } catch (err) {
     cldStatus.textContent = "通信エラー: " + err.message;
   }
+}
+
+cldFolderSelect.addEventListener("change", () => {
+  cldLoadImages(cldFolderSelect.value);
+});
+
+document.getElementById("btnCloudinaryPicker").addEventListener("click", async () => {
+  const name = $("mapName").value.trim();
+  if (!name) {
+    alert("地図名を先に入力してください");
+    return;
+  }
+
+  cldOverlay.classList.add("open");
+
+  // フォルダ一覧を取得（初回のみ）
+  if (cldFolderSelect.options.length === 1) {
+    try {
+      const res = await fetch("/api/migrationmaps/cloudinary-folders");
+      const data = await res.json();
+      if (res.ok && data.folders?.length) {
+        for (const f of data.folders) {
+          const opt = document.createElement("option");
+          opt.value = f.path;
+          opt.textContent = f.name;
+          cldFolderSelect.appendChild(opt);
+        }
+      }
+    } catch (_) { /* フォルダ取得失敗は無視 */ }
+  }
+
+  cldLoadImages(cldFolderSelect.value);
 });
 
 function selectCloudinaryImage(item) {
   closeCldPicker();
+
+  // ---- 編集中プロジェクトがある場合は画像のみ差し替え（点・マーカーは保持）----
+  if (currentProjectId !== null) {
+    uploaded = {
+      image_url: item.secure_url,
+      image_filename: item.secure_url,
+      image_width: item.width,
+      image_height: item.height,
+    };
+    // 既存アフィンは変わる可能性があるためリセット
+    currentAffine = null;
+
+    img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      setCanvasToImage(img);
+      updateCurrentLocationOnCanvas();
+    };
+    img.src = item.secure_url;
+
+    if (overlay) {
+      map.removeLayer(overlay);
+      overlay = null;
+    }
+
+    autoPreviewEnabled = false;
+    editingProjectEl.textContent = `編集中: #${currentProjectId}（画像差し替え）`;
+    setDirty(true);
+    redrawTable();
+    log(`[CLOUDINARY] 画像差し替え: ${item.display_name} (${item.width}x${item.height})`);
+    return;
+  }
+
+  // ---- 新規作成モード：全リセット ----
   currentProjectId = null;
   uploaded = {
     image_url: item.secure_url,

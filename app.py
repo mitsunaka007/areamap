@@ -644,16 +644,48 @@ def migrationmaps_public(project_id: int):
 def migrationmaps_uploaded_file(filename):
     return send_from_directory(app.config["MIGRATIONMAPS_UPLOAD_DIR"], filename)
 
+@app.get("/api/migrationmaps/cloudinary-folders")
+def api_cloudinary_folders():
+    if not CLOUDINARY_ENABLED:
+        return jsonify({"error": "Cloudinaryが設定されていません"}), 503
+    try:
+        result = cloudinary.api.root_folders(max_results=100)
+        folders = [
+            {"name": f["name"], "path": f["path"]}
+            for f in result.get("folders", [])
+        ]
+        return jsonify({"folders": folders})
+    except Exception as ex:
+        return jsonify({"error": str(ex)}), 500
+
+
 @app.get("/api/migrationmaps/cloudinary-images")
 def api_cloudinary_images():
     if not CLOUDINARY_ENABLED:
         return jsonify({"error": "Cloudinaryが設定されていません"}), 503
+    folder = request.args.get("folder", "").strip()
     try:
-        result = cloudinary.api.resources(
-            type="upload",
-            resource_type="image",
-            max_results=200,
-        )
+        if folder:
+            # フォルダ内の画像を取得（新形式: asset_folder、旧形式: prefix の両方を試みる）
+            try:
+                result = cloudinary.api.resources_by_asset_folder(
+                    folder,
+                    resource_type="image",
+                    max_results=200,
+                )
+            except Exception:
+                result = cloudinary.api.resources(
+                    type="upload",
+                    resource_type="image",
+                    prefix=folder + "/",
+                    max_results=200,
+                )
+        else:
+            result = cloudinary.api.resources(
+                type="upload",
+                resource_type="image",
+                max_results=200,
+            )
         images = [
             {
                 "secure_url": r["secure_url"],
