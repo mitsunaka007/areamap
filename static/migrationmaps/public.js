@@ -1,10 +1,11 @@
 const map = L.map("map", {
   zoomControl: true,
   maxZoom: 22,
+  maxBoundsViscosity: 1.0,
 }).setView([35.0, 135.0], 14);
 
 map.createPane("migrationOverlayPane");
-map.getPane("migrationOverlayPane").style.zIndex = 350;
+map.getPane("migrationOverlayPane").style.zIndex = 450;
 map.getPane("migrationOverlayPane").style.pointerEvents = "none";
 
 map.createPane("migrationMarkerPane");
@@ -417,9 +418,12 @@ function fitMapForViewport(bounds) {
     paddingBottomRight,
   });
 
-  const restrictedBounds = bounds.pad(isPortrait ? 0.02 : 0.03);
-  map.setMaxBounds(restrictedBounds);
-  map.options.maxBoundsViscosity = 1.0;
+  // fitBounds のパディング分だけ余白を持たせて setMaxBounds を設定する。
+  // パディングなし（bounds そのまま）にすると、fitBounds 後に
+  // panInsideBounds が発火して L.distortableImageOverlay の
+  // CSS transform が崩れ、オーバーレイが表示されなくなる。
+  const maxBoundsPad = isPortrait ? 0.02 : 0.03;
+  map.setMaxBounds(bounds.pad(maxBoundsPad));
 
   const minZoom = map.getBoundsZoom(bounds, false, paddingBottomRight);
   map.setMinZoom(minZoom);
