@@ -21,15 +21,31 @@ let projectData = null;
 let overlayLatLngBounds = null;
 let overlayCorners = null;
 let shopData = [];
+let groupedShopsCache = {};
 
 let locationEnabled = false;
 let locationWatchId = null;
 let currentLocationMarker = null;
 let currentLocationCircle = null;
 
+// building-guide をGPS近接で自動表示した場合のグループキー
+// （ユーザーが × で閉じた後は再表示しない）
+let autoShownGroupKey = null;
+let userClosedGuide = false;
+
+const PROXIMITY_METERS = 50;
+
 const titleEl = document.getElementById("title");
 const btnToggleLocation = document.getElementById("btnToggleLocation");
 const locationStatusEl = document.getElementById("locationStatus");
+const buildingGuideEl = document.getElementById("buildingGuide");
+const buildingGuideCloseEl = document.getElementById("buildingGuideClose");
+const buildingPhotoWrapEl = document.getElementById("buildingPhotoWrap");
+const floorShopGridEl = document.getElementById("floorShopGrid");
+
+// ----------------------------------------------------------------
+// ユーティリティ
+// ----------------------------------------------------------------
 
 function escapeHtml(str) {
   return String(str ?? "")
@@ -52,6 +68,21 @@ function sanitizeTel(tel) {
   return String(tel ?? "").replace(/[^\d+]/g, "");
 }
 
+function haversineMeters(lat1, lng1, lat2, lng2) {
+  const R = 6371000;
+  const toRad = (d) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+// ----------------------------------------------------------------
+// HTML ビルダー
+// ----------------------------------------------------------------
+
 function buildTelPart(shop) {
   const telRaw = (shop.tel || "").trim();
   if (!telRaw) return `<span class="shop-muted">-</span>`;
@@ -71,14 +102,12 @@ function buildInstagramPart(shop) {
 
 function buildImageGrid(shop) {
   const images = Array.isArray(shop.images) ? shop.images : [];
-  if (!images.length) {
-    return `<div class="shop-grid-empty">この階の画像はまだありません</div>`;
-  }
+  if (!images.length) return "";
   return `
     <div class="shop-image-grid">
       ${images.map((img) => `
         <a href="${escapeHtml(img.image_url)}" target="_blank" rel="noopener noreferrer" class="shop-image-card">
-          <img src="${escapeHtml(img.image_url)}" alt="${escapeHtml(shop.shopname || 'shop image')}" loading="lazy" />
+          <img src="${escapeHtml(img.image_url)}" alt="${escapeHtml(shop.shopname || "shop image")}" loading="lazy" />
         </a>
       `).join("")}
     </div>
@@ -88,17 +117,13 @@ function buildImageGrid(shop) {
 function buildShopSummary(shop) {
   return `
     <div class="shop-summary">
-      <div class="shop-name">${escapeHtml(shop.shopname || '店名未設定')}</div>
-      <div class="shop-meta"><span class="shop-label">階</span><span>${escapeHtml(shop.floorlevel || '-')}</span></div>
-      <div class="shop-meta"><span class="shop-label">住所</span><span>${escapeHtml(shop.address || '-')}</span></div>
+      <div class="shop-name">${escapeHtml(shop.shopname || "店名未設定")}</div>
+      <div class="shop-meta"><span class="shop-label">階</span><span>${escapeHtml(shop.floorlevel || "-")}</span></div>
+      <div class="shop-meta"><span class="shop-label">住所</span><span>${escapeHtml(shop.address || "-")}</span></div>
       <div class="shop-meta"><span class="shop-label">TEL</span><span>${buildTelPart(shop)}</span></div>
       <div class="shop-meta"><span class="shop-label">Instagram</span><span>${buildInstagramPart(shop)}</span></div>
     </div>
   `;
-}
-
-function buildSingleShopPopup(shop) {
-  return `<div class="shop-popup">${buildShopSummary(shop)}${buildImageGrid(shop)}</div>`;
 }
 
 function buildHotspotStyle(floor) {
@@ -136,100 +161,131 @@ function getFloorDisplayOrder(groupShops, guide) {
 
 function buildFloorGridSection(groupShops, floorlevel) {
   const floorKey = normalizeFloorLevel(floorlevel);
-  const floorShops = groupShops.filter((s) => normalizeFloorLevel(s.floorlevel) === floorKey);
+  const floorShops = groupShops.filter(
+    (s) => normalizeFloorLevel(s.floorlevel) === floorKey
+  );
   if (!floorShops.length) {
     return `<div class="shop-grid-empty">この階の店舗はありません</div>`;
   }
   return `
     <div class="floor-shop-list">
-      ${floorShops.map((shop) => `
+      ${floorShops
+        .map(
+          (shop) => `
         <section class="floor-shop-card">
           ${buildShopSummary(shop)}
           ${buildImageGrid(shop)}
         </section>
-      `).join("")}
+      `
+        )
+        .join("")}
     </div>
   `;
 }
 
-function buildBuildingPopup(groupShops, groupKey) {
-  const guide = groupShops[0].building_guide || null;
-  if (!guide || !guide.image_url) {
-    return buildSingleShopPopup(groupShops[0]);
+// ----------------------------------------------------------------
+// Building Guide パネル
+// ----------------------------------------------------------------
+
+function hideBuildingGuide() {
+  buildingGuideEl.hidden = true;
+  userClosedGuide = true;
+}
+
+function showBuildingGuide(groupShops, groupKey) {
+  const guide = groupShops[0]?.building_guide || null;
+
+  // 写真エリアをリセット
+  buildingPhotoWrapEl.innerHTML = "";
+  floorShopGridEl.innerHTML = "";
+
+  if (guide && guide.image_url) {
+    // ビル写真
+    const imgEl = document.createElement("img");
+    imgEl.src = guide.image_url;
+    imgEl.className = "building-photo";
+    imgEl.alt = escapeHtml(guide.building_name || "building");
+    buildingPhotoWrapEl.appendChild(imgEl);
+
+    // 階ごとのホットスポットボタン
+    const floors = getFloorDisplayOrder(groupShops, guide);
+    floors.forEach((floor, idx) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "floor-hotspot" + (idx === 0 ? " is-active" : "");
+      btn.dataset.floor = floor.floorlevel;
+      btn.style.cssText = buildHotspotStyle(floor);
+      btn.textContent = floor.floorlevel;
+      btn.addEventListener("click", () => {
+        buildingPhotoWrapEl
+          .querySelectorAll(".floor-hotspot")
+          .forEach((b) => b.classList.remove("is-active"));
+        btn.classList.add("is-active");
+        floorShopGridEl.innerHTML = buildFloorGridSection(
+          groupShops,
+          floor.floorlevel
+        );
+      });
+      buildingPhotoWrapEl.appendChild(btn);
+    });
+
+    // 初期表示: 最初の階の店舗情報
+    const firstFloor =
+      floors[0]?.floorlevel || groupShops[0]?.floorlevel || "";
+    floorShopGridEl.innerHTML = buildFloorGridSection(groupShops, firstFloor);
+  } else {
+    // BuildingGuide なし → 単店舗表示
+    const shop = groupShops[0];
+    floorShopGridEl.innerHTML = `
+      <div class="floor-shop-list">
+        <section class="floor-shop-card">
+          ${buildShopSummary(shop)}
+          ${buildImageGrid(shop)}
+        </section>
+      </div>
+    `;
   }
 
-  const floors = getFloorDisplayOrder(groupShops, guide);
-  const firstFloor = floors[0]?.floorlevel || groupShops[0]?.floorlevel || "";
-
-  return `
-    <div class="shop-popup building-popup" data-group-key="${escapeHtml(groupKey)}">
-      <div class="building-photo-wrap">
-        <img src="${escapeHtml(guide.image_url)}" class="building-photo" alt="${escapeHtml(guide.building_name || 'building image')}" />
-        ${floors.map((floor, idx) => `
-          <button
-            type="button"
-            class="floor-hotspot ${idx === 0 ? 'is-active' : ''}"
-            data-group-key="${escapeHtml(groupKey)}"
-            data-floor="${escapeHtml(floor.floorlevel)}"
-            style="${buildHotspotStyle(floor)}"
-          >${escapeHtml(floor.floorlevel)}</button>
-        `).join("")}
-      </div>
-      <div class="floor-shop-grid" id="floor-grid-${escapeHtml(groupKey)}">
-        ${buildFloorGridSection(groupShops, firstFloor)}
-      </div>
-    </div>
-  `;
+  autoShownGroupKey = groupKey;
+  userClosedGuide = false;
+  buildingGuideEl.hidden = false;
 }
 
-function attachFloorSwitcherHandlers(popupRoot, groupedShops) {
-  if (!popupRoot) return;
-  popupRoot.querySelectorAll(".floor-hotspot").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const groupKey = btn.dataset.groupKey || "";
-      const floor = btn.dataset.floor || "";
-      const groupShops = groupedShops[groupKey] || [];
-      const gridEl = popupRoot.querySelector(`#floor-grid-${CSS.escape(groupKey)}`);
-      if (!gridEl) return;
-      gridEl.innerHTML = buildFloorGridSection(groupShops, floor);
-      popupRoot.querySelectorAll(".floor-hotspot").forEach((node) => node.classList.remove("is-active"));
-      btn.classList.add("is-active");
-    });
-  });
-}
+buildingGuideCloseEl.addEventListener("click", hideBuildingGuide);
+
+// ----------------------------------------------------------------
+// ショップマーカー
+// ----------------------------------------------------------------
 
 function addShopMarkers() {
   if (!Array.isArray(shopData) || shopData.length === 0) return;
 
-  const validShops = shopData.filter((shop) =>
-    Number.isFinite(Number(shop.lat)) && Number.isFinite(Number(shop.lng))
+  const validShops = shopData.filter(
+    (shop) =>
+      Number.isFinite(Number(shop.lat)) && Number.isFinite(Number(shop.lng))
   );
 
-  const groupedShops = validShops.reduce((acc, shop) => {
+  groupedShopsCache = validShops.reduce((acc, shop) => {
     const key = latLngGroupKey(shop.lat, shop.lng);
     if (!acc[key]) acc[key] = [];
     acc[key].push(shop);
     return acc;
   }, {});
 
-  Object.entries(groupedShops).forEach(([groupKey, shopsAtSamePoint]) => {
+  Object.entries(groupedShopsCache).forEach(([groupKey, shopsAtSamePoint]) => {
     const lat = Number(shopsAtSamePoint[0].lat);
     const lng = Number(shopsAtSamePoint[0].lng);
     const marker = L.marker([lat, lng], { pane: "migrationMarkerPane" }).addTo(map);
 
-    const hasGuide = !!shopsAtSamePoint[0].building_guide?.image_url;
-    if (!hasGuide) {
-      marker.bindPopup(buildSingleShopPopup(shopsAtSamePoint[0]), { maxWidth: 360 });
-      return;
-    }
-
-    marker.bindPopup(buildBuildingPopup(shopsAtSamePoint, groupKey), {
-      maxWidth: 380,
-      className: "building-popup-shell",
+    marker.on("click", () => {
+      showBuildingGuide(shopsAtSamePoint, groupKey);
     });
-    marker.on("popupopen", (e) => attachFloorSwitcherHandlers(e.popup.getElement(), groupedShops));
   });
 }
+
+// ----------------------------------------------------------------
+// 現在地
+// ----------------------------------------------------------------
 
 function clearCurrentLocationLayers() {
   if (currentLocationMarker) {
@@ -251,6 +307,29 @@ function stopLocationWatch() {
   clearCurrentLocationLayers();
   btnToggleLocation.textContent = "現在地表示: OFF";
   locationStatusEl.textContent = "現在地表示はOFFです";
+}
+
+function checkProximityToShops(lat, lng) {
+  if (userClosedGuide) return;
+  if (!Object.keys(groupedShopsCache).length) return;
+
+  for (const [groupKey, shops] of Object.entries(groupedShopsCache)) {
+    const shopLat = Number(shops[0].lat);
+    const shopLng = Number(shops[0].lng);
+    const dist = haversineMeters(lat, lng, shopLat, shopLng);
+    if (dist <= PROXIMITY_METERS) {
+      // すでに同じグループを表示中なら何もしない
+      if (!buildingGuideEl.hidden && autoShownGroupKey === groupKey) return;
+      showBuildingGuide(shops, groupKey);
+      return;
+    }
+  }
+
+  // 全ショップから離れていたら GPS 近接で表示したパネルを閉じる
+  if (!buildingGuideEl.hidden && autoShownGroupKey !== null) {
+    buildingGuideEl.hidden = true;
+    autoShownGroupKey = null;
+  }
 }
 
 function updateLocationInsideBounds(lat, lng, accuracy) {
@@ -284,6 +363,8 @@ function updateLocationInsideBounds(lat, lng, accuracy) {
       fillOpacity: 0.08,
     }).addTo(map);
   }
+
+  checkProximityToShops(lat, lng);
 }
 
 function startLocationWatch() {
@@ -297,11 +378,17 @@ function startLocationWatch() {
   }
 
   locationEnabled = true;
+  userClosedGuide = false;
   btnToggleLocation.textContent = "現在地表示: ON";
   locationStatusEl.textContent = "現在地を取得中です...";
 
   locationWatchId = navigator.geolocation.watchPosition(
-    (pos) => updateLocationInsideBounds(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy || 20),
+    (pos) =>
+      updateLocationInsideBounds(
+        pos.coords.latitude,
+        pos.coords.longitude,
+        pos.coords.accuracy || 20
+      ),
     (err) => {
       console.error(err);
       locationStatusEl.textContent = "現在地を取得できませんでした";
@@ -315,6 +402,10 @@ btnToggleLocation?.addEventListener("click", () => {
   else startLocationWatch();
 });
 
+// ----------------------------------------------------------------
+// 地図・オーバーレイ読み込み
+// ----------------------------------------------------------------
+
 function fitMapForViewport(bounds) {
   const isPortrait = window.innerHeight > window.innerWidth;
 
@@ -323,7 +414,7 @@ function fitMapForViewport(bounds) {
 
   map.fitBounds(bounds, {
     paddingTopLeft,
-    paddingBottomRight
+    paddingBottomRight,
   });
 
   const restrictedBounds = bounds.pad(isPortrait ? 0.02 : 0.03);
@@ -337,7 +428,7 @@ function fitMapForViewport(bounds) {
 async function loadProject() {
   const [projectRes, boundsRes] = await Promise.all([
     fetch(`/api/migrationmaps/${PROJECT_ID}`),
-    fetch(`/api/migrationmaps/${PROJECT_ID}/overlay_bounds`)
+    fetch(`/api/migrationmaps/${PROJECT_ID}/overlay_bounds`),
   ]);
 
   if (!projectRes.ok) throw new Error("project load failed");
@@ -364,21 +455,14 @@ async function loadProject() {
     overlay = null;
   }
 
-  // image_url が相対パス（例: "uploads/foo.png" や "/uploads/foo.png"）の場合に
-  // 同一オリジンの絶対 URL へ正規化する。
-  // バックエンドが絶対 URL を返す場合はそのまま使われる。
   const rawImageUrl = projectData.image_url || "";
   const imageUrl = rawImageUrl.startsWith("http")
     ? rawImageUrl
     : new URL(rawImageUrl, window.location.origin).href;
 
-  // distortableImageOverlay が canvas に描画する際に crossOrigin が必要。
-  // 同一オリジンの場合でも明示的に設定しておくことで
-  // Flask の send_from_directory が CORS ヘッダを返していない場合の
-  // "Tainted canvas" エラーを防ぐ。
-  // distortableImageOverlay が crossOrigin オプションに対応していない場合は
-  // 通常の L.imageOverlay にフォールバックする。
-  const cornerLatLngs = overlayCorners.map((c) => L.latLng(Number(c.lat), Number(c.lng)));
+  const cornerLatLngs = overlayCorners.map((c) =>
+    L.latLng(Number(c.lat), Number(c.lng))
+  );
   const swLatLng = L.latLng(
     Math.min(...cornerLatLngs.map((ll) => ll.lat)),
     Math.min(...cornerLatLngs.map((ll) => ll.lng))
@@ -388,8 +472,7 @@ async function loadProject() {
     Math.max(...cornerLatLngs.map((ll) => ll.lng))
   );
 
-  const useDistortable =
-    typeof L.distortableImageOverlay === "function";
+  const useDistortable = typeof L.distortableImageOverlay === "function";
 
   if (useDistortable) {
     overlay = L.distortableImageOverlay(imageUrl, {
@@ -400,20 +483,23 @@ async function loadProject() {
       editable: false,
       mode: "lock",
       opacity: 0.88,
-      // crossOrigin を明示することで canvas の tainted エラーを防ぐ
       crossOrigin: true,
     }).addTo(map);
   } else {
-    // leaflet-distortableimage が読み込まれていない場合の安全フォールバック
-    console.warn("L.distortableImageOverlay が未定義のため L.imageOverlay にフォールバックします");
-    overlay = L.imageOverlay(imageUrl, L.latLngBounds(swLatLng, neLatLng), {
-      pane: "migrationOverlayPane",
-      opacity: 0.88,
-      crossOrigin: true,
-    }).addTo(map);
+    console.warn(
+      "L.distortableImageOverlay が未定義のため L.imageOverlay にフォールバックします"
+    );
+    overlay = L.imageOverlay(
+      imageUrl,
+      L.latLngBounds(swLatLng, neLatLng),
+      {
+        pane: "migrationOverlayPane",
+        opacity: 0.88,
+        crossOrigin: true,
+      }
+    ).addTo(map);
   }
 
-  // 画像の読み込みエラーを検知してコンソールに出力する
   overlay.on("error", () => {
     console.error(
       "[public.js] オーバーレイ画像の読み込みに失敗しました。image_url を確認してください:",

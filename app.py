@@ -9,7 +9,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.utils import secure_filename
 from PIL import Image
 from flask_mail import Mail, Message
-from models import  AreamapClickEvent, ContactInquiry, Shop, MapProject, MapPoint, MigrationShop, MapShopImages
+from models import  AreamapClickEvent, ContactInquiry, Shop, MapProject, MapPoint, MigrationShop, MapShopImages, BuildingGuide
 from forms import AskForm
 from extensions import db
 from dotenv import load_dotenv
@@ -846,21 +846,57 @@ def api_migrationmaps_shops(project_id: int):
         .all()
     )
 
-    return jsonify({
-        "shops": [
-            {
-                "id": s.id,
-                "shopname": s.shopname,
-                "address": s.address,
-                "floorlevel": s.floorlevel,
-                "tel": s.tel,
-                "instagram_account": s.instagram_account,
-                "lat": float(s.lat),
-                "lng": float(s.lng),
-            }
-            for s in shops
-        ]
-    })
+    guides = (
+        BuildingGuide.query
+        .filter(
+            BuildingGuide.map_project_id == project_id,
+            BuildingGuide.is_active.is_(True)
+        )
+        .all()
+    )
+    # (lat, lng) をキーにした BuildingGuide マップ（小数点 7 桁で正規化）
+    guide_map = {
+        f"{float(g.lat):.7f},{float(g.lng):.7f}": g
+        for g in guides
+    }
+
+    def shop_to_dict(s):
+        key = f"{float(s.lat):.7f},{float(s.lng):.7f}"
+        guide = guide_map.get(key)
+        return {
+            "id": s.id,
+            "shopname": s.shopname,
+            "address": s.address,
+            "floorlevel": s.floorlevel,
+            "tel": s.tel,
+            "instagram_account": s.instagram_account,
+            "description": s.description,
+            "website_url": s.website_url,
+            "lat": float(s.lat),
+            "lng": float(s.lng),
+            "images": [
+                {"id": img.id, "image_url": img.image_url, "sort_order": img.sort_order}
+                for img in s.shopimages
+            ],
+            "building_guide": {
+                "id": guide.id,
+                "building_name": guide.building_name,
+                "image_url": guide.image_url,
+                "floors": [
+                    {
+                        "floorlevel": f.floorlevel,
+                        "area_x": f.area_x,
+                        "area_y": f.area_y,
+                        "area_width": f.area_width,
+                        "area_height": f.area_height,
+                        "sort_order": f.sort_order,
+                    }
+                    for f in guide.floors
+                ],
+            } if guide else None,
+        }
+
+    return jsonify({"shops": [shop_to_dict(s) for s in shops]})
 
 # ----------------------------------------------------------------
 # 【2】ルート定義（既存の MigrationMaps ルート群の末尾に追加）
