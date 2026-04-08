@@ -1,6 +1,7 @@
 const map = L.map("map", {
   zoomControl: true,
   maxZoom: 22,
+  maxBoundsViscosity: 1.0,
 }).setView([35.0, 135.0], 14);
 
 map.createPane("migrationOverlayPane");
@@ -417,9 +418,8 @@ function fitMapForViewport(bounds) {
     paddingBottomRight,
   });
 
-  const restrictedBounds = bounds.pad(isPortrait ? 0.02 : 0.03);
-  map.setMaxBounds(restrictedBounds);
-  map.options.maxBoundsViscosity = 1.0;
+  // イラスト地図の範囲外にパン・ズームアウトできないよう制限
+  map.setMaxBounds(bounds);
 
   const minZoom = map.getBoundsZoom(bounds, false, paddingBottomRight);
   map.setMinZoom(minZoom);
