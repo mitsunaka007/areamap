@@ -415,8 +415,11 @@ btnToggleLocation?.addEventListener("click", () => {
 // ----------------------------------------------------------------
 
 /**
- * イラスト地図の縦横比に合わせて #map コンテナの高さを設定する。
- * Leaflet は invalidateSize() で新サイズを反映する。
+ * イラスト地図の縦横比に応じて #map コンテナの高さを設定する。
+ *
+ * ・正方形 (aspect ≈ 1)  : width=100vw / height=min(100vh,100vw) — 正方形コンテナ
+ * ・縦長  (imgH > imgW)  : width=100vw / height=100vh — 全画面
+ * ・横長  (imgW > imgH)  : width=100vw / height=100vh — 全画面（左右パンで全域表示）
  */
 function applyMapSize(imgW, imgH) {
   const mapEl = document.getElementById("map");
@@ -425,21 +428,74 @@ function applyMapSize(imgW, imgH) {
   const availW = window.innerWidth;
   const availH = window.innerHeight - headerH;
 
-  // 画像の縦横比を保ちつつ、ビューポートに収まる最大サイズを計算
-  const ratio = imgH / imgW;
-  const targetH = Math.min(availH, Math.round(availW * ratio));
-  mapEl.style.height = `${Math.max(targetH, 280)}px`;
+  const aspect = imgW / imgH;
+  const SQUARE_THRESHOLD = 0.15; // ±15% を正方形とみなす
+
+  let mapH;
+  if (Math.abs(aspect - 1) <= SQUARE_THRESHOLD) {
+    // 正方形: コンテナを正方形に（availH を超えない範囲）
+    mapH = Math.min(availH, availW);
+  } else {
+    // 縦長・横長いずれも height=100vh（コンテナで余白が出ないよう全画面）
+    mapH = availH;
+  }
+
+  mapEl.style.height = `${Math.max(mapH, 280)}px`;
   map.invalidateSize({ animate: false });
 }
 
+/**
+ * バウンズを地図に収める。
+ *
+ * ・横長画像 (地理的アスペクト > コンテナアスペクト):
+ *     高さフィットズームを採用 → 縦いっぱいに表示し、左右はパンで閲覧
+ * ・縦長・正方形:
+ *     縦横両方が収まる最小ズームを採用（現行動作と同じ）
+ *
+ * fitBounds の代わりに Mercator ピクセル座標から直接ズームを計算することで
+ * 余白ゼロのぴったりフィットを実現する。
+ */
 function fitMapForViewport(bounds) {
-  // マスクポリゴンが画像外を完全に覆うため、padding は不要。
-  // pad(0) で setMaxBounds もぴったり合わせる。
-  map.fitBounds(bounds, { padding: [0, 0] });
-  map.setMaxBounds(bounds);
+  const mapEl = document.getElementById("map");
+  const containerW = mapEl.offsetWidth || window.innerWidth;
+  const headerEl = document.querySelector("header");
+  const containerH = mapEl.offsetHeight ||
+    (window.innerHeight - (headerEl ? headerEl.offsetHeight : 92));
 
-  const minZoom = map.getBoundsZoom(bounds, false);
-  map.setMinZoom(minZoom);
+  // zoom=0 でのバウンズピクセルサイズ（Mercator 座標系）
+  const nw = map.project(bounds.getNorthWest(), 0);
+  const se = map.project(bounds.getSouthEast(), 0);
+  const boundsW0 = Math.abs(se.x - nw.x);
+  const boundsH0 = Math.abs(se.y - nw.y);
+
+  if (boundsW0 === 0 || boundsH0 === 0) {
+    map.fitBounds(bounds, { padding: [0, 0] });
+    map.setMaxBounds(bounds);
+    return;
+  }
+
+  // 縦横それぞれのフィットズームを計算
+  const zoomW = Math.log2(containerW / boundsW0);
+  const zoomH = Math.log2(containerH / boundsH0);
+
+  // 地理的アスペクト比 (横長なら > 1)
+  const geoAspect = boundsW0 / boundsH0;
+  const viewAspect = containerW / containerH;
+
+  let targetZoom;
+  if (geoAspect > viewAspect) {
+    // 横長: 高さにフィット（左右パン）
+    targetZoom = zoomH;
+  } else {
+    // 縦長・正方形: 全体がコンテナに収まる最小ズーム
+    targetZoom = Math.min(zoomW, zoomH);
+  }
+
+  targetZoom = Math.max(targetZoom, 1);
+
+  map.setView(bounds.getCenter(), targetZoom, { animate: false });
+  map.setMaxBounds(bounds);
+  map.setMinZoom(targetZoom);
 }
 
 async function loadProject() {
