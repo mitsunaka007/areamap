@@ -489,44 +489,14 @@ async function loadProject() {
     Math.max(...cornerLatLngs.map((ll) => ll.lng))
   );
 
-  const useDistortable = typeof L.distortableImageOverlay === "function";
-
-  if (useDistortable) {
-    try {
-      // mode:"lock" / editable:false は v0.21.9 では無効なオプションのため除外
-      overlay = L.distortableImageOverlay(imageUrl, {
-        corners: cornerLatLngs,
-        pane: "migrationOverlayPane",
-        selected: false,
-        suppressToolbar: true,
-        opacity: 0.88,
-        crossOrigin: true,
-      }).addTo(map);
-    } catch (e) {
-      console.warn(
-        "L.distortableImageOverlay の初期化に失敗しました。L.imageOverlay にフォールバックします:",
-        e
-      );
-      overlay = L.imageOverlay(
-        imageUrl,
-        L.latLngBounds(swLatLng, neLatLng),
-        { pane: "migrationOverlayPane", opacity: 0.88, crossOrigin: true }
-      ).addTo(map);
-    }
-  } else {
-    console.warn(
-      "L.distortableImageOverlay が未定義のため L.imageOverlay にフォールバックします"
-    );
-    overlay = L.imageOverlay(
-      imageUrl,
-      L.latLngBounds(swLatLng, neLatLng),
-      {
-        pane: "migrationOverlayPane",
-        opacity: 0.88,
-        crossOrigin: true,
-      }
-    ).addTo(map);
-  }
+  // public.html は表示専用のため L.imageOverlay（標準 Leaflet）を使用する。
+  // leaflet-distortableimage は toolbar 初期化時に Uncaught TypeError を
+  // 発生させるため読み込まない。
+  overlay = L.imageOverlay(
+    imageUrl,
+    L.latLngBounds(swLatLng, neLatLng),
+    { pane: "migrationOverlayPane", opacity: 0.88, crossOrigin: true }
+  ).addTo(map);
 
   overlay.on("error", () => {
     console.error(
