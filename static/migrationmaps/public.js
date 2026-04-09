@@ -30,6 +30,7 @@ let overlayLatLngBounds = null;
 let overlayCorners = null;
 let shopData = [];
 let groupedShopsCache = {};
+const shopMarkers = new Map(); // groupKey → L.marker
 
 let locationEnabled = false;
 let locationWatchId = null;
@@ -195,9 +196,24 @@ function buildFloorGridSection(groupShops, floorlevel) {
 // Building Guide パネル
 // ----------------------------------------------------------------
 
+function iconNormal() {
+  return L.divIcon({ className: "shop-marker-normal", iconSize: [28, 28], iconAnchor: [14, 28] });
+}
+function iconActive() {
+  return L.divIcon({ className: "shop-marker-active", iconSize: [36, 36], iconAnchor: [18, 36] });
+}
+function iconDimmed() {
+  return L.divIcon({ className: "shop-marker-dimmed", iconSize: [16, 16], iconAnchor: [8, 16] });
+}
+
+function resetMarkerIcons() {
+  shopMarkers.forEach((marker) => marker.setIcon(iconNormal()));
+}
+
 function hideBuildingGuide() {
   buildingGuideEl.hidden = true;
   userClosedGuide = true;
+  resetMarkerIcons();
 }
 
 function showBuildingGuide(groupShops, groupKey) {
@@ -280,12 +296,21 @@ function addShopMarkers() {
     return acc;
   }, {});
 
+  shopMarkers.clear();
   Object.entries(groupedShopsCache).forEach(([groupKey, shopsAtSamePoint]) => {
     const lat = Number(shopsAtSamePoint[0].lat);
     const lng = Number(shopsAtSamePoint[0].lng);
-    const marker = L.marker([lat, lng], { pane: "migrationMarkerPane" }).addTo(map);
+    const marker = L.marker([lat, lng], {
+      pane: "migrationMarkerPane",
+      icon: iconNormal(),
+    }).addTo(map);
+
+    shopMarkers.set(groupKey, marker);
 
     marker.on("click", () => {
+      shopMarkers.forEach((m, key) => {
+        m.setIcon(key === groupKey ? iconActive() : iconDimmed());
+      });
       showBuildingGuide(shopsAtSamePoint, groupKey);
     });
   });
