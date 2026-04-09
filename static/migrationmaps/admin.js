@@ -872,6 +872,7 @@ async function loadProject(projectId, imageOnly = false) {
   if (imageOnly) {
     currentProjectId = proj.id;
     $("mapName").value = proj.name;
+    $("r_map_project_id").value = proj.id;
 
     uploaded = {
       image_url: proj.image_url,
@@ -901,6 +902,7 @@ async function loadProject(projectId, imageOnly = false) {
   currentProjectId = proj.id;
   currentAffine = proj.affine;
   $("mapName").value = proj.name;
+  $("r_map_project_id").value = proj.id;
 
   uploaded = {
     image_url: proj.image_url,
@@ -957,6 +959,7 @@ async function loadProject(projectId, imageOnly = false) {
   }
 
   log(`[LOAD] project_id=${proj.id} を読み込みました`);
+  refreshShopList();
 }
 
 async function refreshProjects() {
@@ -1110,6 +1113,7 @@ async function saveToDB(showAlert = true) {
 
   currentProjectId = data.project_id;
   editingProjectEl.textContent = `編集中: #${data.project_id}`;
+  $("r_map_project_id").value = data.project_id;
   setDirty(false);
 
   $("publicLink").innerHTML =
