@@ -928,11 +928,29 @@ def api_migrationmaps_shops(project_id: int):
     if not proj:
         abort(404)
 
+    # イラスト地図の4隅をアフィン変換で緯度経度に変換し、バウンディングボックスを算出
+    corners_xy = [
+        (0, 0),
+        (proj.image_width, 0),
+        (proj.image_width, proj.image_height),
+        (0, proj.image_height),
+    ]
+    latlngs = [_img_to_latlng(proj.a, proj.b, proj.c, proj.d, proj.e, proj.f, x, y)
+               for (x, y) in corners_xy]
+    lats = [lat for lat, lng in latlngs]
+    lngs = [lng for lat, lng in latlngs]
+    sw_lat, sw_lng = min(lats), min(lngs)
+    ne_lat, ne_lng = max(lats), max(lngs)
+
+    # map_project_id ではなく「イラスト地図の表示範囲内にある緯度経度」で絞り込む
     shops = (
         MigrationShop.query
         .filter(
-            MigrationShop.map_project_id == project_id,
-            MigrationShop.is_active.is_(True)
+            MigrationShop.is_active.is_(True),
+            MigrationShop.lat >= sw_lat,
+            MigrationShop.lat <= ne_lat,
+            MigrationShop.lng >= sw_lng,
+            MigrationShop.lng <= ne_lng,
         )
         .order_by(MigrationShop.id.asc())
         .all()
