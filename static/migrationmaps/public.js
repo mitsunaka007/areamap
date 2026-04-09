@@ -8,6 +8,12 @@ map.createPane("migrationOverlayPane");
 map.getPane("migrationOverlayPane").style.zIndex = 450;
 map.getPane("migrationOverlayPane").style.pointerEvents = "none";
 
+// OSM タイルと illustrationOverlay の間にマスク層を挿入（z-index 300）
+// 画像の外側を不透明で塗り、OSM が見えないようにする
+map.createPane("maskPane");
+map.getPane("maskPane").style.zIndex = 300;
+map.getPane("maskPane").style.pointerEvents = "none";
+
 map.createPane("migrationMarkerPane");
 map.getPane("migrationMarkerPane").style.zIndex = 650;
 
@@ -18,6 +24,7 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 }).addTo(map);
 
 let overlay = null;
+let maskLayer = null;
 let projectData = null;
 let overlayLatLngBounds = null;
 let overlayCorners = null;
@@ -426,24 +433,12 @@ function applyMapSize(imgW, imgH) {
 }
 
 function fitMapForViewport(bounds) {
-  const isPortrait = window.innerHeight > window.innerWidth;
+  // マスクポリゴンが画像外を完全に覆うため、padding は不要。
+  // pad(0) で setMaxBounds もぴったり合わせる。
+  map.fitBounds(bounds, { padding: [0, 0] });
+  map.setMaxBounds(bounds);
 
-  const paddingTopLeft = isPortrait ? [18, 12] : [12, 12];
-  const paddingBottomRight = isPortrait ? [18, 24] : [12, 12];
-
-  map.fitBounds(bounds, {
-    paddingTopLeft,
-    paddingBottomRight,
-  });
-
-  // fitBounds のパディング分だけ余白を持たせて setMaxBounds を設定する。
-  // パディングなし（bounds そのまま）にすると、fitBounds 後に
-  // panInsideBounds が発火して L.distortableImageOverlay の
-  // CSS transform が崩れ、オーバーレイが表示されなくなる。
-  const maxBoundsPad = isPortrait ? 0.02 : 0.03;
-  map.setMaxBounds(bounds.pad(maxBoundsPad));
-
-  const minZoom = map.getBoundsZoom(bounds, false, paddingBottomRight);
+  const minZoom = map.getBoundsZoom(bounds, false);
   map.setMinZoom(minZoom);
 }
 
@@ -539,6 +534,32 @@ async function loadProject() {
       imageUrl
     );
   });
+
+  // ---- 画像外の OSM を完全に隠すマスクポリゴン ----
+  // 外側リング: 世界全体を覆う大きな矩形
+  // 内側リング(穴): イラスト地図の実際の4隅（歪み補正された正確な形状）
+  // distortable_corners 順 [NW, NE, SW, SE] を
+  // ポリゴン周回順 NW→NE→SE→SW に並べ替えて穴を定義する
+  if (maskLayer) {
+    map.removeLayer(maskLayer);
+    maskLayer = null;
+  }
+  {
+    const outerRing = [[-85, -180], [-85, 180], [85, 180], [85, -180]];
+    const c = overlayCorners; // [NW, NE, SW, SE]
+    const imageRing = [
+      [Number(c[0].lat), Number(c[0].lng)], // NW
+      [Number(c[1].lat), Number(c[1].lng)], // NE
+      [Number(c[3].lat), Number(c[3].lng)], // SE
+      [Number(c[2].lat), Number(c[2].lng)], // SW
+    ];
+    maskLayer = L.polygon([outerRing, imageRing], {
+      pane: "maskPane",
+      fillColor: "#f7f7f8",
+      fillOpacity: 1,
+      stroke: false,
+    }).addTo(map);
+  }
 
   if (Array.isArray(boundsData.bounds) && boundsData.bounds.length === 2) {
     overlayLatLngBounds = L.latLngBounds(boundsData.bounds);
