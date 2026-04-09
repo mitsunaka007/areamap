@@ -72,8 +72,10 @@
   }
 
   #map {
+    /* JS が applyMapSize() で image_width/height 比に上書きする。
+       ローディング中のフォールバックとして viewport 高さを使う。 */
     height: calc(100dvh - 92px);
-    min-height: 420px;
+    min-height: 280px;
     width: 100%;
   }
 
@@ -95,8 +97,8 @@
 
   @media (max-width: 720px) {
     #map {
-      height: calc(100dvh - 126px);
-      min-height: 520px;
+      /* JS が applyMapSize() で上書きするため min-height のみ残す */
+      min-height: 280px;
     }
 
     .leaflet-control-zoom {

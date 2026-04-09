@@ -407,6 +407,24 @@ btnToggleLocation?.addEventListener("click", () => {
 // 地図・オーバーレイ読み込み
 // ----------------------------------------------------------------
 
+/**
+ * イラスト地図の縦横比に合わせて #map コンテナの高さを設定する。
+ * Leaflet は invalidateSize() で新サイズを反映する。
+ */
+function applyMapSize(imgW, imgH) {
+  const mapEl = document.getElementById("map");
+  const headerEl = document.querySelector("header");
+  const headerH = headerEl ? headerEl.offsetHeight : 92;
+  const availW = window.innerWidth;
+  const availH = window.innerHeight - headerH;
+
+  // 画像の縦横比を保ちつつ、ビューポートに収まる最大サイズを計算
+  const ratio = imgH / imgW;
+  const targetH = Math.min(availH, Math.round(availW * ratio));
+  mapEl.style.height = `${Math.max(targetH, 280)}px`;
+  map.invalidateSize({ animate: false });
+}
+
 function fitMapForViewport(bounds) {
   const isPortrait = window.innerHeight > window.innerWidth;
 
@@ -529,6 +547,10 @@ async function loadProject() {
     overlayLatLngBounds = L.latLngBounds(latlngs);
   }
 
+  // イラスト地図の縦横比に合わせてコンテナサイズを調整してから fitBounds
+  if (projectData.image_width && projectData.image_height) {
+    applyMapSize(projectData.image_width, projectData.image_height);
+  }
   fitMapForViewport(overlayLatLngBounds);
 }
 
@@ -553,7 +575,8 @@ async function loadShops() {
     locationStatusEl.textContent = "現在地表示はOFFです";
 
     window.addEventListener("resize", () => {
-      if (overlayLatLngBounds) {
+      if (overlayLatLngBounds && projectData?.image_width && projectData?.image_height) {
+        applyMapSize(projectData.image_width, projectData.image_height);
         fitMapForViewport(overlayLatLngBounds);
       }
     });
