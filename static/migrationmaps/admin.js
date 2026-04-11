@@ -15,6 +15,10 @@ const tbody = $("pointsTbody");
 const projectListEl = $("projectList");
 const editingProjectEl = $("editingProject");
 const currentLocationBadge = $("currentLocationBadge");
+const registeredShopListEl = document.getElementById("registeredShopList");
+const shopFormTitleEl = document.getElementById("shopFormTitle");
+const shopRegisterFormEl = document.getElementById("shopRegisterForm");
+const shopRegisterResultEl = document.getElementById("shopRegisterResult");
 
 function log(msg) {
   logEl.textContent += msg + "\n";
@@ -850,13 +854,9 @@ if (initialProjectId) {
 }
 let currentEditingShopId = null;
 
-const shopMenuToggle = document.getElementById("shopMenuToggle");
-const shopMenuBody = document.getElementById("shopMenuBody");
-const shopMenuToggleIcon = document.getElementById("shopMenuToggleIcon");
-const registeredShopListEl = document.getElementById("registeredShopList");
-const shopFormTitleEl = document.getElementById("shopFormTitle");
-const shopRegisterFormEl = document.getElementById("shopRegisterForm");
-const shopRegisterResultEl = document.getElementById("shopRegisterResult");
+// const shopMenuToggle = document.getElementById("shopMenuToggle");
+// const shopMenuBody = document.getElementById("shopMenuBody");
+// const shopMenuToggleIcon = document.getElementById("shopMenuToggleIcon");
 
 function setShopMenuOpen(open) {
   shopMenuBody.hidden = !open;
@@ -986,4 +986,4 @@ registeredShopListEl?.addEventListener("click", async (ev) => {
 });
 
 document.getElementById("btnRefreshShopList")?.addEventListener("click", refreshShopList);
-document.getElementById("btnResetShopForm")?.addEventListener("click", () => resetShopForm(true));
+document.getElementById("btnResetShopForm")?.addEventListener("click", () => resetShopForm(true));
