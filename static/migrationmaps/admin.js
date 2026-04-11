@@ -980,4 +980,4 @@ registeredShopListEl?.addEventListener("click", async (ev) => {
 });
 
 document.getElementById("btnRefreshShopList")?.addEventListener("click", refreshShopList);
-document.getElementById("btnResetShopForm")?.addEventListener("click", () => resetShopForm(true));
+document.getElementById("btnResetShopForm")?.addEventListener("click", () => resetShopForm(true));
