@@ -566,7 +566,10 @@ $("btnSave")?.addEventListener("click", async () => {
     return;
   }
 
-  const imageFilename = uploaded.image_url.split("/").pop();
+  // Cloudinary 画像はフル URL をそのまま保存。ローカル画像はファイル名のみ。
+  const imageFilename = uploaded.is_cloudinary
+    ? uploaded.image_url
+    : uploaded.image_url.split("/").pop();
   const body = {
     project_id: currentProjectId,
     name,
@@ -678,6 +681,120 @@ $("btnCurrentLocation")?.addEventListener("click", () => {
     { enableHighAccuracy: true, maximumAge: 5000 }
   );
 });
+
+// ---- 新規作成 ----
+function resetToNew() {
+  currentProjectId = null;
+  currentAffine = null;
+  uploaded = null;
+  nextPointIndex = 1;
+
+  points.length = 0;
+  markers.forEach(m => map.removeLayer(m));
+  markers.clear();
+
+  if (overlay) { map.removeLayer(overlay); overlay = null; }
+  if (currentLocationMarker) { map.removeLayer(currentLocationMarker); currentLocationMarker = null; }
+  if (geolocationWatchId !== null) {
+    navigator.geolocation.clearWatch(geolocationWatchId);
+    geolocationWatchId = null;
+  }
+  currentLocation = null;
+
+  if ($("mapName")) $("mapName").value = "";
+  if ($("fileInput")) $("fileInput").value = "";
+  if ($("publicLink")) $("publicLink").innerHTML = "";
+  editingProjectEl.textContent = "新規作成";
+  currentLocationBadge.textContent = "現在地: 未取得";
+
+  if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+  canvas.width = 0;
+  canvas.height = 0;
+
+  setDirty(false);
+  redrawTable();
+  log("[NEW] 新規作成モードに切り替えました");
+}
+
+$("btnNewProject")?.addEventListener("click", () => {
+  if (uploaded || points.length > 0) {
+    if (!confirm("現在の作業内容を破棄して新規作成しますか？")) return;
+  }
+  resetToNew();
+});
+
+// ---- Cloudinary 画像選択 ----
+const cloudinaryModal = $("cloudinaryModal");
+const cloudinaryGrid  = $("cloudinaryGrid");
+
+$("btnCloseCloudinaryModal")?.addEventListener("click", () => {
+  cloudinaryModal.hidden = true;
+});
+
+cloudinaryModal?.addEventListener("click", (ev) => {
+  if (ev.target === cloudinaryModal) cloudinaryModal.hidden = true;
+});
+
+$("btnPickCloudinary")?.addEventListener("click", async () => {
+  cloudinaryModal.hidden = false;
+  cloudinaryGrid.innerHTML = '<div class="modal-loading">読み込み中…</div>';
+
+  try {
+    const res  = await fetch("/api/migrationmaps/cloudinary-images");
+    const data = await res.json();
+
+    if (!res.ok) {
+      cloudinaryGrid.innerHTML = `<div class="modal-loading">エラー: ${data.error || res.status}</div>`;
+      return;
+    }
+
+    if (!data.images?.length) {
+      cloudinaryGrid.innerHTML = '<div class="modal-loading">画像が見つかりませんでした</div>';
+      return;
+    }
+
+    cloudinaryGrid.innerHTML = "";
+    for (const image of data.images) {
+      const div = document.createElement("div");
+      div.className = "cloudinary-thumb";
+      div.innerHTML = `
+        <img src="${image.thumbnail_url}" alt="${image.public_id}" loading="lazy" />
+        <div class="cloudinary-thumb-label">${image.public_id}</div>
+      `;
+      div.addEventListener("click", () => {
+        selectCloudinaryImage(image);
+        cloudinaryModal.hidden = true;
+      });
+      cloudinaryGrid.appendChild(div);
+    }
+  } catch (err) {
+    cloudinaryGrid.innerHTML = `<div class="modal-loading">通信エラー: ${err.message}</div>`;
+  }
+});
+
+function selectCloudinaryImage(image) {
+  uploaded = {
+    image_url: image.secure_url,
+    image_width: image.width,
+    image_height: image.height,
+    is_cloudinary: true,
+  };
+
+  points.length = 0;
+  markers.forEach(m => map.removeLayer(m));
+  markers.clear();
+  nextPointIndex = 1;
+  currentProjectId = null;
+  editingProjectEl.textContent = "新規作成";
+
+  img = new Image();
+  img.onload = () => setCanvasToImage(img);
+  img.src = image.secure_url;
+
+  setDirty(true);
+  redrawTable();
+  log(`[CLOUDINARY] 画像を選択: ${image.public_id} (${image.width}×${image.height})`);
+}
 
 // 初期実行
 redrawTable();
