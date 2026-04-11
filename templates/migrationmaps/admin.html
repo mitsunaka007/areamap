@@ -5,7 +5,6 @@
   <title>MigrationMaps 管理画面</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="/static/migrationmaps/admin.css" />
   <style>
     body { font-family: system-ui, sans-serif; margin: 0; background:#f7f7f8; }
     header { padding: 12px 16px; border-bottom: 1px solid #ddd; display:flex; gap:12px; align-items:center; background:#fff; }
@@ -166,77 +165,43 @@
       font-size: 11px;
       color: #666;
     }
-    /* ---- Cloudinary 画像ピッカーモーダル ---- */
-    #cldPickerOverlay {
-      display: none;
-      position: fixed; inset: 0;
-      background: rgba(0,0,0,.55);
-      z-index: 9000;
-      align-items: center;
-      justify-content: center;
+    /* ---- Cloudinary picker modal ---- */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.55);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 9999;
     }
-    #cldPickerOverlay.open { display: flex; }
-    #cldPickerBox {
-      background: #fff;
-      border-radius: 14px;
-      width: min(860px, 96vw);
-      max-height: 86vh;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      box-shadow: 0 8px 40px rgba(0,0,0,.28);
+    .modal-overlay[hidden] { display: none; }
+    .modal-box {
+      background: #fff; border-radius: 14px; padding: 20px;
+      width: min(92vw, 860px); max-height: 85vh;
+      display: flex; flex-direction: column; gap: 12px;
     }
-    #cldPickerHeader {
-      padding: 14px 16px;
-      border-bottom: 1px solid #eee;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
+    .modal-title {
+      font-weight: 700; font-size: 15px; margin: 0;
     }
-    #cldPickerHeader strong { font-size: 14px; }
-    #cldFolderRow {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      gap: 8px;
+    .modal-close {
+      margin-left: auto; background: none; border: none;
+      font-size: 20px; cursor: pointer; line-height: 1;
     }
-    #cldFolderRow label { font-size: 12px; color: #555; white-space: nowrap; }
-    #cldFolderSelect {
-      font-size: 12px; padding: 4px 8px;
-      border: 1px solid #ccc; border-radius: 8px;
-      background: #fff; cursor: pointer; flex: 1;
-    }
-    #cldPickerClose {
-      background: none; border: none; font-size: 20px;
-      cursor: pointer; line-height: 1; padding: 2px 6px; color:#555;
-    }
-    #cldPickerStatus { font-size: 12px; color: #888; width: 100%; }
-    #cldPickerGrid {
-      padding: 14px;
+    .modal-header { display: flex; align-items: center; gap: 8px; }
+    .cloudinary-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-      gap: 10px;
-      overflow-y: auto;
-      flex: 1;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 8px; overflow-y: auto; flex: 1;
     }
-    .cld-thumb {
-      border: 2px solid #e4e4e7;
-      border-radius: 10px;
-      overflow: hidden;
-      cursor: pointer;
-      background: #f7f7f8;
-      transition: border-color .15s;
+    .cloudinary-thumb {
+      border: 2px solid #e5e7eb; border-radius: 8px; overflow: hidden;
+      cursor: pointer; background: #f9fafb;
+      display: flex; flex-direction: column;
     }
-    .cld-thumb:hover { border-color: #2563eb; }
-    .cld-thumb img {
-      width: 100%; aspect-ratio: 1; object-fit: cover; display: block;
+    .cloudinary-thumb:hover { border-color: #2563eb; }
+    .cloudinary-thumb img { width: 100%; height: 120px; object-fit: contain; display: block; }
+    .cloudinary-thumb-label {
+      font-size: 10px; color: #555; padding: 4px 6px;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
-    .cld-thumb-name {
-      font-size: 10px; padding: 4px 6px;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-      color: #444;
-    }
+    .modal-loading { color: #666; font-size: 13px; padding: 20px; text-align: center; }
 
     /* ---- Responsive (phone/tablet) ---- */
     @media (max-width: 1024px) {
@@ -416,7 +381,9 @@
     <header>
       <div class="row">
         <label>地図名 <input id="mapName" type="text" placeholder="例：FukuiSta_駅前イラスト" /></label>
-        <button type="button" id="btnCloudinaryPicker">🖼 画像を選択</button>
+        <button id="btnNewProject" class="small-btn">新規作成</button>
+        <input id="fileInput" type="file" accept="image/*" />
+        <button id="btnPickCloudinary" class="small-btn">画像を選択</button>
         <button id="btnSetCenter">中心を選択</button>
         <button id="btnAddPoint">地点を追加</button>
         <button id="btnCurrentLocation">現在地を取得</button>
@@ -451,27 +418,21 @@
     <div class="content" style="padding:0;"><div id="map"></div></div>
   </section>
 </main>
-
-<!-- Cloudinary 画像ピッカーモーダル -->
-<div id="cldPickerOverlay">
-  <div id="cldPickerBox">
-    <div id="cldPickerHeader">
-      <strong>Cloudinary から画像を選択</strong>
-      <div id="cldFolderRow">
-        <label for="cldFolderSelect">フォルダ:</label>
-        <select id="cldFolderSelect">
-          <option value="">（すべて）</option>
-        </select>
-      </div>
-      <button type="button" id="cldPickerClose">×</button>
-      <span id="cldPickerStatus"></span>
+<!-- Cloudinary 画像選択モーダル -->
+<div id="cloudinaryModal" class="modal-overlay" hidden>
+  <div class="modal-box">
+    <div class="modal-header">
+      <p class="modal-title">Cloudinary から画像を選択</p>
+      <button class="modal-close" id="btnCloseCloudinaryModal" aria-label="閉じる">✕</button>
     </div>
-    <div id="cldPickerGrid"></div>
+    <div id="cloudinaryGrid" class="cloudinary-grid">
+      <div class="modal-loading">読み込み中…</div>
+    </div>
   </div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="/static/migrationmaps/admin.js"></script>
+<script src="/static/migrationmaps/admin.js" defer></script>
 <script>
   for (let i = 1; i <= 5; i++) {
     document.getElementById(`r_img${i}`)
