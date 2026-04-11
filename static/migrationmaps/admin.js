@@ -3,12 +3,8 @@ let mode = null;
 let nextPointIndex = 1;
 let currentProjectId = null;
 let currentAffine = null;
-
 let currentLocation = null;
 let geolocationWatchId = null;
-
-// ---- キー操作で選択中の地点 ----
-let selectedPointLabel = null;
 
 const points = [];
 
@@ -56,43 +52,23 @@ function sortPoints() {
   });
 }
 
-// ---- 選択中ポイントのハイライト更新 ----
-function updateRowHighlight() {
-  document.querySelectorAll("#pointsTbody tr").forEach(tr => {
-    tr.classList.toggle("row-selected", tr.dataset.label === selectedPointLabel);
-  });
-}
-
-function selectPoint(label) {
-  selectedPointLabel = label;
-  updateRowHighlight();
-  if (label) {
-    log(`[SELECT] ${label} を選択中（矢印キーで移動、Shiftで10倍）`);
-  }
-}
-
 function redrawTable() {
   sortPoints();
   tbody.innerHTML = "";
 
   for (const p of points) {
     const ok = p.img_ok && p.ll_ok;
-    const isSelected = p.label === selectedPointLabel;
     const tr = document.createElement("tr");
-    tr.dataset.label = p.label;
-    if (isSelected) tr.classList.add("row-selected");
-
     tr.innerHTML = `
-      <td>
-        <button type="button" class="small-btn btnSelectPoint ${isSelected ? "btn-selected" : ""}" data-label="${p.label}">
-          ${p.label}
-        </button>
-      </td>
+      <td>${p.label}</td>
       <td>
         ${p.img_ok ? `${Number(p.img_x).toFixed(1)}, ${Number(p.img_y).toFixed(1)}` : "-"}
+        <div style="margin-top:4px; font-size:11px; color:#888;">
+          画像上のマーカーをドラッグで移動できます
+        </div>
         <div style="margin-top:4px;">
           <button type="button" class="small-btn btnSelectOnImage" data-label="${p.label}">
-            画像で再設定
+            クリックで再設定
           </button>
         </div>
       </td>
@@ -142,24 +118,9 @@ function redrawTable() {
     `;
     tbody.appendChild(tr);
   }
-
-  // 3点以上揃ったら仮プレビューを自動更新
-  tryAutoPreview();
 }
 
 tbody.addEventListener("click", (ev) => {
-  // ラベルボタンクリックで選択
-  const selectBtn = ev.target.closest(".btnSelectPoint");
-  if (selectBtn) {
-    const label = selectBtn.dataset.label;
-    if (selectedPointLabel === label) {
-      selectPoint(null); // 再クリックで選択解除
-    } else {
-      selectPoint(label);
-    }
-    return;
-  }
-
   const assignBtn = ev.target.closest(".btnAssignOSM");
   if (assignBtn) {
     const p = ensurePoint(assignBtn.dataset.label, assignBtn.dataset.kind);
@@ -209,187 +170,37 @@ tbody.addEventListener("click", (ev) => {
   }
 });
 
-// ---- 矢印キーで選択中ポイントを微調整 ----
-const KEY_STEP_BASE = 0.000005; // 約0.5m
-
-document.addEventListener("keydown", (ev) => {
-  if (!selectedPointLabel) return;
-  if (!["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(ev.key)) return;
-
-  // テキスト入力中は無効
-  const tag = document.activeElement?.tagName?.toLowerCase();
-  if (tag === "input" || tag === "textarea") return;
-
-  ev.preventDefault();
-
-  const p = points.find(x => x.label === selectedPointLabel);
-  if (!p || !p.ll_ok) {
-    log(`[KEY] ${selectedPointLabel} の緯度経度がまだ設定されていません`);
-    return;
-  }
-
-  const step = ev.shiftKey ? KEY_STEP_BASE * 10 : KEY_STEP_BASE;
-
-  if (ev.key === "ArrowUp")    p.lat += step;
-  if (ev.key === "ArrowDown")  p.lat -= step;
-  if (ev.key === "ArrowRight") p.lng += step;
-  if (ev.key === "ArrowLeft")  p.lng -= step;
-
-  setMarker(p.label, [p.lat, p.lng], p.kind);
-  setDirty(true);
-  redrawTable();
-
-  const stepM = ev.shiftKey ? "±5m" : "±0.5m";
-  log(`[KEY] ${p.label} → ${p.lat.toFixed(7)}, ${p.lng.toFixed(7)} (${stepM})`);
-});
-
-// ---- 仮プレビュー自動更新 ----
-let autoPreviewEnabled = false;
-
-function tryAutoPreview() {
-  if (!autoPreviewEnabled) return;
-  if (!currentProjectId) return;
-  const ready = points.filter(p => p.img_ok && p.ll_ok);
-  if (ready.length < 3) return;
-  // 保存せずにオーバーレイだけ更新（仮計算）
-  refreshOverlayFromPoints();
-}
-
-function refreshOverlayFromPoints() {
-  const ready = points.filter(p => p.img_ok && p.ll_ok);
-  if (ready.length < 3) return;
-
-  // クライアント側でアフィン係数を仮計算（保存は行わない）
-  // ※ サーバー側と同じ計算をJS側で再現する
-  try {
-    const affine = fitAffineJS(ready);
-    currentAffine = affine;
-    updateCurrentLocationOnCanvas();
-    if (uploaded) {
-      updateOverlayFromAffine(affine);
-    }
-  } catch (e) {
-    // 計算失敗時は無視
-  }
-}
-
-// --- JS側アフィン計算（Python側の _fit_affine と同等） ---
-function fitAffineJS(pts) {
-  // WebMercator変換
-  const R = 6378137.0;
-  function toMercator(lat, lng) {
-    const x = R * lng * Math.PI / 180;
-    const clipped = Math.max(Math.min(lat, 85.05112878), -85.05112878);
-    const y = R * Math.log(Math.tan(Math.PI / 4 + clipped * Math.PI / 360));
-    return [x, y];
-  }
-
-  const n = pts.length;
-  // 最小二乗法で A * coef = b を解く（単純な実装）
-  // A: 2n x 6, b: 2n x 1
-  // X = a*x + b*y + c
-  // Y = d*x + e*y + f
-
-  const rows = [];
-  const bVec = [];
-  for (const p of pts) {
-    const [X, Y] = toMercator(p.lat, p.lng);
-    rows.push([p.img_x, p.img_y, 1, 0, 0, 0]);
-    bVec.push(X);
-    rows.push([0, 0, 0, p.img_x, p.img_y, 1]);
-    bVec.push(Y);
-  }
-
-  // 正規方程式 (A^T A) coef = A^T b
-  const AT = transpose(rows);
-  const ATA = matMul(AT, rows);
-  const ATb = matVecMul(AT, bVec);
-  const coef = solveLinear6(ATA, ATb);
-
-  return { a: coef[0], b: coef[1], c: coef[2], d: coef[3], e: coef[4], f: coef[5] };
-}
-
-function transpose(M) {
-  const rows = M.length, cols = M[0].length;
-  const T = Array.from({ length: cols }, () => Array(rows).fill(0));
-  for (let i = 0; i < rows; i++)
-    for (let j = 0; j < cols; j++)
-      T[j][i] = M[i][j];
-  return T;
-}
-
-function matMul(A, B) {
-  const r = A.length, k = B.length, c = B[0].length;
-  const C = Array.from({ length: r }, () => Array(c).fill(0));
-  for (let i = 0; i < r; i++)
-    for (let j = 0; j < c; j++)
-      for (let l = 0; l < k; l++)
-        C[i][j] += A[i][l] * B[l][j];
-  return C;
-}
-
-function matVecMul(A, v) {
-  return A.map(row => row.reduce((s, a, j) => s + a * v[j], 0));
-}
-
-function solveLinear6(A, b) {
-  // ガウス消去法（6x6）
-  const n = 6;
-  const M = A.map((row, i) => [...row, b[i]]);
-  for (let col = 0; col < n; col++) {
-    let pivot = col;
-    for (let row = col + 1; row < n; row++)
-      if (Math.abs(M[row][col]) > Math.abs(M[pivot][col])) pivot = row;
-    [M[col], M[pivot]] = [M[pivot], M[col]];
-    const d = M[col][col];
-    if (Math.abs(d) < 1e-14) throw new Error("singular");
-    for (let j = col; j <= n; j++) M[col][j] /= d;
-    for (let row = 0; row < n; row++) {
-      if (row === col) continue;
-      const f = M[row][col];
-      for (let j = col; j <= n; j++) M[row][j] -= f * M[col][j];
-    }
-  }
-  return M.map(row => row[n]);
-}
-
-function updateOverlayFromAffine(affine) {
-  if (!uploaded || !overlay) return;
-
-  // 元画像の四隅を逆変換して地図上の緯度経度を得る
-  const R = 6378137.0;
-  function mercatorToLatLng(X, Y) {
-    const lng = (X / R) * 180 / Math.PI;
-    const lat = (2 * Math.atan(Math.exp(Y / R)) - Math.PI / 2) * 180 / Math.PI;
-    return [lat, lng];
-  }
-
-  const { a, b, c, d, e, f } = affine;
-  const corners = [
-    [0, 0],
-    [uploaded.image_width, 0],
-    [uploaded.image_width, uploaded.image_height],
-    [0, uploaded.image_height],
-  ].map(([x, y]) => {
-    const X = a * x + b * y + c;
-    const Y = d * x + e * y + f;
-    return mercatorToLatLng(X, Y);
-  });
-
-  const lats = corners.map(c => c[0]);
-  const lngs = corners.map(c => c[1]);
-  const sw = [Math.min(...lats), Math.min(...lngs)];
-  const ne = [Math.max(...lats), Math.max(...lngs)];
-  const newBounds = [sw, ne];
-
-  overlay.setBounds(newBounds);
-  map.fitBounds(newBounds);
-}
-
 const canvas = $("imgCanvas");
 const ctx = canvas.getContext("2d");
 let img = new Image();
 let canvasScale = 1;
+
+// ---- ドラッグ状態 ----
+let dragState = null; // { point } ドラッグ中の点
+const DRAG_HIT_RADIUS = 14; // px (canvas座標)
+
+function getPointAtCanvasPos(cx, cy) {
+  // center を優先してヒット判定
+  const ordered = [...points].sort((a, b) => {
+    if (a.label === "center") return -1;
+    if (b.label === "center") return 1;
+    return 0;
+  });
+  for (const p of ordered) {
+    if (!p.img_ok) continue;
+    const px = p.img_x * canvasScale;
+    const py = p.img_y * canvasScale;
+    if (Math.sqrt((cx - px) ** 2 + (cy - py) ** 2) <= DRAG_HIT_RADIUS) return p;
+  }
+  return null;
+}
+
+function getCanvasPos(ev) {
+  const rect = canvas.getBoundingClientRect();
+  const clientX = ev.touches ? ev.touches[0].clientX : ev.clientX;
+  const clientY = ev.touches ? ev.touches[0].clientY : ev.clientY;
+  return { cx: clientX - rect.left, cy: clientY - rect.top };
+}
 
 function setCanvasToImage(image) {
   const maxW = Math.min(900, window.innerWidth * 0.30);
@@ -412,19 +223,20 @@ function drawMarkersOnCanvas() {
 
     const x = p.img_x * canvasScale;
     const y = p.img_y * canvasScale;
-    const isSelected = p.label === selectedPointLabel;
+
+    const isDragging = dragState && dragState.point.label === p.label;
 
     ctx.beginPath();
-    ctx.arc(x, y, isSelected ? 9 : 6, 0, Math.PI * 2);
+    ctx.arc(x, y, isDragging ? 9 : 6, 0, Math.PI * 2);
     ctx.fillStyle = p.kind === "center" ? "red" : "yellow";
     ctx.fill();
 
-    ctx.strokeStyle = isSelected ? "#00cfff" : "black";
-    ctx.lineWidth = isSelected ? 3 : 2;
+    ctx.strokeStyle = isDragging ? "white" : "black";
+    ctx.lineWidth = isDragging ? 3 : 2;
     ctx.stroke();
 
     ctx.fillStyle = "black";
-    ctx.font = `${isSelected ? "bold " : ""}12px sans-serif`;
+    ctx.font = "12px sans-serif";
     ctx.fillText(p.label, x + 8, y - 8);
   }
 
@@ -447,20 +259,92 @@ function drawMarkersOnCanvas() {
   }
 }
 
+// ---- canvas ドラッグ＆ドロップ ----
+canvas.addEventListener("mousedown", (ev) => {
+  if (!uploaded || mode) return; // mode中はクリック新規配置優先
+  const { cx, cy } = getCanvasPos(ev);
+  const p = getPointAtCanvasPos(cx, cy);
+  if (!p) return;
+  dragState = { point: p };
+  canvas.style.cursor = "grabbing";
+  ev.preventDefault();
+});
+
+canvas.addEventListener("mousemove", (ev) => {
+  if (!uploaded) return;
+  const { cx, cy } = getCanvasPos(ev);
+
+  if (dragState) {
+    // ドラッグ中: 座標を即時更新して再描画
+    dragState.point.img_x = Math.max(0, Math.min(uploaded.image_width,  cx / canvasScale));
+    dragState.point.img_y = Math.max(0, Math.min(uploaded.image_height, cy / canvasScale));
+    drawMarkersOnCanvas();
+    ev.preventDefault();
+    return;
+  }
+
+  // ホバー: マーカーの上ならカーソル変更
+  const p = getPointAtCanvasPos(cx, cy);
+  canvas.style.cursor = p ? "grab" : (mode ? "crosshair" : "default");
+});
+
+canvas.addEventListener("mouseup", (ev) => {
+  if (!dragState) return;
+  const p = dragState.point;
+  dragState = null;
+  canvas.style.cursor = "default";
+  setDirty(true);
+  redrawTable();
+  log(`[DRAG] ${p.label} → (${p.img_x.toFixed(1)}, ${p.img_y.toFixed(1)})`);
+});
+
+canvas.addEventListener("mouseleave", () => {
+  if (!dragState) return;
+  const p = dragState.point;
+  dragState = null;
+  canvas.style.cursor = "default";
+  setDirty(true);
+  redrawTable();
+  log(`[DRAG] ${p.label} → (${p.img_x.toFixed(1)}, ${p.img_y.toFixed(1)})`);
+});
+
+// タッチ対応
+canvas.addEventListener("touchstart", (ev) => {
+  if (!uploaded || mode) return;
+  const { cx, cy } = getCanvasPos(ev);
+  const p = getPointAtCanvasPos(cx, cy);
+  if (!p) return;
+  dragState = { point: p };
+  ev.preventDefault();
+}, { passive: false });
+
+canvas.addEventListener("touchmove", (ev) => {
+  if (!dragState) return;
+  const { cx, cy } = getCanvasPos(ev);
+  dragState.point.img_x = Math.max(0, Math.min(uploaded.image_width,  cx / canvasScale));
+  dragState.point.img_y = Math.max(0, Math.min(uploaded.image_height, cy / canvasScale));
+  drawMarkersOnCanvas();
+  ev.preventDefault();
+}, { passive: false });
+
+canvas.addEventListener("touchend", () => {
+  if (!dragState) return;
+  const p = dragState.point;
+  dragState = null;
+  setDirty(true);
+  redrawTable();
+  log(`[DRAG] ${p.label} → (${p.img_x.toFixed(1)}, ${p.img_y.toFixed(1)})`);
+});
+
+// ---- 既存の canvas click (新規点配置 / edit-point モード) ----
 canvas.addEventListener("click", (ev) => {
   if (!uploaded) {
     alert("先に画像をアップロードまたは保存済み地図を読み込んでください");
     return;
   }
-  if (!mode) {
-    alert("「中心を選択」または「地点を追加」を押してください");
-    return;
-  }
+  if (!mode) return; // モードなし = ドラッグ完了後などは何もしない
 
-  const rect = canvas.getBoundingClientRect();
-  const cx = ev.clientX - rect.left;
-  const cy = ev.clientY - rect.top;
-
+  const { cx, cy } = getCanvasPos(ev);
   const img_x = cx / canvasScale;
   const img_y = cy / canvasScale;
 
@@ -510,57 +394,19 @@ let overlay = null;
 let currentLocationMarker = null;
 let pendingAssign = null;
 
-// ---- マーカーをドラッグ可能にして位置を更新 ----
 function setMarker(label, latlng, kind) {
   if (markers.has(label)) {
     markers.get(label).setLatLng(latlng);
   } else {
-    const m = L.marker(latlng, { draggable: true }).addTo(map);
+    const m = L.marker(latlng, { draggable: false }).addTo(map);
     m.bindPopup(`${label}`);
-
-    // ドラッグ中: リアルタイムで点データを更新
-    m.on("drag", (e) => {
-      const ll = e.target.getLatLng();
-      const p = points.find(x => x.label === label);
-      if (p) {
-        p.lat = ll.lat;
-        p.lng = ll.lng;
-        p.ll_ok = true;
-      }
-      drawMarkersOnCanvas();
-      // ドラッグ中は仮プレビューをリアルタイム更新
-      const ready = points.filter(pt => pt.img_ok && pt.ll_ok);
-      if (ready.length >= 3 && uploaded && overlay) {
-        try {
-          const affine = fitAffineJS(ready);
-          currentAffine = affine;
-          updateOverlayFromAffine(affine);
-          updateCurrentLocationOnCanvas();
-        } catch (e) { /* 無視 */ }
-      }
-    });
-
-    // ドラッグ終了: テーブル更新・ダーティフラグ
-    m.on("dragend", (e) => {
-      const ll = e.target.getLatLng();
-      const p = points.find(x => x.label === label);
-      if (p) {
-        p.lat = ll.lat;
-        p.lng = ll.lng;
-        p.ll_ok = true;
-        log(`[DRAG] ${label} → ${p.lat.toFixed(7)}, ${p.lng.toFixed(7)}`);
-      }
-      setDirty(true);
-      redrawTable();
-    });
-
     markers.set(label, m);
   }
 }
 
 function pickOSMTarget(label, kind) {
   pendingAssign = { label, kind };
-  log(`[OSM] 次のクリックで ${label} の緯度経度を割当（またはマーカーをドラッグして調整）`);
+  log(`[OSM] 次のクリックで ${label} の緯度経度を割当`);
 }
 
 map.on("click", (e) => {
@@ -585,7 +431,7 @@ map.on("click", (e) => {
 $("btnSetCenter").addEventListener("click", () => {
   mode = "center";
   ensurePoint("center", "center");
-  log("中心：画像をクリックしてください。その後OSMクリックまたはドラッグで緯度経度を設定できます");
+  log("中心：画像をクリックしてください。その後OSMクリックまたは手入力で緯度経度を設定できます");
   redrawTable();
 });
 
@@ -593,134 +439,43 @@ $("btnAddPoint").addEventListener("click", () => {
   mode = "point";
   const label = `p${nextPointIndex}`;
   ensurePoint(label, "point");
-  log(`地点 ${label}：画像をクリックしてください。その後OSMクリックまたはドラッグで緯度経度を設定できます`);
+  log(`地点 ${label}：画像をクリックしてください。その後OSMクリックまたは手入力で緯度経度を設定できます`);
   redrawTable();
 });
 
-// ---- Cloudinary 画像ピッカー ----
-const cldOverlay      = document.getElementById("cldPickerOverlay");
-const cldGrid         = document.getElementById("cldPickerGrid");
-const cldStatus       = document.getElementById("cldPickerStatus");
-const cldFolderSelect = document.getElementById("cldFolderSelect");
+$("fileInput").addEventListener("change", async (ev) => {
+  const file = ev.target.files?.[0];
+  if (!file) return;
 
-function closeCldPicker() {
-  cldOverlay.classList.remove("open");
-}
-
-document.getElementById("cldPickerClose").addEventListener("click", closeCldPicker);
-cldOverlay.addEventListener("click", (ev) => { if (ev.target === cldOverlay) closeCldPicker(); });
-
-async function cldLoadImages(folder) {
-  cldGrid.innerHTML = "";
-  cldStatus.textContent = "読み込み中…";
-  try {
-    const url = folder
-      ? `/api/migrationmaps/cloudinary-images?folder=${encodeURIComponent(folder)}`
-      : "/api/migrationmaps/cloudinary-images";
-    const res = await fetch(url);
-    const data = await res.json();
-    if (!res.ok) {
-      cldStatus.textContent = data.error || "取得に失敗しました";
-      return;
-    }
-    if (!data.images?.length) {
-      cldStatus.textContent = "画像が見つかりません";
-      return;
-    }
-    cldStatus.textContent = `${data.images.length} 件`;
-    for (const item of data.images) {
-      const thumb = document.createElement("div");
-      thumb.className = "cld-thumb";
-      thumb.innerHTML = `<img src="${item.secure_url}" loading="lazy" /><div class="cld-thumb-name">${item.display_name}</div>`;
-      thumb.addEventListener("click", () => selectCloudinaryImage(item));
-      cldGrid.appendChild(thumb);
-    }
-  } catch (err) {
-    cldStatus.textContent = "通信エラー: " + err.message;
-  }
-}
-
-cldFolderSelect.addEventListener("change", () => {
-  cldLoadImages(cldFolderSelect.value);
-});
-
-document.getElementById("btnCloudinaryPicker").addEventListener("click", async () => {
   const name = $("mapName").value.trim();
   if (!name) {
     alert("地図名を先に入力してください");
+    ev.target.value = "";
     return;
   }
 
-  cldOverlay.classList.add("open");
+  const fd = new FormData();
+  fd.append("file", file);
+  fd.append("name", name);
 
-  // フォルダ一覧を取得（初回のみ）
-  if (cldFolderSelect.options.length === 1) {
-    try {
-      const res = await fetch("/api/migrationmaps/cloudinary-folders");
-      const data = await res.json();
-      if (res.ok && data.folders?.length) {
-        for (const f of data.folders) {
-          const opt = document.createElement("option");
-          opt.value = f.path;
-          opt.textContent = f.name;
-          cldFolderSelect.appendChild(opt);
-        }
-      }
-    } catch (_) { /* フォルダ取得失敗は無視 */ }
-  }
+  const res = await fetch("/api/migrationmaps/upload", {
+    method: "POST",
+    body: fd
+  });
+  const data = await res.json();
 
-  cldLoadImages(cldFolderSelect.value);
-});
-
-function selectCloudinaryImage(item) {
-  closeCldPicker();
-
-  // ---- 編集中プロジェクトがある場合は画像のみ差し替え（点・マーカーは保持）----
-  if (currentProjectId !== null) {
-    uploaded = {
-      image_url: item.secure_url,
-      image_filename: item.secure_url,
-      image_width: item.width,
-      image_height: item.height,
-    };
-    // 既存アフィンは変わる可能性があるためリセット
-    currentAffine = null;
-
-    img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => {
-      setCanvasToImage(img);
-      updateCurrentLocationOnCanvas();
-    };
-    img.src = item.secure_url;
-
-    if (overlay) {
-      map.removeLayer(overlay);
-      overlay = null;
-    }
-
-    autoPreviewEnabled = false;
-    editingProjectEl.textContent = `編集中: #${currentProjectId}（画像差し替え）`;
-    setDirty(true);
-    redrawTable();
-    log(`[CLOUDINARY] 画像差し替え: ${item.display_name} (${item.width}x${item.height})`);
+  if (!res.ok) {
+    alert(data.error || "upload failed");
     return;
   }
 
-  // ---- 新規作成モード：全リセット ----
   currentProjectId = null;
-  uploaded = {
-    image_url: item.secure_url,
-    image_filename: item.secure_url,
-    image_width: item.width,
-    image_height: item.height,
-  };
+  uploaded = data;
   currentAffine = null;
 
   img = new Image();
-  img.crossOrigin = "anonymous";
   img.onload = () => setCanvasToImage(img);
-  img.src = item.secure_url;
+  img.src = data.image_url;
 
   points.length = 0;
   markers.forEach((m) => map.removeLayer(m));
@@ -731,17 +486,15 @@ function selectCloudinaryImage(item) {
     overlay = null;
   }
 
-  selectedPointLabel = null;
   nextPointIndex = 1;
-  autoPreviewEnabled = false;
   editingProjectEl.textContent = "新規作成";
   $("publicLink").innerHTML = "";
   setDirty(true);
   redrawTable();
   updateCurrentLocationOnCanvas();
 
-  log(`[CLOUDINARY] ${item.display_name} (${item.width}x${item.height})`);
-}
+  log(`[UPLOAD] ${data.image_filename} (${data.image_width}x${data.image_height})`);
+});
 
 function haversineMeters(lat1, lng1, lat2, lng2) {
   const R = 6371000;
@@ -856,10 +609,7 @@ $("btnCurrentLocation").addEventListener("click", () => {
   );
 });
 
-// =============================================================
-// loadProject: imageOnly=true のとき点・マーカーを保持して画像だけ差し替え
-// =============================================================
-async function loadProject(projectId, imageOnly = false) {
+async function loadProject(projectId) {
   const res = await fetch(`/api/migrationmaps/${projectId}`);
   if (!res.ok) {
     alert("保存済みデータの読込に失敗しました");
@@ -868,41 +618,9 @@ async function loadProject(projectId, imageOnly = false) {
 
   const proj = await res.json();
 
-  // ---- 画像のみ差し替えモード ----
-  if (imageOnly) {
-    currentProjectId = proj.id;
-    $("mapName").value = proj.name;
-    $("r_map_project_id").value = proj.id;
-
-    uploaded = {
-      image_url: proj.image_url,
-      image_filename: proj.image_url.split("/").pop(),
-      image_width: proj.image_width,
-      image_height: proj.image_height
-    };
-
-    img = new Image();
-    img.onload = () => {
-      setCanvasToImage(img);
-      updateCurrentLocationOnCanvas();
-    };
-    img.src = proj.image_url;
-
-    editingProjectEl.textContent = `編集中: #${proj.id}（点データ引継ぎ）`;
-    setDirty(true);
-
-    $("publicLink").innerHTML =
-      `公開URL: <a href="/migrationmaps/m/${proj.id}" target="_blank" rel="noopener">/migrationmaps/m/${proj.id}</a>`;
-
-    log(`[LOAD] project_id=${proj.id} の画像のみ差し替え（中心・地点は引き継ぎ）`);
-    return;
-  }
-
-  // ---- 通常モード（全リセット） ----
   currentProjectId = proj.id;
   currentAffine = proj.affine;
   $("mapName").value = proj.name;
-  $("r_map_project_id").value = proj.id;
 
   uploaded = {
     image_url: proj.image_url,
@@ -919,8 +637,6 @@ async function loadProject(projectId, imageOnly = false) {
     map.removeLayer(overlay);
     overlay = null;
   }
-
-  selectedPointLabel = null;
 
   for (const p of proj.points) {
     points.push({
@@ -949,7 +665,6 @@ async function loadProject(projectId, imageOnly = false) {
   editingProjectEl.textContent = `編集中: #${proj.id}`;
   redrawTable();
   setDirty(false);
-  autoPreviewEnabled = true;
 
   $("publicLink").innerHTML =
     `公開URL: <a href="/migrationmaps/m/${proj.id}" target="_blank" rel="noopener">/migrationmaps/m/${proj.id}</a>`;
@@ -959,61 +674,38 @@ async function loadProject(projectId, imageOnly = false) {
   }
 
   log(`[LOAD] project_id=${proj.id} を読み込みました`);
-  refreshShopList();
 }
 
 async function refreshProjects() {
-  try {
-    const res = await fetch("/api/migrationmaps/projects");
-    if (!res.ok) {
-      projectListEl.innerHTML = '<div class="muted">一覧の取得に失敗しました</div>';
-      return;
-    }
-    const data = await res.json();
+  const res = await fetch("/api/migrationmaps/projects");
+  const data = await res.json();
 
-    projectListEl.innerHTML = "";
+  projectListEl.innerHTML = "";
 
-    if (!data.projects?.length) {
-      projectListEl.innerHTML = '<div class="muted">保存済みデータはありません</div>';
-      return;
-    }
+  for (const p of data.projects) {
+    const div = document.createElement("div");
+    div.className = "project-item";
+    div.innerHTML = `
+      <strong>${p.name}</strong>
+      <div class="muted">ID: ${p.id}</div>
+      <div class="muted">${p.created_at ? p.created_at.replace("T", " ").slice(0, 19) : ""}</div>
+      <div class="project-actions">
+        <button class="small-btn btnLoadProject" data-id="${p.id}">管理画面で編集</button>
+        <a class="small-btn" href="${p.public_url}" target="_blank" rel="noopener">公開ページ</a>
+      </div>
+    `;
+    projectListEl.appendChild(div);
+  }
 
-    for (const p of data.projects) {
-      const div = document.createElement("div");
-      div.className = "project-item";
-      div.innerHTML = `
-        <strong>${p.name}</strong>
-        <div class="muted">ID: ${p.id}</div>
-        <div class="muted">${p.created_at ? p.created_at.replace("T", " ").slice(0, 19) : ""}</div>
-        <div class="project-actions">
-          <button class="small-btn btnLoadProject" data-id="${p.id}">管理画面で編集</button>
-          <a class="small-btn" href="${p.public_url}" target="_blank" rel="noopener">公開ページ</a>
-        </div>
-      `;
-      projectListEl.appendChild(div);
-    }
-  } catch (err) {
-    projectListEl.innerHTML = '<div class="muted">一覧の取得に失敗しました</div>';
+  if (!data.projects.length) {
+    projectListEl.innerHTML = '<div class="muted">保存済みデータはありません</div>';
   }
 }
 
-// ---- 「管理画面で編集」クリック: 点データがあれば引継ぎを確認 ----
 projectListEl.addEventListener("click", (ev) => {
   const btn = ev.target.closest(".btnLoadProject");
   if (!btn) return;
-
-  const hasPoints = points.some(p => p.img_ok || p.ll_ok);
-
-  if (hasPoints) {
-    const keep = confirm(
-      "現在の中心・地点データを引き継ぎますか？\n\n" +
-      "✅ OK　　　= 点データを保持して画像だけ差し替え\n" +
-      "❌ キャンセル = すべてリセットして読み込み"
-    );
-    loadProject(btn.dataset.id, keep);
-  } else {
-    loadProject(btn.dataset.id, false);
-  }
+  loadProject(btn.dataset.id);
 });
 
 $("btnRefreshProjects").addEventListener("click", refreshProjects);
@@ -1040,7 +732,6 @@ async function showOverlay(projectId) {
   }).addTo(map);
 
   map.fitBounds(data.bounds);
-  autoPreviewEnabled = true;
 
   updateCurrentLocationOnCanvas();
 
@@ -1113,7 +804,6 @@ async function saveToDB(showAlert = true) {
 
   currentProjectId = data.project_id;
   editingProjectEl.textContent = `編集中: #${data.project_id}`;
-  $("r_map_project_id").value = data.project_id;
   setDirty(false);
 
   $("publicLink").innerHTML =
@@ -1127,7 +817,6 @@ async function saveToDB(showAlert = true) {
   if (projRes.ok) {
     const proj = await projRes.json();
     currentAffine = proj.affine;
-    autoPreviewEnabled = true;
     updateCurrentLocationOnCanvas();
   }
 
@@ -1144,22 +833,15 @@ $("btnSave").addEventListener("click", async () => {
   await saveToDB(true);
 });
 
-// ---- 初期化 ----
 redrawTable();
 refreshProjects();
-refreshShopList();
-log("準備OK：地図名→画像アップロード→中心/地点を設定（OSMクリック or ドラッグで調整）→保存");
-log("💡 テーブルのラベルボタンをクリックして地点を選択 → 矢印キーで微調整（Shift=10倍速）");
+log("準備OK：地図名→画像アップロード→中心/地点を設定→手入力またはOSMクリック→保存");
 
 const params = new URLSearchParams(location.search);
 const initialProjectId = params.get("project_id");
 if (initialProjectId) {
   loadProject(initialProjectId);
 }
-
-// =============================================================
-// 店舗登録フォーム（既存コードをそのまま保持）
-// =============================================================
 let currentEditingShopId = null;
 
 const shopMenuToggle = document.getElementById("shopMenuToggle");
@@ -1249,38 +931,34 @@ async function fetchShopDetail(shopId) {
 }
 
 async function refreshShopList() {
-  try {
-    const query = currentProjectId ? `?project_id=${encodeURIComponent(currentProjectId)}` : "";
-    const res = await fetch(`/api/migrationmaps/shops${query}`);
+  const query = currentProjectId ? `?project_id=${encodeURIComponent(currentProjectId)}` : "";
+  const res = await fetch(`/api/migrationmaps/shops${query}`);
+  const data = await res.json();
 
-    if (!res.ok) {
-      registeredShopListEl.innerHTML = `<div class="muted">店舗一覧の取得に失敗しました</div>`;
-      return;
-    }
+  registeredShopListEl.innerHTML = "";
 
-    const data = await res.json();
-    registeredShopListEl.innerHTML = "";
-
-    if (!data.shops?.length) {
-      registeredShopListEl.innerHTML = `<div class="muted">登録済み店舗はありません</div>`;
-      return;
-    }
-
-    for (const shop of data.shops) {
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "registered-shop-item";
-      btn.dataset.shopId = shop.id;
-      btn.innerHTML = `
-        <div class="registered-shop-name">${shop.shopname}</div>
-        <div class="registered-shop-meta">
-          ID: ${shop.id} / 地図ID: ${shop.map_project_id ?? "-"} / ${shop.floorlevel || "-"} / ${shop.is_active ? "営業中" : "非表示"}
-        </div>
-      `;
-      registeredShopListEl.appendChild(btn);
-    }
-  } catch (err) {
+  if (!res.ok) {
     registeredShopListEl.innerHTML = `<div class="muted">店舗一覧の取得に失敗しました</div>`;
+    return;
+  }
+
+  if (!data.shops?.length) {
+    registeredShopListEl.innerHTML = `<div class="muted">登録済み店舗はありません</div>`;
+    return;
+  }
+
+  for (const shop of data.shops) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "registered-shop-item";
+    btn.dataset.shopId = shop.id;
+    btn.innerHTML = `
+      <div class="registered-shop-name">${shop.shopname}</div>
+      <div class="registered-shop-meta">
+        ID: ${shop.id} / 地図ID: ${shop.map_project_id ?? "-"} / ${shop.floorlevel || "-"} / ${shop.is_active ? "営業中" : "非表示"}
+      </div>
+    `;
+    registeredShopListEl.appendChild(btn);
   }
 }
 
