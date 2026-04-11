@@ -63,12 +63,9 @@ function redrawTable() {
       <td>${p.label}</td>
       <td>
         ${p.img_ok ? `${Number(p.img_x).toFixed(1)}, ${Number(p.img_y).toFixed(1)}` : "-"}
-        <div style="margin-top:4px; font-size:11px; color:#888;">
-          画像上のマーカーをドラッグで移動できます
-        </div>
         <div style="margin-top:4px;">
           <button type="button" class="small-btn btnSelectOnImage" data-label="${p.label}">
-            クリックで再設定
+            画像で再設定
           </button>
         </div>
       </td>
@@ -175,33 +172,6 @@ const ctx = canvas.getContext("2d");
 let img = new Image();
 let canvasScale = 1;
 
-// ---- ドラッグ状態 ----
-let dragState = null; // { point } ドラッグ中の点
-const DRAG_HIT_RADIUS = 14; // px (canvas座標)
-
-function getPointAtCanvasPos(cx, cy) {
-  // center を優先してヒット判定
-  const ordered = [...points].sort((a, b) => {
-    if (a.label === "center") return -1;
-    if (b.label === "center") return 1;
-    return 0;
-  });
-  for (const p of ordered) {
-    if (!p.img_ok) continue;
-    const px = p.img_x * canvasScale;
-    const py = p.img_y * canvasScale;
-    if (Math.sqrt((cx - px) ** 2 + (cy - py) ** 2) <= DRAG_HIT_RADIUS) return p;
-  }
-  return null;
-}
-
-function getCanvasPos(ev) {
-  const rect = canvas.getBoundingClientRect();
-  const clientX = ev.touches ? ev.touches[0].clientX : ev.clientX;
-  const clientY = ev.touches ? ev.touches[0].clientY : ev.clientY;
-  return { cx: clientX - rect.left, cy: clientY - rect.top };
-}
-
 function setCanvasToImage(image) {
   const maxW = Math.min(900, window.innerWidth * 0.30);
   canvasScale = Math.min(1, maxW / image.naturalWidth);
@@ -224,15 +194,13 @@ function drawMarkersOnCanvas() {
     const x = p.img_x * canvasScale;
     const y = p.img_y * canvasScale;
 
-    const isDragging = dragState && dragState.point.label === p.label;
-
     ctx.beginPath();
-    ctx.arc(x, y, isDragging ? 9 : 6, 0, Math.PI * 2);
+    ctx.arc(x, y, 6, 0, Math.PI * 2);
     ctx.fillStyle = p.kind === "center" ? "red" : "yellow";
     ctx.fill();
 
-    ctx.strokeStyle = isDragging ? "white" : "black";
-    ctx.lineWidth = isDragging ? 3 : 2;
+    ctx.strokeStyle = "black";
+    ctx.lineWidth = 2;
     ctx.stroke();
 
     ctx.fillStyle = "black";
@@ -259,92 +227,20 @@ function drawMarkersOnCanvas() {
   }
 }
 
-// ---- canvas ドラッグ＆ドロップ ----
-canvas.addEventListener("mousedown", (ev) => {
-  if (!uploaded || mode) return; // mode中はクリック新規配置優先
-  const { cx, cy } = getCanvasPos(ev);
-  const p = getPointAtCanvasPos(cx, cy);
-  if (!p) return;
-  dragState = { point: p };
-  canvas.style.cursor = "grabbing";
-  ev.preventDefault();
-});
-
-canvas.addEventListener("mousemove", (ev) => {
-  if (!uploaded) return;
-  const { cx, cy } = getCanvasPos(ev);
-
-  if (dragState) {
-    // ドラッグ中: 座標を即時更新して再描画
-    dragState.point.img_x = Math.max(0, Math.min(uploaded.image_width,  cx / canvasScale));
-    dragState.point.img_y = Math.max(0, Math.min(uploaded.image_height, cy / canvasScale));
-    drawMarkersOnCanvas();
-    ev.preventDefault();
-    return;
-  }
-
-  // ホバー: マーカーの上ならカーソル変更
-  const p = getPointAtCanvasPos(cx, cy);
-  canvas.style.cursor = p ? "grab" : (mode ? "crosshair" : "default");
-});
-
-canvas.addEventListener("mouseup", (ev) => {
-  if (!dragState) return;
-  const p = dragState.point;
-  dragState = null;
-  canvas.style.cursor = "default";
-  setDirty(true);
-  redrawTable();
-  log(`[DRAG] ${p.label} → (${p.img_x.toFixed(1)}, ${p.img_y.toFixed(1)})`);
-});
-
-canvas.addEventListener("mouseleave", () => {
-  if (!dragState) return;
-  const p = dragState.point;
-  dragState = null;
-  canvas.style.cursor = "default";
-  setDirty(true);
-  redrawTable();
-  log(`[DRAG] ${p.label} → (${p.img_x.toFixed(1)}, ${p.img_y.toFixed(1)})`);
-});
-
-// タッチ対応
-canvas.addEventListener("touchstart", (ev) => {
-  if (!uploaded || mode) return;
-  const { cx, cy } = getCanvasPos(ev);
-  const p = getPointAtCanvasPos(cx, cy);
-  if (!p) return;
-  dragState = { point: p };
-  ev.preventDefault();
-}, { passive: false });
-
-canvas.addEventListener("touchmove", (ev) => {
-  if (!dragState) return;
-  const { cx, cy } = getCanvasPos(ev);
-  dragState.point.img_x = Math.max(0, Math.min(uploaded.image_width,  cx / canvasScale));
-  dragState.point.img_y = Math.max(0, Math.min(uploaded.image_height, cy / canvasScale));
-  drawMarkersOnCanvas();
-  ev.preventDefault();
-}, { passive: false });
-
-canvas.addEventListener("touchend", () => {
-  if (!dragState) return;
-  const p = dragState.point;
-  dragState = null;
-  setDirty(true);
-  redrawTable();
-  log(`[DRAG] ${p.label} → (${p.img_x.toFixed(1)}, ${p.img_y.toFixed(1)})`);
-});
-
-// ---- 既存の canvas click (新規点配置 / edit-point モード) ----
 canvas.addEventListener("click", (ev) => {
   if (!uploaded) {
     alert("先に画像をアップロードまたは保存済み地図を読み込んでください");
     return;
   }
-  if (!mode) return; // モードなし = ドラッグ完了後などは何もしない
+  if (!mode) {
+    alert("「中心を選択」または「地点を追加」を押してください");
+    return;
+  }
 
-  const { cx, cy } = getCanvasPos(ev);
+  const rect = canvas.getBoundingClientRect();
+  const cx = ev.clientX - rect.left;
+  const cy = ev.clientY - rect.top;
+
   const img_x = cx / canvasScale;
   const img_y = cy / canvasScale;
 
@@ -980,4 +876,4 @@ registeredShopListEl?.addEventListener("click", async (ev) => {
 });
 
 document.getElementById("btnRefreshShopList")?.addEventListener("click", refreshShopList);
-document.getElementById("btnResetShopForm")?.addEventListener("click", () => resetShopForm(true));
+document.getElementById("btnResetShopForm")?.addEventListener("click", () => resetShopForm(true));
