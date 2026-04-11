@@ -179,7 +179,6 @@ const ctx = canvas.getContext("2d");
 let img = new Image();
 let canvasScale = 1;
 
-// ---- ドラッグ状態 ----
 let dragState = null;
 const DRAG_HIT_RADIUS = 14;
 
@@ -262,7 +261,6 @@ function drawMarkersOnCanvas() {
   }
 }
 
-// ---- canvas ドラッグ＆ドロップ ----
 canvas.addEventListener("mousedown", (ev) => {
   if (!uploaded || mode) return;
   const { cx, cy } = getCanvasPos(ev);
@@ -334,7 +332,6 @@ canvas.addEventListener("touchend", () => {
   log(`[DRAG] ${p.label} → (${p.img_x.toFixed(1)}, ${p.img_y.toFixed(1)})`);
 });
 
-// ---- 既存 canvas click（新規点配置 / edit-point モード） ----
 canvas.addEventListener("click", (ev) => {
   if (!uploaded) {
     alert("先に画像をアップロードまたは保存済み地図を読み込んでください");
@@ -377,8 +374,6 @@ canvas.addEventListener("click", (ev) => {
 });
 
 const map = L.map("map").setView([36.061, 136.223], 15);
-
-// スクショ画像を前面にする専用pane
 map.createPane("migrationOverlayPane");
 map.getPane("migrationOverlayPane").style.zIndex = 450;
 
@@ -852,16 +847,18 @@ const initialProjectId = params.get("project_id");
 if (initialProjectId) {
   loadProject(initialProjectId);
 }
+
 let currentEditingShopId = null;
 
-// const shopMenuToggle = document.getElementById("shopMenuToggle");
-// const shopMenuBody = document.getElementById("shopMenuBody");
-// const shopMenuToggleIcon = document.getElementById("shopMenuToggleIcon");
+const shopMenuToggle = document.getElementById("shopMenuToggle");
+const shopMenuBody = document.getElementById("shopMenuBody");
+const shopMenuToggleIcon = document.getElementById("shopMenuToggleIcon");
 
 function setShopMenuOpen(open) {
+  if (!shopMenuBody || !shopMenuToggle) return;
   shopMenuBody.hidden = !open;
   shopMenuToggle.setAttribute("aria-expanded", open ? "true" : "false");
-  shopMenuToggleIcon.textContent = open ? "－" : "＋";
+  if (shopMenuToggleIcon) shopMenuToggleIcon.textContent = open ? "－" : "＋";
 }
 
 shopMenuToggle?.addEventListener("click", () => {
@@ -937,6 +934,7 @@ async function fetchShopDetail(shopId) {
 }
 
 async function refreshShopList() {
+  if (!registeredShopListEl) return;
   const query = currentProjectId ? `?project_id=${encodeURIComponent(currentProjectId)}` : "";
   const res = await fetch(`/api/migrationmaps/shops${query}`);
   const data = await res.json();
@@ -968,6 +966,10 @@ async function refreshShopList() {
   }
 }
 
+// イベントリスナーの登録
+document.getElementById("btnRefreshShopList")?.addEventListener("click", refreshShopList);
+document.getElementById("btnResetShopForm")?.addEventListener("click", () => resetShopForm(true));
+
 registeredShopListEl?.addEventListener("click", async (ev) => {
   const btn = ev.target.closest(".registered-shop-item");
   if (!btn) return;
@@ -984,6 +986,3 @@ registeredShopListEl?.addEventListener("click", async (ev) => {
     alert(err.message);
   }
 });
-
-document.getElementById("btnRefreshShopList")?.addEventListener("click", refreshShopList);
-document.getElementById("btnResetShopForm")?.addEventListener("click", () => resetShopForm(true));
