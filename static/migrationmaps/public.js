@@ -42,7 +42,7 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 // ----------------------------------------------------------------
 
 const OVERLAY_OPACITY = 0.88;
-const TRANSITION_DURATION_MS = 10000; // 10秒フェード
+const TRANSITION_DURATION_MS = 3000; // 3秒フェード
 
 let overlay1 = null;          // Layer 1 L.imageOverlay
 let overlay2 = null;          // Layer 2 L.imageOverlay
@@ -625,23 +625,20 @@ async function loadProject() {
     t2to1: project.switch_time_2to1 || null,
   };
 
-  // ---- 起動時の初期レイヤーを計算（アニメなし即時設定）----
+  // ---- 起動時の初期レイヤーを設定（常にレイヤー1を表示してから時間切替）----
   if (overlay2) {
-    const initLayer = computeTargetLayer();
-    currentActiveLayer = initLayer;
-    if (initLayer === 2) {
-      overlay1.setOpacity(0);
-      overlay2.setOpacity(OVERLAY_OPACITY);
-    } else {
-      overlay1.setOpacity(OVERLAY_OPACITY);
-      overlay2.setOpacity(0);
-    }
+    currentActiveLayer = 1;
+    overlay1.setOpacity(OVERLAY_OPACITY);
+    overlay2.setOpacity(0);
 
     // 切替ボタンを表示
     if (btnToggleLayer) {
       btnToggleLayer.hidden = false;
       updateLayerToggleButton();
     }
+
+    // 2秒後に時間ベースの切替チェック（アニメあり）
+    setTimeout(checkTimedLayerSwitch, 2000);
 
     // 毎分の自動切替チェック
     autoSwitchTimer = setInterval(checkTimedLayerSwitch, 60000);
