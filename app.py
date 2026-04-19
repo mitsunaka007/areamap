@@ -754,18 +754,28 @@ def api_migrationmaps_save():
     h = data.get("image_height")
     points = data.get("points") or []
 
+    # Layer 2 (optional)
+    image_filename2 = data.get("image_filename2") or None
+    w2 = data.get("image_width2")
+    h2 = data.get("image_height2")
+
+    # Layer switch times (optional, format "HH:MM")
+    switch_time_1to2 = (data.get("switch_time_1to2") or "").strip() or None
+    switch_time_2to1 = (data.get("switch_time_2to1") or "").strip() or None
+
     if not name or not image_filename or not w or not h:
         return jsonify({"error": "name/image_filename/image_width/image_height は必須です"}), 400
     if len(points) < 3:
         return jsonify({"error": "点が少なすぎます。中心+他2点以上（合計3点以上）必要です"}), 400
 
-    # 手入力フォームの空文字対策
+    # 手入力フォームの空文字対策・layer フィールド正規化
     normalized_points = []
     for p in points:
         try:
             normalized_points.append({
                 "label": p["label"],
                 "kind": p["kind"],
+                "layer": int(p.get("layer", 1)),
                 "img_x": float(p["img_x"]),
                 "img_y": float(p["img_y"]),
                 "lat": float(p["lat"]),
@@ -774,12 +784,26 @@ def api_migrationmaps_save():
         except Exception:
             return jsonify({"error": f"点 {p.get('label', '?')} の値が不正です"}), 400
 
-    img_pts = [(p["img_x"], p["img_y"]) for p in normalized_points]
-    ll_pts  = [(p["lat"], p["lng"]) for p in normalized_points]
+    # レイヤー別に分割してアフィン変換を計算
+    pts1 = [(p["img_x"], p["img_y"]) for p in normalized_points if p["layer"] == 1]
+    ll1  = [(p["lat"], p["lng"]) for p in normalized_points if p["layer"] == 1]
+    pts2 = [(p["img_x"], p["img_y"]) for p in normalized_points if p["layer"] == 2]
+    ll2  = [(p["lat"], p["lng"]) for p in normalized_points if p["layer"] == 2]
+
+    if len(pts1) < 3:
+        return jsonify({"error": "レイヤー1に最低3点（中心+2点以上）が必要です"}), 400
+
     try:
-        a,b_,c,d,e,f = _fit_affine(img_pts, ll_pts)
+        a, b_, c, d, e, f = _fit_affine(pts1, ll1)
     except Exception as ex:
         return jsonify({"error": str(ex)}), 400
+
+    a2 = b2_ = c2 = d2 = e2 = f2 = None
+    if len(pts2) >= 3 and image_filename2:
+        try:
+            a2, b2_, c2, d2, e2, f2 = _fit_affine(pts2, ll2)
+        except Exception as ex:
+            return jsonify({"error": f"レイヤー2アフィン計算エラー: {ex}"}), 400
 
     try:
         if project_id:
@@ -791,6 +815,13 @@ def api_migrationmaps_save():
             proj.image_width = int(w)
             proj.image_height = int(h)
             proj.a, proj.b, proj.c, proj.d, proj.e, proj.f = a, b_, c, d, e, f
+            # Layer 2
+            proj.image_filename2 = image_filename2
+            proj.image_width2 = int(w2) if w2 else None
+            proj.image_height2 = int(h2) if h2 else None
+            proj.a2, proj.b2, proj.c2, proj.d2, proj.e2, proj.f2 = a2, b2_, c2, d2, e2, f2
+            proj.switch_time_1to2 = switch_time_1to2
+            proj.switch_time_2to1 = switch_time_2to1
             MapPoint.query.filter_by(project_id=proj.id).delete()
         else:
             proj = MapProject(
@@ -799,6 +830,12 @@ def api_migrationmaps_save():
                 image_width=int(w),
                 image_height=int(h),
                 a=a, b=b_, c=c, d=d, e=e, f=f,
+                image_filename2=image_filename2,
+                image_width2=int(w2) if w2 else None,
+                image_height2=int(h2) if h2 else None,
+                a2=a2, b2=b2_, c2=c2, d2=d2, e2=e2, f2=f2,
+                switch_time_1to2=switch_time_1to2,
+                switch_time_2to1=switch_time_2to1,
             )
             db.session.add(proj)
             db.session.flush()
@@ -808,6 +845,7 @@ def api_migrationmaps_save():
                 project_id=proj.id,
                 label=p["label"],
                 kind=p["kind"],
+                layer=p["layer"],
                 img_x=p["img_x"],
                 img_y=p["img_y"],
                 lat=p["lat"],
@@ -858,6 +896,8 @@ def api_migrationmaps_get(project_id: int):
             "lng": p.lng,
         })
 
+    has_layer2 = bool(proj.image_filename2 and proj.a2 is not None)
+
     return jsonify({
         "id": proj.id,
         "name": proj.name,
@@ -865,6 +905,13 @@ def api_migrationmaps_get(project_id: int):
         "image_width": proj.image_width,
         "image_height": proj.image_height,
         "affine": {"a":proj.a,"b":proj.b,"c":proj.c,"d":proj.d,"e":proj.e,"f":proj.f},
+        # Layer 2
+        "image_url2": _image_url_from_filename(proj.image_filename2) if proj.image_filename2 else None,
+        "image_width2": proj.image_width2,
+        "image_height2": proj.image_height2,
+        "affine2": {"a":proj.a2,"b":proj.b2,"c":proj.c2,"d":proj.d2,"e":proj.e2,"f":proj.f2} if has_layer2 else None,
+        "switch_time_1to2": proj.switch_time_1to2,
+        "switch_time_2to1": proj.switch_time_2to1,
         "points": pts
     })
 
@@ -907,6 +954,37 @@ def api_migrationmaps_overlay_bounds(project_id: int):
         bottom2[1],  # SE
     ]
 
+    # Layer 2 bounds (if available)
+    layer2_payload = None
+    if proj.image_filename2 and proj.a2 is not None:
+        corners_xy2 = [
+            (0, 0),
+            (proj.image_width2, 0),
+            (proj.image_width2, proj.image_height2),
+            (0, proj.image_height2),
+        ]
+        latlngs2 = [
+            _img_to_latlng(proj.a2, proj.b2, proj.c2, proj.d2, proj.e2, proj.f2, x, y)
+            for (x, y) in corners_xy2
+        ]
+        lats2 = [lat for lat, lng in latlngs2]
+        lngs2 = [lng for lat, lng in latlngs2]
+        pts2 = [{"lat": lat, "lng": lng} for (lat, lng) in latlngs2]
+        by_lat2 = sorted(pts2, key=lambda p: p["lat"], reverse=True)
+        top2_2 = sorted(by_lat2[:2], key=lambda p: p["lng"])
+        bottom2_2 = sorted(by_lat2[2:], key=lambda p: p["lng"])
+        layer2_payload = {
+            "bounds": [[min(lats2), min(lngs2)], [max(lats2), max(lngs2)]],
+            "image_corners": [
+                {"lat": latlngs2[0][0], "lng": latlngs2[0][1]},
+                {"lat": latlngs2[1][0], "lng": latlngs2[1][1]},
+                {"lat": latlngs2[2][0], "lng": latlngs2[2][1]},
+                {"lat": latlngs2[3][0], "lng": latlngs2[3][1]},
+            ],
+            "distortable_corners": [top2_2[0], top2_2[1], bottom2_2[0], bottom2_2[1]],
+            "image_size": {"width": proj.image_width2, "height": proj.image_height2},
+        }
+
     return jsonify({
         "bounds": [sw, ne],
         "image_corners": [
@@ -919,7 +997,8 @@ def api_migrationmaps_overlay_bounds(project_id: int):
         "image_size": {
             "width": proj.image_width,
             "height": proj.image_height,
-        }
+        },
+        "layer2": layer2_payload,
     })
 
 @app.get("/api/migrationmaps/<int:project_id>/shops")

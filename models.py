@@ -201,6 +201,23 @@ class MapProject(db.Model):
     e = db.Column(db.Float, nullable=False)
     f = db.Column(db.Float, nullable=False)
 
+    # Layer 2 image (optional)
+    image_filename2 = db.Column(db.Text, nullable=True)
+    image_width2 = db.Column(db.Integer, nullable=True)
+    image_height2 = db.Column(db.Integer, nullable=True)
+
+    # Layer 2 affine transform coefficients (X = a2*x + b2*y + c2, Y = d2*x + e2*y + f2)
+    a2 = db.Column(db.Float, nullable=True)
+    b2 = db.Column(db.Float, nullable=True)
+    c2 = db.Column(db.Float, nullable=True)
+    d2 = db.Column(db.Float, nullable=True)
+    e2 = db.Column(db.Float, nullable=True)
+    f2 = db.Column(db.Float, nullable=True)
+
+    # Time-based layer switching (format: "HH:MM", JST)
+    switch_time_1to2 = db.Column(db.String(5), nullable=True)  # switch Layer1→Layer2 at this time
+    switch_time_2to1 = db.Column(db.String(5), nullable=True)  # switch Layer2→Layer1 at this time
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     points = db.relationship("MapPoint", backref="project", cascade="all, delete-orphan")
     shops = db.relationship(
@@ -217,6 +234,7 @@ class MapPoint(db.Model):
 
     label = db.Column(db.Text, nullable=False)  # center / p1 / p2 / ...
     kind = db.Column(db.Text, nullable=False)   # center or point
+    layer = db.Column(db.Integer, nullable=False, server_default='1')  # 1 or 2
 
     # 画像内ピクセル座標
     img_x = db.Column(db.Float, nullable=False)
