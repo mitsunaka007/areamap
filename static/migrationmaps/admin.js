@@ -605,7 +605,8 @@ $("btnSave")?.addEventListener("click", async () => {
   // image_filename 解決（Cloudinary or ローカル）
   function resolveFilename(uploaded) {
     if (!uploaded) return null;
-    return uploaded.is_cloudinary ? uploaded.image_url : uploaded.image_url.split("/").pop();
+    if (uploaded.is_cloudinary || uploaded.image_url?.startsWith("http")) return uploaded.image_url;
+    return uploaded.image_url.split("/").pop();
   }
 
   const allPoints = [
