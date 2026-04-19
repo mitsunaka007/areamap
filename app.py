@@ -890,6 +890,7 @@ def api_migrationmaps_get(project_id: int):
             "id": p.id,
             "label": p.label,
             "kind": p.kind,
+            "layer": p.layer if p.layer is not None else 1,
             "img_x": p.img_x,
             "img_y": p.img_y,
             "lat": p.lat,
