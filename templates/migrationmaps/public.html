@@ -75,6 +75,42 @@
     width: 100%;
   }
 
+  /* ---- レイヤー切替ボタン ---- */
+  #btnToggleLayer {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    z-index: 900;
+    background: rgba(37, 99, 235, 0.92);
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    cursor: pointer;
+    backdrop-filter: blur(4px);
+    transition: background 0.2s;
+  }
+  #btnToggleLayer:hover { background: rgba(29, 78, 216, 0.95); }
+  #btnToggleLayer[hidden] { display: none; }
+
+  /* 切り替え中インジケータ */
+  #layerIndicator {
+    position: fixed;
+    top: 52px;
+    right: 12px;
+    z-index: 900;
+    background: rgba(0,0,0,0.6);
+    color: #fff;
+    border-radius: 8px;
+    padding: 4px 10px;
+    font-size: 11px;
+    pointer-events: none;
+  }
+  #layerIndicator[hidden] { display: none; }
+
   /* ---- 地図ローディングオーバーレイ ---- */
   #mapLoadingOverlay {
     position: absolute;
@@ -334,6 +370,10 @@
     </div>
   </div>
 </header>
+
+<!-- レイヤー切替ボタン（右上固定、Layer2が存在する場合のみJS側で表示） -->
+<button id="btnToggleLayer" hidden>レイヤー切替</button>
+<div id="layerIndicator" hidden>切り替え中...</div>
 
 <div id="mapWrap">
   <div id="map"></div>
