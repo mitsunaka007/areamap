@@ -53,6 +53,10 @@ if db_url.startswith("postgres://"):
 
 app.config["SQLALCHEMY_DATABASE_URI"] = db_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "pool_pre_ping": True,
+    "pool_recycle": 300,
+}
 
 # Render等のリバースプロキシ配下でIP等を正しく取るため
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
@@ -863,7 +867,11 @@ def api_migrationmaps_save():
 
 @app.get("/api/migrationmaps/projects")
 def api_migrationmaps_projects():
-    rows = MapProject.query.order_by(MapProject.created_at.desc(), MapProject.id.desc()).limit(100).all()
+    try:
+        rows = MapProject.query.order_by(MapProject.id.desc()).limit(100).all()
+    except Exception as ex:
+        current_app.logger.error("api_migrationmaps_projects DB error: %s", ex)
+        return jsonify({"error": str(ex), "projects": []}), 500
     return jsonify({
         "projects": [
             {
