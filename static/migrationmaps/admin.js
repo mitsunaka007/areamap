@@ -661,8 +661,16 @@ async function refreshProjects() {
   try {
     const res = await fetch("/api/migrationmaps/projects");
     const data = await res.json();
+    if (!res.ok) {
+      projectListEl.innerHTML = `<div class="muted" style="color:#b02a37;">取得エラー: ${data.error || res.status}</div>`;
+      return;
+    }
     const projects = data.projects ?? [];
     projectListEl.innerHTML = "";
+    if (projects.length === 0) {
+      projectListEl.innerHTML = '<div class="muted">保存済みのセットはありません</div>';
+      return;
+    }
     for (const p of projects) {
       const div = document.createElement("div");
       div.className = "project-item";
@@ -677,7 +685,7 @@ async function refreshProjects() {
       projectListEl.appendChild(div);
     }
   } catch (err) {
-    projectListEl.innerHTML = `<div class="muted">取得失敗</div>`;
+    projectListEl.innerHTML = `<div class="muted" style="color:#b02a37;">取得失敗: ${err.message}</div>`;
   }
 }
 
