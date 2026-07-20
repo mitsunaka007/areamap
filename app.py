@@ -634,8 +634,12 @@ def api_shops():
 
 
 # =========================
-# MigrationMaps ルート（管理画面 + API + 公開ページ）
+# MigrationMaps ルート（LP + 管理画面 + API + 公開ページ）
 # =========================
+@app.get("/migrationmaps/lp")
+def migrationmaps_lp():
+    return render_template("migrationmaps/lp.html")
+
 @app.get("/migrationmaps/admin")
 def migrationmaps_admin():
     return render_template("migrationmaps/admin.html")
