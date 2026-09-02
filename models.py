@@ -214,6 +214,30 @@ class MapProject(db.Model):
     e2 = db.Column(db.Float, nullable=True)
     f2 = db.Column(db.Float, nullable=True)
 
+    # ---- ジオリファレンス方式（B-4） ----
+    # "auto"   : capture メタデータから解析的に算出（対応点 0）
+    # "shift"  : capture のスケールを使い 1 点で平行移動のみ補正
+    # "similar": 2 点でスケール+平行移動を最小二乗（回転なし）
+    # "manual" : 従来の 3 点以上フルアフィン
+    georef_mode = db.Column(db.String(16), nullable=False, server_default="manual")
+    georef_mode2 = db.Column(db.String(16), nullable=False, server_default="manual")
+
+    # スクリーンショット/ベース地図生成時のメタデータ（レイヤー1）
+    capture_center_lat = db.Column(db.Float, nullable=True)
+    capture_center_lng = db.Column(db.Float, nullable=True)
+    capture_zoom = db.Column(db.Float, nullable=True)
+    capture_width = db.Column(db.Integer, nullable=True)   # CSS px
+    capture_height = db.Column(db.Integer, nullable=True)  # CSS px
+    capture_dpr = db.Column(db.Float, nullable=True)
+
+    # 同上（レイヤー2）
+    capture_center_lat2 = db.Column(db.Float, nullable=True)
+    capture_center_lng2 = db.Column(db.Float, nullable=True)
+    capture_zoom2 = db.Column(db.Float, nullable=True)
+    capture_width2 = db.Column(db.Integer, nullable=True)
+    capture_height2 = db.Column(db.Integer, nullable=True)
+    capture_dpr2 = db.Column(db.Float, nullable=True)
+
     # Time-based layer switching (format: "HH:MM", JST)
     switch_time_1to2 = db.Column(db.String(5), nullable=True)  # switch Layer1→Layer2 at this time
     switch_time_2to1 = db.Column(db.String(5), nullable=True)  # switch Layer2→Layer1 at this time
@@ -271,11 +295,29 @@ class MigrationShop(db.Model):
     description = db.Column(db.Text)
     website_url = db.Column(db.String(255))
 
+    # --- OSM (Overpass) 由来 ---
+    osm_type = db.Column(db.String(8))                 # "node" | "way" | "relation"
+    osm_id = db.Column(db.BigInteger)                  # OSM 要素 ID
+    source = db.Column(db.String(16), nullable=False, server_default="manual")  # "manual" | "osm"
+    osm_synced_at = db.Column(db.DateTime)
+
     # どの MapProject に紐づく店か
     map_project_id = db.Column(
         db.Integer,
         db.ForeignKey("map_projects.id", ondelete="SET NULL"),
         nullable=True
+    )
+
+    # 明示的なビルガイド紐付け（C-2）。緯度経度文字列一致をやめる
+    building_guide_id = db.Column(
+        db.Integer,
+        db.ForeignKey("building_guides.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
+    __table_args__ = (
+        db.UniqueConstraint("osm_type", "osm_id", name="uq_migrationshop_osm"),
     )
 
     # 親 -> 子（1対多）
@@ -321,6 +363,9 @@ class BuildingGuide(db.Model):
 
     building_name = db.Column(db.String(255))
     image_url = db.Column(db.String(255), nullable=False)   # ビル全体写真
+    # ホットスポット px→% 換算の基準（作図時のガイド画像サイズ）。任意
+    base_width = db.Column(db.Integer, nullable=True)
+    base_height = db.Column(db.Integer, nullable=True)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
 
     created_at = db.Column(db.DateTime, default=datetime.now, nullable=False)
@@ -349,3 +394,9 @@ class BuildingGuideFloor(db.Model):
     area_width = db.Column(db.Integer, nullable=False)
     area_height = db.Column(db.Integer, nullable=False)
     sort_order = db.Column(db.Integer, nullable=False, default=1)
+
+    # パーセント（0〜100 の float）。非 null ならこちらを優先して描画する（C-1）
+    area_x_pct = db.Column(db.Float, nullable=True)
+    area_y_pct = db.Column(db.Float, nullable=True)
+    area_width_pct = db.Column(db.Float, nullable=True)
+    area_height_pct = db.Column(db.Float, nullable=True)
