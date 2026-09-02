@@ -1,0 +1,798 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>特売→オリジナル献立（デモ）｜食彩館やしろ店</title>
+  <style>
+    /* ===== Fresh / Healthy theme (Light + Leaf Green) ===== */
+    :root{
+      --bg1:#f6fbf7;
+      --bg2:#ffffff;
+      --card:#ffffff;
+      --text:#0f172a;
+      --muted:#64748b;
+      --line:#e2e8f0;
+      --accent:#16a34a;
+      --accent2:#22c55e;
+      --accentSoft:#e8f7ee;
+      --good:#15803d;
+      --warn:#f59e0b;
+      --shadow: 0 12px 28px rgba(15, 23, 42, .08);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", "Segoe UI", sans-serif;
+      background:
+        radial-gradient(900px 600px at 12% 0%, #dff7e9 0%, transparent 55%),
+        radial-gradient(900px 600px at 92% 10%, #fff3d8 0%, transparent 55%),
+        linear-gradient(180deg,var(--bg1),var(--bg2));
+      color:var(--text);
+    }
+    a{color:var(--accent); text-decoration:none}
+    .wrap{max-width:1120px; margin:0 auto; padding:18px}
+
+    header{
+      display:flex; align-items:flex-start; justify-content:space-between; gap:12px;
+      padding:14px 16px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.82);
+      border-radius:18px;
+      box-shadow:var(--shadow);
+      backdrop-filter: blur(8px);
+    }
+    .h-title{font-size:18px; font-weight:900; letter-spacing:.02em}
+    .h-sub{margin-top:6px; font-size:13px; color:var(--muted); line-height:1.6}
+    .badge{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:8px 10px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:rgba(22,163,74,.07);
+      color:var(--muted);
+      font-size:12px;
+      white-space:nowrap;
+    }
+
+    .grid{display:grid; grid-template-columns: 1.05fr .95fr; gap:14px; margin-top:14px}
+    @media (max-width: 980px){ .grid{grid-template-columns:1fr} }
+
+    .card{
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.88);
+      border-radius:18px;
+      padding:14px;
+      box-shadow:var(--shadow);
+      backdrop-filter: blur(6px);
+    }
+    .card h2{margin:0 0 10px; font-size:14px; color:#14532d; letter-spacing:.02em}
+
+    .row{display:grid; grid-template-columns: 1fr 1fr; gap:10px}
+    @media (max-width:680px){ .row{grid-template-columns:1fr} }
+
+    label{display:block; font-size:12px; color:var(--muted); margin:0 0 6px}
+
+    input, select, textarea{
+      width:100%;
+      padding:10px 10px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background:#ffffff;
+      color:var(--text);
+      outline:none;
+      box-shadow: 0 1px 0 rgba(15,23,42,.02);
+    }
+    input:focus, select:focus, textarea:focus{
+      border-color: rgba(34,197,94,.85);
+      box-shadow: 0 0 0 4px rgba(34,197,94,.18);
+    }
+    textarea{min-height:90px; resize:vertical}
+
+    .chips{display:flex; flex-wrap:wrap; gap:8px}
+    .chip{
+      padding:10px 12px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:#ffffff;
+      color:var(--text);
+      font-size:13px;
+      cursor:pointer;
+      transition:.12s transform ease, .12s border-color ease, .12s background ease;
+      user-select:none;
+    }
+    .chip:hover{
+      transform:translateY(-1px);
+      border-color:#86efac;
+      background:rgba(34,197,94,.06);
+    }
+    .chip.active{
+      border-color: rgba(22,163,74,.65);
+      background: rgba(34,197,94,.10);
+      box-shadow: 0 0 0 3px rgba(34,197,94,.18) inset;
+    }
+
+    .hint{margin-top:8px; color:var(--muted); font-size:12px; line-height:1.6}
+    .actions{display:flex; flex-wrap:wrap; gap:10px; margin-top:12px}
+
+    button{
+      padding:11px 12px;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background:#ffffff;
+      color:var(--text);
+      cursor:pointer;
+      font-weight:800;
+      letter-spacing:.02em;
+      transition:.12s transform ease, .12s box-shadow ease, .12s background ease;
+    }
+    button:hover{transform:translateY(-1px); box-shadow: 0 10px 18px rgba(15,23,42,.08)}
+    button.primary{
+      background:linear-gradient(90deg,var(--accent),var(--accent2));
+      border-color: rgba(22,163,74,.85);
+      color:#ffffff;
+    }
+    button.ghost{
+      background:rgba(255,255,255,.6);
+    }
+
+    .pill{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:8px 10px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:rgba(22,163,74,.06);
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    .sep{height:1px; background:var(--line); margin:12px 0}
+
+    .loading{display:none; margin-top:10px; color:var(--muted); font-size:12px}
+    .loading.show{display:block}
+
+    .kpis{display:grid; grid-template-columns:repeat(3,1fr); gap:10px}
+    @media (max-width: 680px){ .kpis{grid-template-columns:1fr} }
+    .kpi{
+      padding:12px;
+      border-radius:16px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.85);
+    }
+    .kpi .t{font-size:12px; color:var(--muted)}
+    .kpi .v{margin-top:6px; font-size:20px; font-weight:950}
+    .kpi .s{margin-top:6px; font-size:12px; color:var(--muted)}
+
+    table{width:100%; border-collapse:collapse; font-size:13px}
+    th,td{padding:10px 8px; border-bottom:1px solid var(--line); vertical-align:top}
+    th{color:#14532d; text-align:left; font-size:12px}
+
+    .muted{color:var(--muted)}
+    .tag{
+      display:inline-flex;
+      padding:4px 8px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      font-size:12px;
+      color:var(--muted);
+      background: rgba(22,163,74,.06);
+    }
+    .good{color:var(--good)}
+    .warn{color:var(--warn)}
+
+    .recipe-title{font-size:18px; font-weight:950; margin:0 0 6px}
+    .meta{display:flex; flex-wrap:wrap; gap:8px; margin:8px 0 0}
+
+    .twoCols{display:grid; grid-template-columns: 1fr 1fr; gap:12px}
+    @media (max-width: 680px){ .twoCols{grid-template-columns:1fr} }
+
+    ul,ol{margin:8px 0 0 18px}
+
+    .box{
+      border:1px dashed #86efac;
+      background: var(--accentSoft);
+      border-radius:14px;
+      padding:10px;
+      color: #0f172a;
+      font-size:12px;
+      line-height:1.6;
+      white-space:pre-wrap;
+    }
+
+    /* Print (recipe card) */
+    @media print{
+      body{background:#fff; color:#000}
+      header,.grid .card:first-child,.dash{display:none !important}
+      .card{border:0; background:#fff; box-shadow:none}
+      .wrap{max-width:none; padding:0}
+      a{color:#000}
+      .pill,.tag{border:1px solid #bbb; color:#333; background:#fff}
+      .box{border:1px dashed #999; color:#333; background:#fff}
+      th,td{border-bottom:1px solid #ddd}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <div class="h-title">特売 → オリジナル献立 生成デモ（物価高対応版）</div>
+        <div class="h-sub">
+          「ついで買い」より、<span class="good">予算内で献立が決まる／余りゼロ／代替案</span> を重視。<br/>
+          店側の操作は「売りたい商品を選ぶ」だけで、レシピ・POP・カード・計測の完成イメージまで見せるHTMLモックです。
+        </div>
+      </div>
+      <div class="badge">
+        <span>店舗:</span><strong>食彩館やしろ店</strong>
+      </div>
+    </header>
+
+    <div class="grid">
+      <!-- Left: Input -->
+      <section class="card">
+        <h2>① 店側の入力（1分想定）</h2>
+
+        <div class="row">
+          <div>
+            <label>店舗</label>
+            <select id="store">
+              <option selected>食彩館やしろ店（福井市若杉4丁目1021）</option>
+              <option>（デモ）食彩館 東部店</option>
+              <option>（デモ）食彩館 大宮店</option>
+            </select>
+          </div>
+          <div>
+            <label>週（掲出期間）</label>
+            <input id="week" type="text" value="2026/01/26 〜 2026/02/01" />
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:10px">
+          <div>
+            <label>ねらい（チェック）</label>
+            <div class="chips" id="goals">
+              <div class="chip active" data-goal="売り切り">売り切り（在庫/ロス）</div>
+              <div class="chip" data-goal="予算内">予算内（節約・余りゼロ）</div>
+              <div class="chip" data-goal="時短">時短（献立迷い削減）</div>
+              <div class="chip" data-goal="代替">代替案（高ければ置き換え）</div>
+            </div>
+            <div class="hint">※複数選択OK。物価高なので「予算内」「代替案」を前提にできます。</div>
+          </div>
+          <div>
+            <label>条件</label>
+            <div class="row" style="grid-template-columns:1fr 1fr; gap:10px">
+              <div>
+                <label style="margin:0 0 6px">調理時間</label>
+                <select id="timeLimit">
+                  <option selected>10分以内</option>
+                  <option>15分以内</option>
+                  <option>20分以内</option>
+                </select>
+              </div>
+              <div>
+                <label style="margin:0 0 6px">人数</label>
+                <select id="servings">
+                  <option>1人</option>
+                  <option selected>2人</option>
+                  <option>3〜4人</option>
+                </select>
+              </div>
+            </div>
+            <div style="margin-top:8px">
+              <label style="margin:0 0 6px">注意（任意）</label>
+              <input id="notes" type="text" placeholder="例：子ども向け／辛くしない／骨注意を強めに など" />
+            </div>
+          </div>
+        </div>
+
+        <div class="sep"></div>
+
+        <h2>② デモ用商品セット（特売想定 3パターン）</h2>
+        <div class="chips" id="setChips"></div>
+        <div class="hint" id="setHint"></div>
+
+        <div class="sep"></div>
+
+        <div class="row">
+          <div>
+            <label>売りたい商品（編集可）</label>
+            <textarea id="items" spellcheck="false"></textarea>
+            <div class="hint">1行に1商品。実運用では「特売3〜10品」だけ渡せばOK。</div>
+          </div>
+          <div>
+            <label>売場（任意）</label>
+            <textarea id="aisles" spellcheck="false" placeholder="例）精肉：豚こま&#10;青果：白菜、しめじ&#10;鮮魚：さば切身"></textarea>
+            <div class="hint">POPは“売場別”に生成できます（例：精肉前／青果前）。</div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="primary" id="btnGenerate">生成（デモ）</button>
+          <button class="ghost" id="btnPrint">レシピカードとして印刷</button>
+          <button class="ghost" id="btnReset">入力を初期化</button>
+          <span class="pill">※デモは「事前生成を表示」でもOK</span>
+        </div>
+
+        <div class="loading" id="loading">エージェントが献立を生成中…（デモ：1.2秒）</div>
+      </section>
+
+      <!-- Right: Output -->
+      <section class="card" id="outputCard">
+        <h2>③ 生成結果（物価高対応：追加購入0〜1個が基本）</h2>
+
+        <div id="emptyState" class="box">
+          右側に「生成結果」を表示します。<br/>
+          左の <strong>デモ用商品セット</strong> を選び、<strong>生成（デモ）</strong> を押してください。
+        </div>
+
+        <div id="result" style="display:none">
+          <div class="recipe-title" id="rTitle"></div>
+          <div class="muted" id="rLead"></div>
+          <div class="meta" id="rMeta"></div>
+
+          <div class="sep"></div>
+
+          <div class="twoCols">
+            <div>
+              <h2>材料（追加購入は0〜1個）</h2>
+              <div class="muted" style="font-size:12px">調味料は“家にある前提”で設計（醤油/みりん/味噌/油など）</div>
+              <ul id="rIngredients"></ul>
+            </div>
+            <div>
+              <h2>作り方</h2>
+              <ol id="rSteps"></ol>
+            </div>
+          </div>
+
+          <div class="sep"></div>
+
+          <div class="twoCols">
+            <div>
+              <h2>節約ポイント（失敗回避）</h2>
+              <ul id="rBudget"></ul>
+            </div>
+            <div>
+              <h2>代替案（高ければ置き換え）</h2>
+              <ul id="rSubs"></ul>
+            </div>
+          </div>
+
+          <div class="sep"></div>
+
+          <div class="twoCols">
+            <div>
+              <h2>余りゼロ：翌日消化（在庫0化）</h2>
+              <ul id="rLeftover"></ul>
+            </div>
+            <div>
+              <h2>注意（食品安全・表示）</h2>
+              <ul id="rSafety"></ul>
+              <div class="hint">※実運用では社内ルールに合わせて文言固定／承認フロー推奨</div>
+            </div>
+          </div>
+
+          <div class="sep"></div>
+
+          <div class="twoCols">
+            <div>
+              <h2>売場POP文（そのまま貼れる）</h2>
+              <div class="box" id="rPop"></div>
+              <div class="hint">例：精肉前／青果前に設置、QRとセット</div>
+            </div>
+            <div>
+              <h2>レシピカード文（持ち帰り用）</h2>
+              <div class="box" id="rCard"></div>
+              <div class="hint">カードが減る＝需要。補充回数も“反応指標”。</div>
+            </div>
+          </div>
+
+          <div class="sep"></div>
+
+          <div class="twoCols">
+            <div>
+              <h2>QR用ページ（表示例）</h2>
+              <div class="box">
+                URL（例）：<span id="rUrl"></span><br/>
+                <span class="muted">※このデモではページ遷移なし。実装時はレシピIDでログ計測。</span>
+              </div>
+            </div>
+            <div>
+              <h2>アレルゲン（主要）</h2>
+              <div class="box" id="rAllergens"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Dashboard mock -->
+    <section class="card dash" style="margin-top:14px">
+      <h2>④ 計測ダッシュボード（モック：売り切り/値引き抑制を主眼）</h2>
+      <div class="kpis">
+        <div class="kpi">
+          <div class="t">レシピ閲覧（QR）合計</div>
+          <div class="v" id="kPv">—</div>
+          <div class="s">※閲覧ログ（recipe_id）で自動集計</div>
+        </div>
+        <div class="kpi">
+          <div class="t">カード持ち帰り（推定）</div>
+          <div class="v" id="kCards">—</div>
+          <div class="s">※補充回数×枚数 / 目視でもOK</div>
+        </div>
+        <div class="kpi">
+          <div class="t">売り切り指標（メモ）</div>
+          <div class="v" id="kSellout">—</div>
+          <div class="s">※対象商品の販売点数 or 値引き率（可能な範囲で）</div>
+        </div>
+      </div>
+
+      <div class="sep"></div>
+
+      <table>
+        <thead>
+          <tr>
+            <th style="width:34%">レシピ</th>
+            <th>閲覧</th>
+            <th>カード</th>
+            <th>売り切りメモ</th>
+            <th style="width:26%">現場メモ</th>
+          </tr>
+        </thead>
+        <tbody id="dashRows">
+          <tr>
+            <td class="muted">生成後に例データが入ります</td>
+            <td class="muted">—</td>
+            <td class="muted">—</td>
+            <td class="muted">—</td>
+            <td class="muted">—</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="hint" style="margin-top:10px">
+        最初は <span class="good">POS連携なし</span> でOK。<br/>
+        「閲覧が多いレシピ＝買う理由が伝わった」→当たりの型だけ増やす。
+      </div>
+    </section>
+
+    <div class="hint" style="margin:14px 4px 4px">
+      ※このHTMLは「商談デモ用モック」です。実運用では承認フロー（食品安全/表示）・アレルゲン表示・文言固定を推奨。
+    </div>
+  </div>
+
+  <script>
+    // ===== デモ用商品セット 3つ（物価高対応：追加購入0〜1個が基本） =====
+    const demoSets = [
+      {
+        id: "set1",
+        label: "セットA：豚こま × 白菜 × しめじ（予算内・余りゼロ）",
+        items: ["豚こま（精肉）","白菜（青果）","しめじ（青果）"],
+        // +αは0〜1個まで（必要なら「なし」でOK）
+        addOn: "片栗粉（なければ“とろみ無し”でもOK）",
+        output: {
+          title: "豚こま×白菜×しめじの“うま塩”炒め（10分）",
+          lead: "調味料は家にある前提。追加購入は基本0〜1個で成立。",
+          ingredients: [
+            "豚こま 200g",
+            "白菜 1/6玉（芯→葉）",
+            "しめじ 1/2株",
+            "（任意+α）片栗粉 小さじ2（なければ省略OK）",
+            "A：塩 少々 / 鶏がら（or 塩昆布でもOK） / 水少量",
+            "油（家にあるものでOK）"
+          ],
+          steps: [
+            "白菜は芯→葉の順で切る。しめじはほぐす。",
+            "豚こまを炒め、色が変わったら白菜の芯→しめじ→白菜の葉の順に入れる。",
+            "Aで味付け。任意で片栗粉を溶いて入れ、とろみを付ける（無しでもOK）。",
+            "味を見て完成。"
+          ],
+          budget: [
+            "調味料は“家にある”想定（買い足し最小）",
+            "白菜は“芯→葉”で炒め時間短縮＝ガス代節約",
+            "片栗粉なしでも成立（とろみは任意）"
+          ],
+          subs: [
+            "豚こまが高い→鶏むね/厚揚げ/卵で置き換えOK",
+            "白菜が高い→キャベツ/もやしでOK",
+            "しめじ→えのき/まいたけ/冷凍きのこでもOK"
+          ],
+          leftover: [
+            "白菜が余ったら：翌日「白菜スープ」（水＋塩＋だし）で消化",
+            "きのこが余ったら：冷凍保存→味噌汁・炒め物へ",
+            "肉が余ったら：小分け冷凍→次回の時短に"
+          ],
+          safety: [
+            "豚肉は中心まで十分に加熱（赤みが残らないように）",
+            "とろみを付ける場合は跳ねやすいので火加減に注意"
+          ],
+          allergens: "大豆（調味料に含まれる場合） ※商品ラベルをご確認ください",
+          pop: "【予算内で“今日の主菜”】\n豚こま×白菜×しめじ → 10分うま塩炒め\n買い足し最小（調味料は家にある前提）\nQRで作り方→",
+          card: "豚こま×白菜×しめじ うま塩炒め（10分）\n買い足し最小／余りゼロの考え方つき\n※豚肉は中心まで十分に加熱"
+        }
+      },
+      {
+        id: "set2",
+        label: "セットB：鶏むね × もやし × にら（安い食材で満足）",
+        items: ["鶏むね（精肉）","もやし（青果）","にら（青果）"],
+        addOn: "（追加0）家の調味料だけでOK",
+        output: {
+          title: "鶏むねともやしの“節約スタミナ”炒め（12分）",
+          lead: "もやしでかさ増し。追加購入ゼロでも満足度を作る。",
+          ingredients: [
+            "鶏むね 1枚（そぎ切り）",
+            "もやし 1袋",
+            "にら 1/2束",
+            "A：醤油 / みりん（or 砂糖少々） / にんにく（あれば）",
+            "片栗粉（あれば少量）",
+            "油（家にあるものでOK）"
+          ],
+          steps: [
+            "鶏むねはそぎ切り。あれば片栗粉を薄くまぶす（無くてもOK）。",
+            "鶏を炒め、色が変わったらもやしを入れて強火でさっと。",
+            "Aで味付けし、最後ににらを入れて10秒で火を止める。",
+            "完成（もやしは炒めすぎない）。"
+          ],
+          budget: [
+            "鶏むね＋もやし＝低コストでボリューム",
+            "にらは香りで満足度UP（調味料が少なくて済む）",
+            "強火短時間＝ガス代節約"
+          ],
+          subs: [
+            "鶏むねが高い→豚こま/卵/ちくわでもOK",
+            "にら→ねぎ/小松菜でもOK",
+            "にんにく無し→胡椒や生姜で代用"
+          ],
+          leftover: [
+            "余ったにら：刻んで冷凍→味噌汁/炒め物へ",
+            "余った鶏むね：小分け冷凍→次回の時短に",
+            "余ったもやし：翌日“スープ”で一気に消化"
+          ],
+          safety: [
+            "鶏肉は中心まで十分に加熱（透明な肉汁が目安）",
+            "もやしは炒めすぎると水が出るので短時間で"
+          ],
+          allergens: "小麦・大豆（醤油）",
+          pop: "【追加購入ゼロでも満足】\n鶏むね×もやし×にら → 節約スタミナ炒め\n強火でさっと＝時短＆節約\nQRで作り方→",
+          card: "鶏むね×もやし×にら 節約スタミナ炒め（12分）\n調味料は家にある前提／余り消化つき\n※鶏肉は中心まで十分に加熱"
+        }
+      },
+      {
+        id: "set3",
+        label: "セットC：さば切身 × 大根 × こんにゃく（煮物で節約・腹持ち）",
+        items: ["さば切身（鮮魚）","大根（青果）","こんにゃく（加工品）"],
+        addOn: "（追加0〜1）しょうが（チューブでも）",
+        output: {
+          title: "さば大根（こんにゃく入り）“節約”煮（20分）",
+          lead: "煮物は腹持ち◎。高い副菜を買わずに満足度を作る。",
+          ingredients: [
+            "さば切身 2切（骨注意）",
+            "大根 8cm（いちょう切り）",
+            "こんにゃく 1/2枚（ちぎる）",
+            "A：醤油 / みりん（or 砂糖） / 水 / 生姜（任意+α）"
+          ],
+          steps: [
+            "大根はいちょう切り。こんにゃくはちぎって下茹で（または熱湯をかける）。",
+            "鍋に大根＋こんにゃく＋Aを入れ、10分煮る。",
+            "さばを入れてさらに10分。味が染みたら完成。"
+          ],
+          budget: [
+            "こんにゃくでかさ増し＝低コストで満足度UP",
+            "煮物は翌日も食べられる＝食費のブレを抑える",
+            "副菜を追加購入しなくても成立"
+          ],
+          subs: [
+            "さばが高い→あじ/ぶり切身/さば缶で代用OK",
+            "大根→白菜の芯/かぶ/人参でもOK",
+            "生姜なし→ねぎ・胡椒で臭み対策"
+          ],
+          leftover: [
+            "煮汁が余ったら：翌日“うどん/雑炊”に転用",
+            "大根が余ったら：味噌汁/浅漬けで消化",
+            "こんにゃくが余ったら：炒め物に"
+          ],
+          safety: [
+            "魚は十分に加熱（中心温度に注意）",
+            "骨に注意（カードでも注意喚起推奨）"
+          ],
+          allergens: "小麦・大豆（醤油）",
+          pop: "【節約・腹持ち◎】\nさば×大根×こんにゃく → さば大根（煮物）\n副菜を買い足さずに満足\nQRで作り方→",
+          card: "さば大根（こんにゃく入り）節約煮（20分）\n追加購入0〜1個／翌日転用つき\n※骨注意／魚は十分に加熱"
+        }
+      }
+    ];
+
+    const $ = (id)=>document.getElementById(id);
+    const setChips = $("setChips");
+    const setHint  = $("setHint");
+    const itemsTa  = $("items");
+
+    let activeSetId = demoSets[0].id;
+    let lastGenerated = null;
+
+    function renderSetChips(){
+      setChips.innerHTML = "";
+      demoSets.forEach(s=>{
+        const el = document.createElement("div");
+        el.className = "chip" + (s.id===activeSetId ? " active":"");
+        el.textContent = s.label;
+        el.onclick = ()=>selectSet(s.id);
+        setChips.appendChild(el);
+      });
+    }
+
+    function selectSet(id){
+      activeSetId = id;
+      renderSetChips();
+      const s = demoSets.find(x=>x.id===id);
+      itemsTa.value = s.items.join("\n");
+      setHint.textContent = "追加購入（0〜1個の想定）： " + s.addOn;
+    }
+
+    function getSelectedGoals(){
+      const chips = [...document.querySelectorAll("#goals .chip.active")];
+      return chips.map(c=>c.dataset.goal);
+    }
+
+    document.querySelectorAll("#goals .chip").forEach(ch=>{
+      ch.onclick = ()=>ch.classList.toggle("active");
+    });
+
+    function showResult(out, ctx){
+      $("emptyState").style.display = "none";
+      $("result").style.display = "block";
+
+      $("rTitle").textContent = out.title;
+      $("rLead").textContent  = out.lead;
+
+      const meta = $("rMeta");
+      meta.innerHTML = "";
+      const metaParts = [
+        `店舗：${ctx.store}`,
+        `期間：${ctx.week}`,
+        `目標：${ctx.goals.join(" / ") || "（未選択）"}`,
+        `条件：${ctx.timeLimit}・${ctx.servings}`,
+      ];
+      metaParts.forEach(t=>{
+        const span = document.createElement("span");
+        span.className = "pill";
+        span.textContent = t;
+        meta.appendChild(span);
+      });
+
+      // ingredients
+      const ing = $("rIngredients"); ing.innerHTML = "";
+      out.ingredients.forEach(x=>{
+        const li=document.createElement("li"); li.textContent=x; ing.appendChild(li);
+      });
+      // steps
+      const steps = $("rSteps"); steps.innerHTML = "";
+      out.steps.forEach(x=>{
+        const li=document.createElement("li"); li.textContent=x; steps.appendChild(li);
+      });
+
+      // budget points
+      const budget = $("rBudget"); budget.innerHTML = "";
+      out.budget.forEach(x=>{
+        const li=document.createElement("li"); li.textContent=x; budget.appendChild(li);
+      });
+
+      // substitutes
+      const subs = $("rSubs"); subs.innerHTML = "";
+      out.subs.forEach(x=>{
+        const li=document.createElement("li"); li.textContent=x; subs.appendChild(li);
+      });
+
+      // leftover
+      const lo = $("rLeftover"); lo.innerHTML = "";
+      out.leftover.forEach(x=>{
+        const li=document.createElement("li"); li.textContent=x; lo.appendChild(li);
+      });
+
+      // safety
+      const safety = $("rSafety"); safety.innerHTML = "";
+      out.safety.forEach(x=>{
+        const li=document.createElement("li"); li.textContent=x; safety.appendChild(li);
+      });
+
+      $("rPop").textContent = out.pop;
+      $("rCard").textContent = out.card;
+      $("rAllergens").textContent = out.allergens;
+
+      const rid = activeSetId + "-" + Date.now().toString(36).slice(-5);
+      $("rUrl").textContent = `https://example.local/recipes/${rid}`;
+
+      // dashboard mock numbers (sellout-focused)
+      const basePv = activeSetId==="set1" ? 280 : (activeSetId==="set2" ? 260 : 190);
+      const pv = basePv + Math.floor(Math.random()*80);
+      const cards = Math.floor(pv*0.14);
+
+      const sellout = activeSetId==="set1"
+        ? "白菜：値引き幅 -5%（見込み）／豚こま：販売点数 +8%"
+        : activeSetId==="set2"
+        ? "もやし：売り切り達成（見込み）／鶏むね：販売点数 +6%"
+        : "大根：販売点数 +5%／煮物系は翌日も閲覧が伸びる";
+
+      $("kPv").textContent = pv.toLocaleString();
+      $("kCards").textContent = cards.toLocaleString();
+      $("kSellout").textContent = sellout;
+
+      const dash = $("dashRows");
+      dash.innerHTML = "";
+      const memo = ctx.notes?.trim()
+        ? `注意：${ctx.notes.trim()}`
+        : (activeSetId==="set3" ? "煮物は“翌日閲覧”が増える。骨注意を強めに。" :
+           activeSetId==="set2" ? "強火短時間＝水っぽくならない。節約ワードが刺さる。" :
+           "“買い足し最小”が刺さる。余り消化をカードに入れる。");
+
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td><strong>${out.title}</strong><div class="muted" style="margin-top:4px">${demoSets.find(s=>s.id===activeSetId).items.join(" / ")}</div></td>
+        <td><span class="tag">${pv}</span></td>
+        <td><span class="tag">${cards}</span></td>
+        <td class="muted">${sellout}</td>
+        <td class="muted">${memo}</td>
+      `;
+      dash.appendChild(row);
+
+      lastGenerated = {out, ctx, pv, cards, sellout, rid};
+    }
+
+    $("btnGenerate").onclick = ()=>{
+      const ctx = {
+        store: $("store").value,
+        week: $("week").value,
+        goals: getSelectedGoals(),
+        timeLimit: $("timeLimit").value,
+        servings: $("servings").value,
+        notes: $("notes").value || ""
+      };
+      const s = demoSets.find(x=>x.id===activeSetId);
+      const loading = $("loading");
+      loading.classList.add("show");
+      setTimeout(()=>{
+        loading.classList.remove("show");
+        showResult(s.output, ctx);
+      }, 1200);
+    };
+
+    $("btnPrint").onclick = ()=>{
+      if(!lastGenerated){
+        alert("先に「生成（デモ）」を押して結果を表示してください。");
+        return;
+      }
+      window.print();
+    };
+
+    $("btnReset").onclick = ()=>{
+      $("week").value = "2026/01/26 〜 2026/02/01";
+      $("timeLimit").value = "10分以内";
+      $("servings").value = "2人";
+      $("notes").value = "";
+      $("aisles").value = "";
+      // reset goals: keep 売り切り only
+      document.querySelectorAll("#goals .chip").forEach((c,i)=>{
+        c.classList.toggle("active", i===0);
+      });
+      $("emptyState").style.display = "block";
+      $("result").style.display = "none";
+      $("dashRows").innerHTML = `
+        <tr>
+          <td class="muted">生成後に例データが入ります</td>
+          <td class="muted">—</td>
+          <td class="muted">—</td>
+          <td class="muted">—</td>
+          <td class="muted">—</td>
+        </tr>
+      `;
+      $("kPv").textContent = "—";
+      $("kCards").textContent = "—";
+      $("kSellout").textContent = "—";
+      lastGenerated = null;
+      selectSet(demoSets[0].id);
+    };
+
+    renderSetChips();
+    selectSet(demoSets[0].id);
+  </script>
+</body>
+</html>

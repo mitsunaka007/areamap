@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/areamaplp.css') }}">
+  <title>AreaMap｜お問い合わせ</title>
+</head>
+
+<body data-active-section="ask">
+
+<div id="lp-root">
+
+  <!-- =========================
+    Ask / Contact
+  ========================= -->
+  <section class="lp-section lp-ask" data-section="ask">
+    <div class="lp-bg lp-bg-white"></div>
+
+    <div class="lp-content">
+
+      <!-- Top Nav -->
+      <div class="ask-topbar">
+        <a class="ask-back" href="https://areamap.onrender.com/" aria-label="LPに戻る">
+          ← LPに戻る
+        </a>
+        <div class="ask-brand">AreaMap</div>
+      </div>
+
+      <h1 class="lp-heading ask-heading">
+        お問い合わせ / 相談
+      </h1>
+
+      <p class="lp-text ask-lead">
+        「Entranceで足りる？」「Last30が必要？」など、状況を聞いて整理します。<br>
+        もしLP/Tilemapの診断結果がある方は、内容に添えて送ってください。
+      </p>
+
+      <!-- Flash messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="ask-notices">
+            {% for category, message in messages %}
+              <div class="ask-notice ask-notice-{{ category }}">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <div class="ask-grid">
+
+        <!-- Left: Guide -->
+        <div class="ask-guide">
+          <div class="ask-card">
+            <h2 class="ask-card-title">このフォームでできること</h2>
+            <ul class="ask-list">
+              <li>Entrance / Last30 のどちらが合うか、現状を整理</li>
+              <li>「迷う原因（入口/駐車場/目印）」の優先度決め</li>
+              <li>HP / Instagram / チラシQR の導線の作り方提案</li>
+            </ul>
+
+            <div class="ask-divider"></div>
+
+            <p class="ask-mini">
+              例：<br>
+              ・お店/イベント名<br>
+              ・来てほしい人（初見/常連/観光など）<br>
+              ・掲載場所（HP / Instagram / チラシ）<br>
+              ・今使っている地図（画像/Google Map/なし）
+            </p>
+          </div>
+
+          <div class="ask-note">
+            ※ 送信後、確認メールは送りません（必要なら返信で対応します）。<br>
+            ※ 営業メールはお控えください。
+          </div>
+        </div>
+
+        <!-- Right: Form -->
+        <div class="ask-form">
+          <div class="ask-card">
+            <h2 class="ask-card-title">入力してください</h2>
+
+            {# -----------------------------
+               plan を POST でも落とさない：action に plan を保持
+               /ask?plan=entrance で開いたら POST 先も /ask?plan=entrance にする
+               ----------------------------- #}
+            {% set _plan = request.args.get('plan') %}
+            {% if _plan in ['entrance','last30','event'] %}
+            <form method="POST" action="{{ url_for('ask', plan=_plan) }}" class="ask-form-inner">
+            {% else %}
+            <form method="POST" action="{{ url_for('ask') }}" class="ask-form-inner">
+            {% endif %}
+              {{ form.hidden_tag() }}
+
+              <div class="ask-field">
+                <label class="ask-label" for="contactname">{{ form.contactname.label }}</label>
+                {{ form.contactname(
+                  class="ask-input" + (" is-error" if form.contactname.errors else ""),
+                  id="contactname",
+                  placeholder="例：山田 太郎"
+                ) }}
+                {% if form.contactname.errors %}
+                  <div class="ask-error">{{ form.contactname.errors[0] }}</div>
+                {% endif %}
+              </div>
+
+              <div class="ask-field">
+                <label class="ask-label" for="contactemail">{{ form.contactemail.label }}</label>
+                {{ form.contactemail(
+                  class="ask-input" + (" is-error" if form.contactemail.errors else ""),
+                  id="contactemail",
+                  placeholder="例：example@gmail.com"
+                ) }}
+                {% if form.contactemail.errors %}
+                  <div class="ask-error">{{ form.contactemail.errors[0] }}</div>
+                {% endif %}
+              </div>
+
+              <div class="ask-field">
+                <label class="ask-label" for="contactdetail">{{ form.contactdetail.label }}</label>
+                {{ form.contactdetail(
+                  class="ask-textarea" + (" is-error" if form.contactdetail.errors else ""),
+                  id="contactdetail",
+                  rows="8",
+                  placeholder="相談内容をできるだけ具体的に書いてください（例：入口が分かりにくい／駐車場を案内したい／チラシQRから来店につなげたい等）"
+                ) }}
+                {% if form.contactdetail.errors %}
+                  <div class="ask-error">{{ form.contactdetail.errors[0] }}</div>
+                {% endif %}
+              </div>
+
+              <div class="ask-actions">
+                {{ form.submit(class="proposal-cta ask-submit") }}
+                <p class="ask-privacy">
+                  送信内容はお問い合わせ対応のためにのみ使用します。
+                </p>
+              </div>
+            </form>
+          </div>
+        </div>
+
+      </div><!-- /ask-grid -->
+
+    </div><!-- /lp-content -->
+  </section>
+
+  <footer class="lp-footer">
+    <small>© AreaMap</small>
+  </footer>
+
+</div><!-- /lp-root -->
+
+</body>
+</html>

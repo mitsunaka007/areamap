@@ -1,0 +1,1106 @@
+/* =========================
+  Reset / Base
+========================= */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue",
+               "Segoe UI", Arial, sans-serif;
+  color: #111;
+  background: #fff;
+}
+
+#lp-root {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+/* =========================
+  Section Base
+========================= */
+.lp-section {
+  position: relative;
+  min-height: 100vh;
+  padding: 120px 20px;
+  display: flex;
+  align-items: center;
+}
+
+/* 背景レイヤー */
+.lp-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  transition: background-color 0.6s ease;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+/* 背景バリエーション */
+.lp-bg-neutral {
+  background: #f5f5f5;
+}
+
+.lp-bg-white {
+  background: #ffffff;
+}
+
+.lp-bg-website {
+  background: linear-gradient(180deg, #eef2f7, #f9fafb);
+}
+
+.lp-bg-instagram {
+  background: linear-gradient(
+    135deg,
+    #feda75,
+    #fa7e1e,
+    #d62976,
+    #962fbf,
+    #4f5bd5
+  );
+  opacity: 0.15;
+}
+
+.lp-bg-flyer {
+  background: #faf7f2;
+}
+
+/* =========================
+  Content
+========================= */
+.lp-content {
+  position: relative;
+  z-index: 2;
+  max-width: 1080px;
+  margin: 0 auto;
+}
+
+.lp-center {
+  text-align: center;
+}
+
+.lp-title {
+  font-size: clamp(28px, 5vw, 42px);
+  font-weight: 700;
+  line-height: 1.3;
+  margin-bottom: 24px;
+}
+
+.lp-heading {
+  font-size: clamp(22px, 4vw, 32px);
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.lp-lead {
+  font-size: 18px;
+  line-height: 1.6;
+}
+
+.lp-text {
+  font-size: 16px;
+  line-height: 1.7;
+  margin-bottom: 16px;
+}
+
+.lp-emphasis {
+  font-size: 18px;
+  font-weight: 600;
+  margin-top: 20px;
+}
+
+.lp-points {
+  padding-left: 20px;
+}
+
+.lp-points li {
+  margin-bottom: 8px;
+}
+
+/* =========================
+  Hero Section レイアウト
+========================= */
+.lp-hero {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+}
+
+.lp-hero .lp-content {
+  flex: 1;
+  max-width: 580px;
+}
+
+.lp-hero .lp-map-stage {
+  flex: 0 0 480px;
+  position: sticky;
+  top: 80px;
+}
+
+/* =========================
+  Sticky Map Stage
+========================= */
+.lp-map-stage {
+  position: sticky;
+  top: 80px;
+  margin: 0 auto;
+  width: 100%;
+  max-width: 480px;
+  z-index: 1;
+}
+
+/* AreaMap 表示枠 */
+.lp-areamap {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.15);
+  overflow: hidden;
+}
+
+/* ダミー表示（後で iframe / div に置換） */
+.areamap-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: #666;
+  position: relative;
+  overflow: hidden;
+}
+
+.areamap-placeholder img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+/* =========================
+  Responsive - iframe height adjustment
+========================= */
+
+/* デフォルト（PC） */
+.areamap-placeholder {
+  height: 320px;
+}
+.areamap-frame iframe {
+  display: block;
+  width: 100%;
+}
+
+/* タブレット（768px以下） */
+@media (max-width: 768px) {
+  .areamap-placeholder {
+    height: 280px;
+  }
+  
+  .areamap-frame iframe {
+    height: 280px !important;
+  }
+  .areamap-frame iframe body {
+    height: 280px !important;
+  }
+}
+
+/* モバイル（480px以下） */
+@media (max-width: 480px) {
+  .areamap-placeholder {
+    height: 240px;
+  }
+  
+  .areamap-frame iframe {
+    height: 240px !important;
+  }
+  .areamap-frame iframe body {
+    height: 240px !important;
+  }
+}
+
+/* 小型スマホ（375px以下） */
+@media (max-width: 375px) {
+  .areamap-placeholder {
+    height: 220px;
+  }
+  
+  .areamap-frame iframe {
+    height: 220px !important;
+  }
+  .areamap-frame iframe body {
+    height: 220px !important;
+  }
+}
+
+.map-purpose {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+
+.map-purpose ul {
+  list-style: none;
+  margin: 0;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 12px;
+  backdrop-filter: blur(4px);
+}
+
+.map-purpose ul li {
+  color: #111;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+/* =========================
+  Flow
+========================= */
+.lp-flow {
+  margin: 32px 0;
+  text-align: center;
+}
+
+.lp-flow-step {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.lp-flow-arrow {
+  margin: 8px 0;
+}
+
+/* =========================
+  CTA
+========================= */
+.lp-cta {
+  display: inline-block;
+  margin-top: 24px;
+  padding: 14px 28px;
+  background: #111;
+  color: #fff;
+  text-decoration: none;
+  border-radius: 999px;
+  font-weight: 600;
+  transition: background 0.2s ease;
+}
+
+.lp-cta:hover {
+  background: #333;
+}
+
+/* =========================
+  Footer
+========================= */
+.lp-footer {
+  padding: 40px 20px;
+  text-align: center;
+  font-size: 14px;
+  color: #666;
+}
+
+/* =========================
+  AreaMap Gallery (個人店/商店街/イベント)
+========================= */
+.lp-areamap-gallery {
+  background: #fff;
+}
+
+.areamap-gallery {
+  display: flex;
+  gap: 24px;
+  margin-top: 32px;
+  overflow-x: visible;
+  padding-bottom: 8px;
+}
+
+.areamap-demo {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 16px;
+  background: #fafafa;
+}
+
+.demo-title {
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+
+.demo-desc {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 12px;
+}
+
+.areamap-frame {
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f0f0f0;
+  display: block;
+  line-height: 0;
+}
+
+/* 既存 placeholder の縮小版 */
+.areamap-placeholder.small {
+  height: 180px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* =========================
+  Plans (Lite / Pro / Event)
+========================= */
+.lp-plans .plans-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.plan-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+  border: 1px solid rgba(0,0,0,0.06);
+  display: flex;
+  flex-direction: column;
+}
+
+.plan-badge {
+  display: inline-block;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.06);
+  margin-bottom: 10px;
+}
+
+.plan-title {
+  font-size: 20px;
+  line-height: 1.4;
+  margin: 6px 0 10px;
+}
+
+.plan-lead {
+  margin: 0 0 12px;
+  opacity: 0.9;
+}
+
+.plan-list {
+  margin: 0;
+  padding-left: 1.2em;
+  line-height: 1.8;
+}
+
+.plan-actions {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.plan-btn {
+  display: inline-block;
+  text-align: center;
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  border: 1px solid rgba(0,0,0,0.12);
+}
+
+.plan-sub {
+  text-decoration: none;
+  font-weight: 700;
+  opacity: 0.9;
+}
+
+.plan-preview {
+  margin-top: auto;
+  padding-top: 14px;
+}
+
+.plans-note {
+  margin-top: 18px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(0,0,0,0.08);
+}
+
+/* =========================
+  Hearing Section
+========================= */
+.hearing-wrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 24px;
+}
+
+.hearing-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.hearing-header h1 {
+  font-size: 28px;
+  margin-bottom: 8px;
+}
+
+.hearing-header p {
+  color: #555;
+}
+
+.hearing-main {
+  max-width: 520px;
+  margin: 0 auto;
+  background: #fff;
+  padding: 32px;
+  border-radius: 16px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.1);
+  text-align: center;
+}
+
+.hearing-question {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 32px;
+}
+
+.hearing-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+
+.hearing-actions button {
+  min-width: 120px;
+  padding: 14px 0;
+  font-size: 16px;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-yes {
+  background: #111;
+  color: #fff;
+}
+
+.btn-no {
+  background: #eee;
+  color: #111;
+}
+
+.hearing-progress {
+  margin-top: 24px;
+  font-size: 14px;
+  color: #666;
+}
+
+/* =========================
+  Before/After Section
+========================= */
+.ba-wrapper {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+
+.ba-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.ba-header h1 {
+  font-size: 28px;
+  margin-bottom: 8px;
+}
+
+.ba-header p {
+  color: #555;
+}
+
+.ba-main {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.ba-block {
+  background: #fff;
+  padding: 24px;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+}
+
+.ba-before h2 {
+  color: #c0392b;
+}
+
+.ba-after h2 {
+  color: #27ae60;
+}
+
+.ba-action ul {
+  padding-left: 20px;
+}
+
+.ba-action li {
+  margin-bottom: 8px;
+}
+
+.ba-footer {
+  margin-top: 40px;
+  text-align: center;
+}
+
+.ba-note {
+  font-size: 14px;
+  color: #555;
+  margin-bottom: 16px;
+}
+
+.ba-cta {
+  display: inline-block;
+  padding: 14px 28px;
+  background: #111;
+  color: #fff;
+  text-decoration: none;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+/* =========================
+  AreaMap Proposal
+========================= */
+.areamap-proposal {
+  margin-top: 40px;
+  padding: 28px 24px;
+  border-radius: 20px;
+  background: linear-gradient(
+    180deg,
+    #f9fafb,
+    #ffffff
+  );
+  border: 1px solid #e5e7eb;
+}
+
+.proposal-header h4 {
+  font-size: 18px;
+  margin-bottom: 8px;
+}
+
+.proposal-header span {
+  font-weight: 700;
+}
+
+.proposal-header p {
+  font-size: 14px;
+  color: #555;
+  line-height: 1.6;
+}
+
+.proposal-cards {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  margin: 24px 0;
+}
+
+.proposal-card {
+  padding: 16px;
+  border-radius: 14px;
+  background: #f8f8f8;
+}
+
+.proposal-card h5 {
+  font-size: 15px;
+  margin-bottom: 6px;
+}
+
+.proposal-card p {
+  font-size: 13px;
+  color: #444;
+  line-height: 1.5;
+}
+
+.proposal-footer {
+  text-align: center;
+}
+
+.proposal-note {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 12px;
+}
+
+.proposal-cta {
+  display: inline-block;
+  padding: 12px 22px;
+  border-radius: 999px;
+  background: #111;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+/* =========================
+  Move to Top Button
+========================= */
+#move-top {
+  position      : fixed;
+  bottom        : 30px;
+  right         : 30px;
+  cursor        : pointer;
+  width         : 50px;
+  height        : 50px;
+  border-radius : 50%;
+  border        : none;
+  background    : #509b2a;
+  background    : linear-gradient(90deg, rgba(80, 155, 42, 1) 0%, rgba(87, 199, 133, 1) 50%, rgba(237, 221, 83, 1) 100%);
+  display       : flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+/* =========================
+  Ask Page
+========================= */
+.lp-ask .lp-content {
+  max-width: 980px;
+}
+
+.ask-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.ask-back {
+  text-decoration: none;
+  opacity: .8;
+}
+
+.ask-brand {
+  font-weight: 700;
+  letter-spacing: .04em;
+  opacity: .9;
+}
+
+.ask-heading {
+  margin-top: 8px;
+}
+
+.ask-lead {
+  margin-bottom: 18px;
+}
+
+.ask-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+.ask-card {
+  border: 1px solid rgba(148,163,184,.35);
+  border-radius: 16px;
+  padding: 16px;
+  background: rgba(255,255,255,.75);
+  backdrop-filter: blur(6px);
+}
+
+.ask-card-title {
+  margin: 0 0 10px;
+  font-size: 16px;
+}
+
+.ask-list {
+  margin: 0;
+  padding-left: 18px;
+  line-height: 1.7;
+}
+
+.ask-divider {
+  height: 1px;
+  background: rgba(148,163,184,.35);
+  margin: 14px 0;
+}
+
+.ask-mini {
+  margin: 0;
+  opacity: .85;
+  line-height: 1.7;
+}
+
+.ask-note {
+  margin-top: 10px;
+  font-size: 12px;
+  opacity: .75;
+  line-height: 1.6;
+}
+
+.ask-notices {
+  margin: 12px 0 16px;
+  display: grid;
+  gap: 8px;
+}
+
+.ask-notice {
+  border-radius: 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(148,163,184,.35);
+  background: rgba(2,6,23,.04);
+}
+
+.ask-notice-success {
+  background: rgba(34,197,94,.08);
+}
+
+.ask-notice-danger {
+  background: rgba(239,68,68,.08);
+}
+
+.ask-form-inner {
+  display: grid;
+  gap: 12px;
+}
+
+.ask-label {
+  display: block;
+  font-size: 13px;
+  opacity: .85;
+  margin-bottom: 6px;
+}
+
+.ask-input,
+.ask-textarea {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid rgba(148,163,184,.45);
+  padding: 10px 12px;
+  background: rgba(255,255,255,.9);
+  outline: none;
+}
+
+.ask-textarea {
+  resize: vertical;
+}
+
+.is-error {
+  border-color: rgba(239,68,68,.65);
+}
+
+.ask-error {
+  margin-top: 6px;
+  font-size: 12px;
+  opacity: .85;
+}
+
+.ask-actions {
+  margin-top: 6px;
+  display: grid;
+  gap: 10px;
+}
+
+.ask-submit {
+  display: inline-flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.ask-privacy {
+  margin: 0;
+  font-size: 12px;
+  opacity: .7;
+  line-height: 1.6;
+}
+
+/* =========================
+  Section Background Images
+========================= */
+/* Hero */
+body[data-active-section="hero"] .lp-hero .lp-bg {
+  opacity: 0.3;
+  background-image: url(../img/headermap.jpg);
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+/* Login */
+body[data-active-section="login"] .lp-areamap-gallery .lp-bg {
+  opacity: 0.3;
+  background-image: url(../img/login.jpg);
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+/* Website */
+body[data-active-section="website"] .lp-website .lp-bg {
+  opacity: 0.3;
+  background-image: url(../img/homepage.jpg);
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+/* Instagram */
+body[data-active-section="instagram"] .lp-instagram .lp-bg {
+  opacity: 1;
+}
+
+/* Flyer */
+body[data-active-section="flyer"] .lp-flyer .lp-bg {
+  opacity: 0.3;
+  background-image: url(../img/flyer.jpg);
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+/* Value */
+body[data-active-section="value"] .lp-value .lp-bg {
+  opacity: 0.3;
+  background-image: url(../img/value.jpg);
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+/* Data */
+body[data-active-section="data"] .lp-data .lp-bg {
+  opacity: 0.3;
+  background-image: url(../img/data.jpg);
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+/* Hearing */
+body[data-active-section="hearing"] .lp-hearing .lp-bg {
+  opacity: 0.3;
+  background-image: url(../img/hearing.jpg);
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+/* =========================
+  Responsive - PC (769px以上)
+========================= */
+@media (min-width: 769px) {
+  .proposal-cards {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .ask-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+  }
+
+  .lp-plans .plans-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 22px;
+  }
+}
+
+@media (min-width: 920px) {
+  .lp-plans .plans-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 22px;
+  }
+}
+
+/* =========================
+  Responsive - Mobile (768px以下)
+========================= */
+@media (max-width: 768px) {
+  /* Section Base */
+  .lp-section {
+    padding: 80px 20px;
+  }
+
+  .lp-section:not(.lp-hero):not(.lp-hearing) .lp-content {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  /* Hero Section - 縦並び */
+  .lp-hero {
+    flex-direction: column;
+    gap: 32px;
+    padding-top: 60px;
+    padding-bottom: 40px;
+  }
+
+  .lp-hero .lp-content {
+    max-width: 100%;
+    text-align: center;
+  }
+
+  .lp-hero .lp-map-stage {
+    position: relative;
+    top: 0;
+    flex: 0 0 auto;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .lp-hero .lp-title {
+    font-size: 24px;
+  }
+
+  .lp-hero .lp-lead {
+    font-size: 16px;
+  }
+
+  /* Map Stage */
+  .lp-map-stage {
+    top: 60px;
+    max-width: 100%;
+  }
+
+  .areamap-placeholder {
+    height: 260px;
+  }
+
+  /* AreaMap Gallery - 縦並び */
+  .areamap-gallery {
+    flex-direction: column;
+    gap: 20px;
+    overflow-x: visible;
+  }
+
+  .areamap-demo {
+    flex: 0 0 auto;
+    width: 100%;
+  }
+
+  /* Plans */
+  .plans-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .plan-card {
+    padding: 20px;
+  }
+
+  /* Hearing Section - 左右20px余白 */
+  .lp-hearing .lp-content {
+    max-width: 100%;
+    margin: 0 auto;
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .lp-hearing {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .hearing-wrapper {
+    padding: 24px 0;
+  }
+
+  .hearing-main {
+    padding: 24px 20px;
+  }
+
+  .ba-wrapper {
+    padding: 40px 0;
+  }
+
+  .areamap-proposal {
+    padding: 24px 16px;
+  }
+}
+
+/* =========================
+  Responsive - iPhone SE (375px以下)
+========================= */
+@media (max-width: 375px) {
+  /* Section */
+  .lp-section {
+    padding: 60px 16px;
+  }
+
+  /* Hero */
+  .lp-hero {
+    gap: 24px;
+    padding: 40px 16px;
+  }
+
+  .lp-hero .lp-title {
+    font-size: 22px;
+    margin-bottom: 16px;
+  }
+
+  .lp-hero .lp-lead {
+    font-size: 15px;
+  }
+
+  .areamap-placeholder {
+    height: 240px;
+  }
+
+  .map-purpose ul {
+    padding: 10px 12px;
+    gap: 6px;
+  }
+
+  .map-purpose ul li {
+    font-size: 13px;
+  }
+
+  /* Hearing */
+  .lp-hearing .lp-content {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .hearing-main {
+    padding: 20px 16px;
+  }
+
+  .hearing-question {
+    font-size: 18px;
+  }
+
+  .hearing-actions button {
+    min-width: 100px;
+    padding: 12px 0;
+    font-size: 15px;
+  }
+
+  .areamap-proposal {
+    padding: 20px 12px;
+  }
+
+  .proposal-cards {
+    gap: 12px;
+  }
+}

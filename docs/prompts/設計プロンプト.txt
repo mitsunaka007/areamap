@@ -1,0 +1,117 @@
+あなたはフルスタック実装エージェントです。以下の要件と設計方針に従って、動作するコード一式を生成してください。曖昧な部分は勝手に仕様追加せず、必要なら合理的なデフォルトを置き、コメントで根拠を明記してください。最終成果物は「管理画面で全機能を実行」し、「保存したデータを使って公開用HTMLで表示」できること。実装は最小構成でよいが、動作に必要なものは省略しないこと。
+
+# 目的（何を作るか）
+管理画面でイラスト地図（画像）をアップロードし、画像上の「中心」と「任意の複数地点」のピクセル座標を取得する。さらに、それらに対応する実世界の緯度経度を OpenStreetMap 上で同じ点として取得して紐づける。紐づけ情報を PostgreSQL に保存し、保存した変換パラメータを用いて、OSM（Leaflet）上にイラスト地図を自動で重ね合わせる。重ね合わせ後、中心と地点が一致すること（視覚的に重なること）を確認できる。公開用HTMLでは保存済みプロジェクトを読み込み、OSM上に画像オーバーレイと地点マーカーを表示し、中心から各地点までの距離も表示する。
+
+# 最重要の設計方針（これを守る）
+1) 縮尺自動調整＋回転＋平行移動をまとめて解くために、画像座標(x,y) → 実世界座標(緯度経度)への変換を「アフィン変換」で推定する。
+   - 画像のピクセル座標を入力、対応する地理座標を出力。
+   - ただし緯度経度(4326)を直接扱うと距離が非線形なので、内部計算は WebMercator(EPSG:3857) のメートル座標に変換して行う。
+   - アフィン変換：
+     X = a*x + b*y + c
+     Y = d*x + e*y + f
+     ここで (X,Y) は WebMercator メートル座標、(x,y) は画像ピクセル座標。
+   - 推定には最低3点が必要。中心+2点など合計3点以上。
+   - 3点より多い場合は最小二乗で推定し、誤差（残差）を計算できる形にしておく（表示は最小でもよいが計算関数は残して良い）。
+   - この推定により「中心→各地点の距離が一致するように縮尺調整」要件を実質満たす（スケール・回転・平行移動が自動決定される）。
+
+2) 管理画面で行うこと
+   - <input type="file"> により画像をアップロード
+   - 画像を表示してクリックで「中心」と「複数地点」のピクセル座標を取得
+   - OSM（Leaflet）側でもクリックで「中心」と「複数地点」の緯度経度を取得
+   - 同じラベル（center, p1, p2...）として画像座標と緯度経度をペアにする
+   - ペアが3点以上になったら、バックエンドに送ってアフィン推定→DB保存
+   - 保存した結果を使って、OSM上にイラスト地図を自動重ね合わせプレビュー（ImageOverlay）を表示
+   - マーカー（中心/地点）をOSM上に表示し、中心→地点の距離（haversine等）を計測して一覧/ログに出す
+
+3) 公開用HTMLで行うこと
+   - project_id をURLで受け取り、DBからプロジェクト情報を取得
+   - OSM（Leaflet）上に ImageOverlay でイラスト地図を重ね合わせて表示
+   - 保存されている点（中心/地点）をマーカー表示
+   - 中心から各地点までの距離を表示（ポップアップ等）
+
+# 技術スタック指定（変更しない）
+- バックエンド：Python Flask
+- DB：PostgreSQL（SQLAlchemy使用）
+- 画像保存：ローカルディレクトリ（uploads/）。将来S3等に替えられるよう、保存先は環境変数で変更可能にする。
+- フロント：管理画面と公開画面はHTML + JS（テンプレはJinja2でOK）
+- 地図：Leaflet + OpenStreetMap tile
+- 画像のピクセル座標取得：canvas上でクリックした座標を画像の実ピクセルに変換（表示縮尺があるためscale補正必須）
+
+# DBに保存する内容（要件）
+- イラスト地図名
+- 画像ファイル名（またはパス）
+- 画像のwidth/height
+- 点リスト（中心および任意複数地点）
+  - label（center, p1, p2...）
+  - kind（center or point）
+  - img_x, img_y（画像ピクセル座標）
+  - lat, lng（緯度経度）
+- 画像→WebMercator のアフィン変換係数（a,b,c,d,e,f）
+  - 公開画面のoverlay bounds算出に使用する
+
+# API設計（最低限）
+- POST /api/maps/upload
+  - multipart/form-data: file, name
+  - 画像保存して image_filename, image_url, width, height を返す
+- POST /api/maps/save
+  - JSON: {name, image_filename, image_width, image_height, points:[...]}
+  - pointsはimg_x,img_y,lat,lng,label,kindを含む
+  - サーバ側でアフィン推定（最低3点）→ DB保存
+  - project_id を返す
+- GET /api/maps/<project_id>
+  - DBからプロジェクトと点を返す
+- GET /api/maps/<project_id>/overlay_bounds
+  - DBのアフィン係数を使い、画像四隅(0,0),(w,0),(w,h),(0,h)を lat/lng に変換
+  - Leaflet ImageOverlay の bounds（[[southWestLat, southWestLng],[northEastLat, northEastLng]]）を返す
+  - 余力があれば四隅のlatlngも返す
+
+# 管理画面UI要件（最低限）
+- 地図名入力
+- 画像アップロード input
+- 「中心を選択」ボタン：次の画像クリックを中心として扱い、次のOSMクリックも中心として割当
+- 「地点を追加」ボタン：次の画像クリックを pN として扱い、次のOSMクリックも pN として割当
+- 点一覧テーブル（label、画像座標、緯度経度、完了状態）
+- 「重ね合わせプレビュー」ボタン
+  - DB保存済みの project_id を元に overlay_bounds を取得して ImageOverlay を追加
+  - 中心→各点の距離（OSM距離）を計算してログ表示
+- 「DBへ保存」ボタン：保存→ project_id を取得し、公開URL（/m/<id>）を表示
+
+# 数学・地理座標の扱い（実装指示）
+- EPSG:4326(lon,lat) <-> EPSG:3857(x,y in meters) の変換関数を実装する
+  - lonlat_to_mercator(lon,lat) -> (X,Y)
+  - mercator_to_lonlat(X,Y) -> (lon,lat)
+  - 緯度はWebMercatorの上限（約±85.05112878）にクリップ
+- アフィン推定は N>=3
+  - 3点ぴったりでも良いが、N>3 では最小二乗（numpy.linalg.lstsq 等）
+  - 係数 a,b,c,d,e,f を返す
+- 画像座標→latlng 変換関数：
+  - (x,y) -> (X,Y) via affine -> (lon,lat) via mercator_to_lonlat -> (lat,lng)として返す
+
+# 距離計測
+- 中心と各地点の距離は haversine（地球半径R=6371000m）で計算し、メートル表示
+- 画像側の距離一致要件は「アフィン推定に含まれるスケール」で実質満たす（追加のスケーリング操作は不要）
+  - ただしログとして「OSM距離」を出すのは必須
+
+# 期待する成果物（省略禁止）
+- Flaskアプリ一式（app.py 等）
+- SQLAlchemyモデル（models.py）
+- templates/admin.html, templates/public.html
+- static/admin.js, static/public.js
+- uploadsディレクトリ利用（存在しない場合は起動時作成）
+- 実行方法の簡単な説明（環境変数 DATABASE_URL, UPLOAD_DIR, PORT 等）
+- 可能ならrequirements.txt（Flask, Flask-SQLAlchemy, psycopg2-binary, Pillow, numpy など）
+
+# 追加の品質条件
+- 例外時に400/404等適切なレスポンスを返す
+- 管理画面で「点が3つ未満なら保存不可」を明示
+- canvas表示縮尺が変わっても、クリック座標が正しく画像実ピクセルに変換されること
+- 公開画面は管理画面のデータに依存し、別HTMLとして成立すること（要件）
+
+# 禁止事項
+- 「本来は難しいので省略」などで要件を捨てない
+- “OpenStreetMapの縮尺を自動調整”を、Leafletのズーム操作だけで誤魔化さない
+  - 必ず対応点からアフィン推定して overlay を自動整合させること
+- DB保存を省略しない（必須）
+
+以上に従って、完全なコードを提示してください。ファイルごとに分けて提示し、フォルダ構成も示してください。

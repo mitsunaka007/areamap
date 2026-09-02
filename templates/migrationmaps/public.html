@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <title>イラスト地図（公開）</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+  <style>
+  body {
+    margin: 0;
+    font-family: system-ui, sans-serif;
+    background: #f7f7f8;
+    color: #222;
+  }
+
+  header {
+    padding: 10px 14px;
+    border-bottom: 1px solid #ddd;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  button {
+    padding: 8px 10px;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    background: #fff;
+    border-radius: 8px;
+    font-size: 14px;
+  }
+
+  button:hover {
+    background: #f3f4f6;
+  }
+
+  .pill {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    border: 1px solid #ddd;
+    background: #fff;
+  }
+
+  #locationStatus {
+    font-size: 13px;
+    color: #333;
+  }
+
+  #map {
+    /* JS が applyMapSize() で image_width/height 比に上書きする。
+       ローディング中のフォールバックとして viewport 高さを使う。 */
+    height: calc(100dvh - 92px);
+    min-height: 280px;
+    width: 100%;
+  }
+
+  /* ---- レイヤー切替ボタン ---- */
+  #btnToggleLayer {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    z-index: 900;
+    background: rgba(37, 99, 235, 0.92);
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    cursor: pointer;
+    backdrop-filter: blur(4px);
+    transition: background 0.2s;
+  }
+  #btnToggleLayer:hover { background: rgba(29, 78, 216, 0.95); }
+  #btnToggleLayer[hidden] { display: none; }
+
+  /* 切り替え中インジケータ */
+  #layerIndicator {
+    position: fixed;
+    top: 52px;
+    right: 12px;
+    z-index: 900;
+    background: rgba(0,0,0,0.6);
+    color: #fff;
+    border-radius: 8px;
+    padding: 4px 10px;
+    font-size: 11px;
+    pointer-events: none;
+  }
+  #layerIndicator[hidden] { display: none; }
+
+  /* ---- 地図ローディングオーバーレイ ---- */
+  #mapLoadingOverlay {
+    position: absolute;
+    inset: 0;
+    z-index: 9999;
+    background: #f7f7f8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: #666;
+    pointer-events: all;
+  }
+  #mapLoadingOverlay.hidden { display: none; }
+  #mapWrap { position: relative; }
+
+  @media (max-width: 720px) {
+    #map {
+      /* JS が applyMapSize() で上書きするため min-height のみ残す */
+      min-height: 280px;
+    }
+
+    .leaflet-control-zoom {
+      margin-top: 10px !important;
+    }
+  }
+
+  /* ---- Building Guide (bottom sheet) ---- */
+  .building-guide {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: #fff;
+    border-top: 2px solid #e5e7eb;
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.18);
+    max-height: 72vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .building-guide[hidden] {
+    display: none;
+  }
+
+  .building-guide-inner {
+    position: relative;
+    padding: 44px 16px 24px;
+  }
+
+  .building-guide-close {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    font-size: 20px;
+    line-height: 1;
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    cursor: pointer;
+    color: #374151;
+    padding: 4px 10px;
+    border-radius: 8px;
+    z-index: 1;
+  }
+
+  .building-guide-close:hover {
+    background: #f3f4f6;
+  }
+
+  /* ---- Building photo with floor hotspots ---- */
+  .building-photo-wrap {
+    position: relative;
+    display: block;
+    width: 100%;
+    max-width: 420px;
+    margin: 0 auto 14px;
+  }
+
+  .building-photo {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+    object-fit: cover;
+  }
+
+  .floor-hotspot {
+    position: absolute;
+    cursor: pointer;
+    background: rgba(37, 99, 235, 0.22);
+    border: 2px solid #2563eb;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #1d4ed8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, color 0.15s;
+    padding: 0;
+  }
+
+  .floor-hotspot:hover,
+  .floor-hotspot.is-active {
+    background: rgba(37, 99, 235, 0.60);
+    color: #fff;
+    border-color: #1d4ed8;
+  }
+
+  /* ---- Floor shop list ---- */
+  .floor-shop-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .floor-shop-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 12px 14px;
+    background: #fafafa;
+  }
+
+  .shop-summary {
+    margin-bottom: 10px;
+  }
+
+  .shop-name {
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 6px;
+  }
+
+  .shop-meta {
+    display: grid;
+    grid-template-columns: 72px 1fr;
+    gap: 3px 8px;
+    font-size: 13px;
+    align-items: start;
+    margin-bottom: 2px;
+  }
+
+  .shop-label {
+    color: #6b7280;
+    font-size: 12px;
+  }
+
+  .shop-link {
+    color: #2563eb;
+    text-decoration: none;
+  }
+
+  .shop-link:hover {
+    text-decoration: underline;
+  }
+
+  .shop-muted {
+    color: #6b7280;
+  }
+
+  .shop-image-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+    gap: 6px;
+    margin-top: 10px;
+  }
+
+  .shop-image-card img {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+  }
+
+  .shop-grid-empty {
+    color: #6b7280;
+    font-size: 13px;
+    padding: 6px 0;
+  }
+
+  /* ---- Shop markers ---- */
+  .shop-marker-normal,
+  .shop-marker-active,
+  .shop-marker-dimmed {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  }
+
+  .shop-marker-normal {
+    width: 28px;
+    height: 28px;
+    background: #2563eb;
+    border: 2px solid #fff;
+  }
+
+  .shop-marker-normal::after {
+    content: "";
+    width: 8px;
+    height: 8px;
+    background: #fff;
+    border-radius: 50%;
+    transform: rotate(45deg);
+  }
+
+  .shop-marker-active {
+    width: 36px;
+    height: 36px;
+    background: #f59e0b;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    transform: none;
+    box-shadow: 0 0 0 3px rgba(245,158,11,0.4), 0 2px 8px rgba(0,0,0,0.4);
+  }
+
+  .shop-marker-active::after {
+    content: "★";
+    font-size: 20px;
+    color: #fff;
+    line-height: 1;
+  }
+
+  .shop-marker-dimmed {
+    width: 16px;
+    height: 16px;
+    background: #9ca3af;
+    border: 1px solid #fff;
+    border-radius: 50%;
+    transform: none;
+    box-shadow: none;
+    opacity: 0.6;
+  }
+
+  /* ---- Leaflet popup styles (for future use) ---- */
+  .shop-popup {
+    min-width: 220px;
+    max-width: 280px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  #siteFooter { padding: 8px 12px; font-size: 11px; color: #666; background: #f2f2f3; border-top: 1px solid #ddd; text-align: center; }
+  .osm-credit { margin-top: 8px; font-size: 10px; color: #888; }
+</style>
+</head>
+<body>
+<header>
+  <div class="top-row">
+    <strong id="title">読み込み中…</strong>
+    <div class="controls">
+      <button id="btnToggleLocation">現在地表示: OFF</button>
+      <span id="locationStatus" class="pill">現在地は未取得です</span>
+    </div>
+  </div>
+</header>
+
+<!-- レイヤー切替ボタン（右上固定、Layer2が存在する場合のみJS側で表示） -->
+<button id="btnToggleLayer" hidden>レイヤー切替</button>
+<div id="layerIndicator" hidden>切り替え中...</div>
+
+<div id="mapWrap">
+  <div id="map"></div>
+  <div id="mapLoadingOverlay">地図を読み込み中...</div>
+</div>
+
+<!-- Building Guide ボトムシート（デフォルト非表示） -->
+<div class="building-guide" id="buildingGuide" hidden>
+  <div class="building-guide-inner">
+    <button type="button" class="building-guide-close" id="buildingGuideClose" aria-label="閉じる">×</button>
+    <div class="building-photo-wrap" id="buildingPhotoWrap"></div>
+    <div id="floorShopGrid"></div>
+    <div class="osm-credit">店舗情報: © OpenStreetMap contributors (ODbL)</div>
+  </div>
+</div>
+
+<footer id="siteFooter">
+  地図タイル: © OpenStreetMap contributors ・
+  店舗情報: © OpenStreetMap contributors (ODbL)
+</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  const PROJECT_ID = {{ project_id }};
+</script>
+<script src="/static/migrationmaps/public.js"></script>
+</body>
+</html>

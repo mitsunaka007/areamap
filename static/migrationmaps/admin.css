@@ -1,0 +1,33 @@
+/* ---- 地点選択ハイライト（矢印キー調整用） ---- */
+#pointsTbody tr.row-selected {
+  background: #eff6ff;
+  outline: 2px solid #2563eb;
+  outline-offset: -2px;
+}
+
+#pointsTbody tr.row-selected td:first-child {
+  font-weight: bold;
+}
+
+.btnSelectPoint {
+  font-weight: bold;
+  min-width: 48px;
+}
+
+.btnSelectPoint.btn-selected {
+  background: #2563eb;
+  color: #fff;
+  border-color: #2563eb;
+}
+
+/* キー操作ヒントバッジ */
+.key-hint {
+  display: inline-block;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 11px;
+  padding: 2px 8px;
+  color: #475569;
+  margin-left: 6px;
+}

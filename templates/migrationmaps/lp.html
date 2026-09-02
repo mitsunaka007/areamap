@@ -1,0 +1,618 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MigrationMap（マイグレーションマップ）| イラスト地図が、そのまま歩ける案内MAPに</title>
+<meta name="description" content="観光マップや商店街のチラシ、手描きのイラスト地図をそのまま使って、スマホで現在地がわかる案内MAPに変えるサービス。描き直し不要、URL・QRコードだけで配布できます。">
+
+<!-- ▼ OGP / SNS共有用（画像は仮パス。1200x630pxの画像を用意して差し替えてください） -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="MigrationMap｜イラスト地図が、そのまま歩ける案内MAPに">
+<meta property="og:description" content="描き直し不要。今ある一枚のイラスト地図が、スマホで現在地がわかる案内MAPになります。">
+<meta property="og:image" content="/static/migrationmaps/lp-ogp.jpg"><!-- TODO: OGP画像(1200x630)を用意して static/migrationmaps/ に配置 -->
+<meta property="og:locale" content="ja_JP">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#f4f1ea">
+
+<!-- favicon: 場所ピンのインラインSVG。差し替える場合は下記linkを実ファイルに変更 -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23e8380d' d='M12 2C7.6 2 4 5.6 4 10c0 6 8 12 8 12s8-6 8-12c0-4.4-3.6-8-8-8zm0 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6z'/%3E%3C/svg%3E">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Bebas+Neue&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --ink:#111417;
+    --paper:#f4f1ea;
+    --paper2:#eae4d6;
+    --accent:#e8380d;      /* 朱 */
+    --accent2:#0d5c63;     /* 藍緑 */
+    --gray:#6e7378;
+    --rule:#c9c3b6;
+    --line:#111417;
+    --maxw:1080px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto;}
+    *{animation-duration:0.01ms !important;animation-iteration-count:1 !important;transition-duration:0.01ms !important;}
+  }
+  body{
+    background:var(--paper);color:var(--ink);
+    font-family:"Zen Kaku Gothic New",sans-serif;
+    font-size:16px;line-height:1.7;
+    -webkit-font-smoothing:antialiased;
+    position:relative;
+    overflow-x:hidden;
+  }
+  /* 紙の質感（ドットノイズ）を全体にうっすら */
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.55;
+    background-image:radial-gradient(circle at 1px 1px, rgba(0,0,0,.045) 1px, transparent 0);
+    background-size:3px 3px;
+  }
+  main, header, footer{position:relative;z-index:1;}
+  img{max-width:100%;display:block;}
+  a{color:inherit;}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 20px;}
+  .eyebrow{
+    display:inline-block;font-size:.72rem;letter-spacing:.2em;font-weight:700;
+    color:var(--accent2);border:1px solid var(--accent2);border-radius:2px;
+    padding:4px 10px;
+  }
+  h1,h2,h3{font-weight:900;letter-spacing:-.01em;}
+  .accent{color:var(--accent);}
+  .mark{
+    font-style:normal;
+    background:linear-gradient(transparent 62%, #ffd9c9 62%);
+    padding:0 2px;
+  }
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    min-height:52px;padding:0 26px;border-radius:999px;
+    font-weight:700;font-size:1rem;letter-spacing:.02em;
+    text-decoration:none;border:2px solid var(--ink);
+    transition:transform .15s ease, box-shadow .15s ease, background .15s ease, color .15s ease;
+    cursor:pointer;
+  }
+  .btn-primary{background:var(--ink);color:var(--paper);}
+  .btn-primary:hover{background:var(--accent);border-color:var(--accent);transform:translateY(-2px);box-shadow:0 6px 0 rgba(17,20,23,.15);}
+  .btn-ghost{background:transparent;color:var(--ink);}
+  .btn-ghost:hover{background:var(--ink);color:var(--paper);transform:translateY(-2px);}
+  .btn small{font-weight:500;opacity:.8;}
+
+  /* ---------- reveal on scroll ---------- */
+  .reveal{opacity:0;transform:translateY(18px);transition:opacity .7s ease, transform .7s ease;}
+  .reveal.is-visible{opacity:1;transform:none;}
+
+  /* ---------- TOPBAR ---------- */
+  .topbar{
+    position:sticky;top:0;z-index:50;
+    background:rgba(244,241,234,.9);backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--rule);
+  }
+  .topbar .wrap{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;gap:12px;}
+  .brand{font-family:"Bebas Neue",sans-serif;font-size:1.4rem;letter-spacing:.04em;line-height:1;white-space:nowrap;}
+  .brand span{color:var(--accent);}
+  .topbar .btn{min-height:44px;padding:0 18px;font-size:.85rem;}
+
+  /* ---------- HERO ---------- */
+  .hero{padding:56px 0 40px;}
+  .hero .wrap{display:grid;grid-template-columns:1fr;gap:36px;}
+  @media(min-width:900px){.hero .wrap{grid-template-columns:1.05fr .95fr;align-items:center;}}
+  .hero h1{font-size:clamp(1.9rem, 5.4vw, 2.7rem);line-height:1.35;margin:16px 0 18px;}
+  .hero .lead{font-size:1.02rem;color:#3b4046;max-width:44ch;margin-bottom:26px;}
+  .hero .cta-row{display:flex;flex-wrap:wrap;gap:14px;align-items:center;}
+  .hero .cta-note{font-size:.82rem;color:var(--gray);margin-top:10px;}
+
+  /* ---- phone mock ---- */
+  .phone-wrap{display:flex;justify-content:center;}
+  .phone{
+    width:min(280px, 78vw);aspect-ratio:9/18.5;
+    background:var(--ink);border-radius:34px;padding:10px;
+    box-shadow:0 24px 50px -18px rgba(17,20,23,.5), 0 0 0 1px rgba(17,20,23,.05);
+    transform:rotate(-3deg);
+  }
+  .phone-screen{
+    position:relative;width:100%;height:100%;border-radius:24px;overflow:hidden;
+    background:
+      linear-gradient(180deg, #fffdf8 0%, #f4f1ea 100%);
+  }
+  .phone-screen .notch{
+    position:absolute;top:0;left:50%;transform:translateX(-50%);
+    width:36%;height:18px;background:var(--ink);border-radius:0 0 12px 12px;z-index:5;
+  }
+  .map-illust{position:absolute;inset:0;}
+  .map-illust .block{position:absolute;background:#e3ddc9;border:1.5px solid var(--rule);}
+  .map-illust .road{position:absolute;background:#fffdf8;border-top:1.5px dashed var(--rule);border-bottom:1.5px dashed var(--rule);}
+  .map-illust svg{position:absolute;inset:0;width:100%;height:100%;}
+  .route-path{
+    fill:none;stroke:var(--accent2);stroke-width:3;stroke-linecap:round;stroke-dasharray:6 8;
+    stroke-dashoffset:200;animation:dash 3.2s linear infinite;
+  }
+  @keyframes dash{to{stroke-dashoffset:0;}}
+  .pin{
+    position:absolute;left:52%;top:46%;width:20px;height:20px;transform:translate(-50%,-100%);
+  }
+  .pin .dot{width:16px;height:16px;border-radius:50%;background:var(--accent);border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35);}
+  .pin .ring{
+    position:absolute;left:50%;top:50%;width:16px;height:16px;border-radius:50%;
+    background:var(--accent);opacity:.5;transform:translate(-50%,-50%);
+    animation:pulse 2s ease-out infinite;
+  }
+  @keyframes pulse{0%{transform:translate(-50%,-50%) scale(1);opacity:.5;}100%{transform:translate(-50%,-50%) scale(3.6);opacity:0;}}
+  .pin-label{
+    position:absolute;left:50%;top:-30px;transform:translateX(-50%);
+    background:var(--ink);color:#fff;font-size:.6rem;font-weight:700;letter-spacing:.05em;
+    padding:3px 7px;border-radius:5px;white-space:nowrap;
+  }
+  .pin-label::after{content:"";position:absolute;left:50%;bottom:-4px;transform:translateX(-50%);
+    border:4px solid transparent;border-top-color:var(--ink);}
+  .phone-chip{
+    position:absolute;left:10px;bottom:10px;right:10px;
+    background:rgba(17,20,23,.88);color:#fff;border-radius:12px;padding:8px 10px;
+    font-size:.62rem;line-height:1.4;display:flex;align-items:center;gap:8px;
+  }
+  .phone-chip b{font-weight:900;color:#ffb199;}
+  .phone-chip .led{width:8px;height:8px;border-radius:50%;background:#33d17a;flex:none;box-shadow:0 0 0 3px rgba(51,209,122,.25);}
+
+  /* ---------- SECTION generic ---------- */
+  section{padding:64px 0;}
+  .section-head{max-width:640px;margin-bottom:36px;}
+  .section-head .eyebrow{margin-bottom:12px;}
+  .section-head h2{font-size:clamp(1.5rem, 3.6vw, 2rem);line-height:1.4;}
+  .section-head p{color:var(--gray);margin-top:10px;font-size:.96rem;}
+
+  .torn{position:relative;height:26px;background:var(--paper2);}
+  .torn::before{
+    content:"";position:absolute;top:-1px;left:0;right:0;height:26px;
+    background:var(--paper);
+    clip-path:polygon(0% 100%,3% 20%,7% 80%,11% 10%,15% 70%,19% 25%,23% 85%,27% 15%,31% 75%,35% 20%,39% 90%,43% 10%,47% 65%,51% 15%,55% 80%,59% 25%,63% 90%,67% 15%,71% 70%,75% 20%,79% 85%,83% 10%,87% 75%,91% 20%,95% 85%,100% 15%,100% 100%);
+  }
+
+  /* ---------- PROBLEM ---------- */
+  .problem{background:var(--paper2);}
+  .problem-grid{display:grid;gap:16px;grid-template-columns:1fr;}
+  @media(min-width:760px){.problem-grid{grid-template-columns:repeat(3,1fr);}}
+  .p-card{
+    background:#fff;border:1px solid var(--rule);border-radius:4px;padding:22px 20px 20px;position:relative;
+  }
+  .p-card .num{
+    font-family:"Bebas Neue",sans-serif;font-size:1.6rem;color:var(--rule);line-height:1;margin-bottom:10px;
+  }
+  .p-card p{font-size:.92rem;color:#3b4046;}
+  .p-card strong{display:block;font-size:1.02rem;font-weight:900;margin-bottom:8px;}
+
+  /* ---------- HOW (3 steps) ---------- */
+  .steps{display:grid;gap:20px;grid-template-columns:1fr;counter-reset:step;}
+  @media(min-width:760px){.steps{grid-template-columns:repeat(3,1fr);}}
+  .step{position:relative;padding-top:8px;}
+  .step .step-num{
+    font-family:"Bebas Neue",sans-serif;font-size:2.6rem;color:var(--accent);line-height:1;
+  }
+  .step h3{font-size:1.05rem;margin:8px 0 6px;}
+  .step p{font-size:.9rem;color:var(--gray);}
+  .step-arrow{display:none;}
+  @media(min-width:760px){
+    .steps .step:not(:last-child)::after{
+      content:"→";position:absolute;right:-18px;top:6px;color:var(--rule);font-size:1.6rem;
+    }
+  }
+
+  /* before/after mock */
+  .diff{
+    margin-top:40px;display:grid;grid-template-columns:1fr;gap:0;
+    border:1px solid var(--rule);border-radius:6px;overflow:hidden;background:#fff;
+  }
+  @media(min-width:760px){.diff{grid-template-columns:1fr 1fr;}}
+  .diff-panel{padding:22px;position:relative;}
+  .diff-panel + .diff-panel{border-top:1px dashed var(--rule);}
+  @media(min-width:760px){.diff-panel + .diff-panel{border-top:none;border-left:1px dashed var(--rule);}}
+  .diff-tag{
+    display:inline-block;font-size:.68rem;font-weight:700;letter-spacing:.08em;
+    padding:3px 9px;border-radius:3px;margin-bottom:12px;
+  }
+  .diff-tag.before{background:#efe9dd;color:var(--gray);}
+  .diff-tag.after{background:var(--accent2);color:#fff;}
+  .diff-visual{
+    height:150px;border-radius:6px;border:1px solid var(--rule);
+    background:repeating-linear-gradient(135deg, #efe9dd 0 10px, #f4f1ea 10px 20px);
+    display:flex;align-items:center;justify-content:center;color:var(--gray);font-size:.78rem;
+    margin-bottom:12px;
+  }
+  .diff-visual.after{
+    background:linear-gradient(180deg,#fffdf8,#f4f1ea);position:relative;overflow:hidden;
+  }
+  .diff-panel p{font-size:.86rem;color:#3b4046;}
+  /* TODO: diff-visual の中身は .diff-visual 内のプレースホルダーを実際のスクリーンショット/GIFに差し替え可能（img loading="lazy" 推奨） */
+
+  /* ---------- FEATURES ---------- */
+  .features{background:var(--paper2);}
+  .feat-grid{display:grid;gap:14px;grid-template-columns:1fr;}
+  @media(min-width:640px){.feat-grid{grid-template-columns:1fr 1fr;}}
+  .feat{
+    background:#fff;border:1px solid var(--rule);border-radius:4px;padding:20px;
+    display:flex;gap:14px;align-items:flex-start;
+  }
+  .feat .ico{
+    flex:none;width:40px;height:40px;border-radius:50%;background:var(--ink);color:var(--paper);
+    display:flex;align-items:center;justify-content:center;font-family:"Bebas Neue",sans-serif;font-size:1.1rem;
+  }
+  .feat h3{font-size:1rem;margin-bottom:4px;}
+  .feat p{font-size:.88rem;color:var(--gray);}
+
+  /* ---------- USE CASES ---------- */
+  .use-grid{display:grid;gap:14px;grid-template-columns:1fr;}
+  @media(min-width:640px){.use-grid{grid-template-columns:repeat(2,1fr);}}
+  @media(min-width:980px){.use-grid{grid-template-columns:repeat(4,1fr);}}
+  .use-card{
+    border:1px solid var(--rule);border-radius:4px;padding:18px 16px;background:#fff;position:relative;min-height:120px;
+  }
+  .use-card .cat{
+    font-size:.66rem;font-weight:700;letter-spacing:.1em;color:#fff;background:var(--accent2);
+    display:inline-block;padding:3px 8px;border-radius:2px;margin-bottom:10px;
+  }
+  .use-card.soon .cat{background:var(--gray);}
+  .use-card h3{font-size:.96rem;}
+  .use-card .soon-badge{
+    position:absolute;top:14px;right:14px;font-size:.62rem;font-weight:700;color:var(--accent);
+    border:1px solid var(--accent);border-radius:99px;padding:2px 8px;
+  }
+
+  /* ---------- ONBOARDING ---------- */
+  .onboarding{background:var(--paper2);}
+
+  /* ---------- ABOUT ---------- */
+  .about-wrap{display:grid;grid-template-columns:1fr;gap:28px;}
+  @media(min-width:820px){.about-wrap{grid-template-columns:1fr 1.3fr;}}
+  .about-badge{
+    width:100%;aspect-ratio:1/1;max-width:220px;border-radius:8px;background:var(--ink);color:var(--paper);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:6px;
+    font-family:"Bebas Neue",sans-serif;letter-spacing:.05em;
+  }
+  .about-badge .g1{font-size:1.9rem;}
+  .about-badge .g2{font-size:.7rem;font-family:"Zen Kaku Gothic New",sans-serif;letter-spacing:.2em;color:#ffb199;}
+  .about-body p{font-size:.94rem;color:#3b4046;margin-bottom:12px;}
+  .about-body .trust{
+    font-size:.84rem;background:#eef3f2;border-left:2px solid var(--accent2);padding:10px 14px;color:var(--accent2);font-weight:700;
+  }
+  .about-body .sig{margin-top:14px;font-size:.82rem;color:var(--gray);letter-spacing:.04em;}
+  .about-body .sig a{color:var(--accent2);text-decoration:underline;}
+
+  /* ---------- FINAL CTA ---------- */
+  .final-cta{
+    background:var(--ink);color:var(--paper);border-radius:10px;padding:44px 28px;text-align:center;
+    position:relative;overflow:hidden;
+  }
+  .final-cta::before{
+    content:"";position:absolute;inset:0;opacity:.15;pointer-events:none;
+    background-image:radial-gradient(circle at 1px 1px, rgba(255,255,255,.4) 1px, transparent 0);
+    background-size:14px 14px;
+  }
+  .final-cta h2{font-size:clamp(1.4rem,4vw,1.9rem);margin-bottom:12px;position:relative;}
+  .final-cta p{color:#c9c3b6;max-width:46ch;margin:0 auto 26px;position:relative;font-size:.94rem;}
+  .final-cta .cta-row{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;position:relative;}
+  .final-cta .btn-primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .final-cta .btn-primary:hover{background:#fff;color:var(--ink);border-color:#fff;}
+  .final-cta .btn-ghost{color:var(--paper);border-color:var(--paper);}
+  .final-cta .btn-ghost:hover{background:var(--paper);color:var(--ink);}
+  .final-cta .sample-link{
+    display:inline-block;margin-top:20px;font-size:.82rem;color:#c9c3b6;text-decoration:underline;position:relative;
+  }
+
+  /* ---------- FOOTER ---------- */
+  footer{padding:26px 0 40px;border-top:1px solid var(--rule);}
+  footer .wrap{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center;font-size:.76rem;color:var(--gray);}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap">
+    <span class="brand">Migration<span>Map</span></span>
+    <a class="btn btn-ghost" href="https://areamap.onrender.com/migrationmaps/m/5" target="_blank" rel="noopener">
+      サンプル地図を見る
+    </a>
+  </div>
+</header>
+
+<main>
+
+  <!-- ========== HERO ========== -->
+  <section class="hero">
+    <div class="wrap">
+      <div class="hero-copy">
+        <span class="eyebrow">福井発 / 実戦型ローカルDX</span>
+        <h1>手描きの<span class="mark">イラスト地図</span>が、そのまま<span class="accent">歩ける案内MAP</span>に変身。</h1>
+        <p class="lead">観光マップも、商店街のチラシも、描き直しは不要です。スマホを開けば、いま自分がどこにいるかが地図の上でわかる。紙の味わいは、そのまま残します。</p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="https://areamap.onrender.com/migrationmaps/m/5" target="_blank" rel="noopener">
+            ▶ サンプル地図を体験する
+          </a>
+          <a class="btn btn-ghost" href="#cta">導入について相談する</a>
+        </div>
+        <p class="cta-note">※ スマホで開くと、あなたの現在地が地図の上に表示されます</p>
+      </div>
+
+      <div class="phone-wrap" aria-hidden="true">
+        <div class="phone">
+          <div class="phone-screen">
+            <div class="notch"></div>
+            <div class="map-illust">
+              <div class="block" style="left:8%;top:14%;width:30%;height:18%;"></div>
+              <div class="block" style="left:56%;top:10%;width:34%;height:14%;"></div>
+              <div class="block" style="left:10%;top:56%;width:26%;height:20%;"></div>
+              <div class="block" style="left:60%;top:60%;width:30%;height:16%;"></div>
+              <div class="block" style="left:38%;top:36%;width:22%;height:14%;"></div>
+              <div class="road" style="left:0;top:32%;width:100%;height:10%;"></div>
+              <div class="road" style="left:44%;top:0;width:10%;height:100%;"></div>
+              <svg viewBox="0 0 200 400" preserveAspectRatio="none">
+                <path class="route-path" d="M20,360 C60,300 40,260 90,230 S150,180 120,120 160,70 150,30" />
+              </svg>
+              <div class="pin">
+                <span class="pin-label">現在地</span>
+                <span class="ring"></span>
+                <span class="dot"></span>
+              </div>
+            </div>
+            <div class="phone-chip"><span class="led"></span> <b>GPS連動</b>&nbsp;現在地を自動表示中</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="torn" aria-hidden="true"></div>
+
+  <!-- ========== PROBLEM ========== -->
+  <section class="problem">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="eyebrow">こんなお悩み、ありませんか</span>
+        <h2>その紙の地図、配って終わっていませんか？</h2>
+      </div>
+      <div class="problem-grid">
+        <div class="p-card reveal">
+          <div class="num">01</div>
+          <strong>Googleマップに直すと、地図の味が消える</strong>
+          <p>手描きイラストの魅力や、お店ごとの個性が、無機質なピンひとつに変わってしまう。</p>
+        </div>
+        <div class="p-card reveal">
+          <div class="num">02</div>
+          <strong>配ったら終わり、その後が見えない</strong>
+          <p>印刷して配布するだけで、実際に歩いてもらえたのか、迷わず辿り着けたのかが分からない。</p>
+        </div>
+        <div class="p-card reveal">
+          <div class="num">03</div>
+          <strong>今どこにいるか分からず、引き返される</strong>
+          <p>せっかく来てくれた人が、地図と実際の道がリンクせず迷子になり、途中で諦めてしまう。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== HOW IT WORKS ========== -->
+  <section id="how">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="eyebrow">しくみ</span>
+        <h2>やっていることは、たった3ステップ。</h2>
+        <p>専門用語は必要ありません。今ある地図に、位置情報を"そっと"重ねるだけです。</p>
+      </div>
+      <div class="steps">
+        <div class="step reveal">
+          <div class="step-num">01</div>
+          <h3>イラスト地図を、そのままアップロード</h3>
+          <p>今お使いの観光マップやチラシの画像を、そのまま使います。描き直しは一切不要です。</p>
+        </div>
+        <div class="step reveal">
+          <div class="step-num">02</div>
+          <h3>実際の地図に、そっと重ねる</h3>
+          <p>目印になる場所を数点タップするだけで、イラストと実際の位置がぴったり合います。</p>
+        </div>
+        <div class="step reveal">
+          <div class="step-num">03</div>
+          <h3>スマホで開くと、現在地が動く</h3>
+          <p>GPSで取得した現在地が、イラストの上にリアルタイムで表示されます。</p>
+        </div>
+      </div>
+
+      <div class="diff reveal">
+        <div class="diff-panel">
+          <span class="diff-tag before">これまで</span>
+          <div class="diff-visual"><!-- TODO: 紙のイラスト地図の写真に差し替え -->紙のイラスト地図</div>
+          <p>配って終わり。道に迷っても、地図の外では誰も助けてくれない。</p>
+        </div>
+        <div class="diff-panel">
+          <span class="diff-tag after">MigrationMap</span>
+          <div class="diff-visual after"><!-- TODO: 実機スクリーンショット/GIFに差し替え -->
+            <div class="map-illust" style="position:absolute;inset:8px;">
+              <div class="block" style="left:6%;top:16%;width:26%;height:22%;"></div>
+              <div class="block" style="left:58%;top:12%;width:30%;height:18%;"></div>
+              <div class="road" style="left:0;top:40%;width:100%;height:12%;"></div>
+              <div class="pin" style="left:60%;top:52%;">
+                <span class="ring"></span><span class="dot"></span>
+              </div>
+            </div>
+          </div>
+          <p>同じ一枚の地図の上に、自分の現在地が表示される。迷わず、最後まで歩ける。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="torn" aria-hidden="true"></div>
+
+  <!-- ========== FEATURES ========== -->
+  <section class="features">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="eyebrow">できること</span>
+        <h2>むずかしい設定は、ひとつもありません。</h2>
+      </div>
+      <div class="feat-grid">
+        <div class="feat reveal">
+          <div class="ico">1</div>
+          <div>
+            <h3>現在地表示 ON / OFF</h3>
+            <p>使う人が自分のタイミングで切り替えられる、シンプルな操作だけ。</p>
+          </div>
+        </div>
+        <div class="feat reveal">
+          <div class="ico">2</div>
+          <div>
+            <h3>スマホにまるごと最適化</h3>
+            <p>アプリのダウンロードは不要。URLを開くだけで、その場で動きます。</p>
+          </div>
+        </div>
+        <div class="feat reveal">
+          <div class="ico">3</div>
+          <div>
+            <h3>URL・QRコードだけで共有</h3>
+            <p>チラシやポスター、SNSの投稿にそのまま貼り付けて配布できます。</p>
+          </div>
+        </div>
+        <div class="feat reveal">
+          <div class="ico">4</div>
+          <div>
+            <h3>今ある地図資産を、そのまま活用</h3>
+            <p>描き直し不要。手元にある一枚のイラスト地図が、そのまま武器になります。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== USE CASES ========== -->
+  <section id="usecases">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="eyebrow">活用シーン</span>
+        <h2>こんな場面で、活躍しています。</h2>
+      </div>
+      <div class="use-grid">
+        <div class="use-card reveal">
+          <span class="cat">商店街</span>
+          <h3>商店街の回遊マップ</h3>
+        </div>
+        <div class="use-card reveal">
+          <span class="cat">観光協会</span>
+          <h3>周遊ルートの案内</h3>
+        </div>
+        <div class="use-card reveal">
+          <span class="cat">イベント</span>
+          <h3>お祭り・催事の会場図</h3>
+        </div>
+        <div class="use-card soon reveal">
+          <span class="soon-badge">構想中</span>
+          <span class="cat">スタンプラリー</span>
+          <h3>周遊型スタンプラリー</h3>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="torn" aria-hidden="true"></div>
+
+  <!-- ========== ONBOARDING ========== -->
+  <section class="onboarding">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="eyebrow">導入までの流れ</span>
+        <h2>導入は3ステップ。</h2>
+      </div>
+      <div class="steps">
+        <div class="step reveal">
+          <div class="step-num">A</div>
+          <h3>画像とマーカー表示場所を送る</h3>
+          <p>今お使いのイラスト地図の画像データを送っていただくだけ。</p>
+        </div>
+        <div class="step reveal">
+          <div class="step-num">B</div>
+          <h3>位置を合わせる</h3>
+          <p>こちらで基準点を数点合わせ、実際の地図に位置情報を紐づけマーカーを追加します。</p>
+        </div>
+        <div class="step reveal">
+          <div class="step-num">C</div>
+          <h3>QRコードで納品</h3>
+          <p>発行されたURLとQRコードを、そのまま印刷物やSNSに使えます。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== ABOUT PROVIDER ========== -->
+  <section id="about">
+    <div class="wrap about-wrap">
+      <div class="reveal" style="display:flex;justify-content:center;">
+        <div class="about-badge">
+          <span class="g1">GROW<br>GEAR</span>
+          <span class="g2">学びから武器を作る</span>
+        </div>
+      </div>
+      <div class="about-body reveal">
+        <span class="eyebrow" style="margin-bottom:14px;display:inline-block;">つくっている人</span>
+        <h2 style="font-size:1.3rem;margin-bottom:14px;">福井の現場に立つ、開発者がつくっています。</h2>
+        <p>GrowGear / 中川 貢。バックオフィス実務13年以上の経験を持つ、個人開発者です。「今のやり方を変えずに、時間だけを増やす」ことを大切に、既存の業務フローや紙の資産を壊さないDXを提案しています。</p>
+        <p class="trust">外部クラウドに依存しない「ローカルデータ主権」を大切にし、国家資格【情報処理安全確保支援士（登録セキスペ）】取得に向けて邁進中です。</p>
+        <p class="sig">GrowGear ／ 中川 貢　<a href="https://mityu-ka.com" target="_blank" rel="noopener">mityu-ka.com</a></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== FINAL CTA ========== -->
+  <section id="cta">
+    <div class="wrap">
+      <div class="final-cta reveal">
+        <h2>まずは、いまお使いの地図を見せてください。</h2>
+        <p>描き直しは不要です。今ある一枚のイラスト地図が、そのままスマホで動く案内MAPになります。</p>
+        <div class="cta-row">
+          <!-- TODO: 実際の連絡先に差し替え -->
+          <a class="btn btn-primary" href="mailto:contact@example.com">✉ メールで相談する</a>
+          <a class="btn btn-ghost" href="#" ><!-- TODO: 問い合わせフォームURLに差し替え -->フォームで問い合わせる</a>
+        </div>
+        <a class="sample-link" href="https://areamap.onrender.com/migrationmaps/m/5" target="_blank" rel="noopener">→ もう一度サンプル地図を見る</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>© GrowGear — MigrationMap</span>
+    <span>福井発 / 実戦型ローカルDX</span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  // 現在地ピンのラベル位置調整（何もしない場合も静的に表示されるため、これは演出のみの拡張）
+  if (!('IntersectionObserver' in window)) {
+    document.querySelectorAll('.reveal').forEach(function(el){ el.classList.add('is-visible'); });
+    return;
+  }
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      if (entry.isIntersecting) {
+        entry.target.classList.add('is-visible');
+        io.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.15, rootMargin: '0px 0px -8% 0px' });
+  document.querySelectorAll('.reveal').forEach(function(el){ io.observe(el); });
+
+  // 万一JSの初期化が遅延/失敗しても本文が読めるよう、数秒後に強制的に表示
+  setTimeout(function(){
+    document.querySelectorAll('.reveal:not(.is-visible)').forEach(function(el){
+      el.classList.add('is-visible');
+    });
+  }, 2500);
+})();
+</script>
+
+</body>
+</html>

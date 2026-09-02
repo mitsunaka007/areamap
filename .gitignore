@@ -1,0 +1,40 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.pyc
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# --- Virtualenv ---
+.venv/
+venv/
+env/
+ENV/
+
+# --- Test / tooling caches ---
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.playwright-cli/
+.coverage
+htmlcov/
+
+# --- Secrets / local config ---
+.env
+.env.*
+!.env.example
+
+# --- Runtime upload dirs (app.py が mkdir する。誤コミット防止) ---
+/migrationshop_uploads/
+
+# --- Editor / OS ---
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# --- Logs ---
+*.log

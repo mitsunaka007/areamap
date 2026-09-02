@@ -1,0 +1,140 @@
+#map-wrapper {
+  position: relative;
+  width: 100%;
+  height: 70vh;
+  max-height: 600px;
+  background: #f8f8f8;
+  overflow: hidden;
+}
+
+#map {
+  width: 100%;
+  height: 70vh;
+}
+
+/* カードレイヤー（存在はさせる） */
+#spot-cards-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 500;
+}
+/* =========================
+   Default Mode
+========================= */
+
+body[data-areamap-mode="default"] #spot-cards-layer {
+  display: none; /* カード完全無効 */
+}
+
+/* モーダルも使わない */
+body[data-areamap-mode="default"] .modal {
+  display: none !important;
+}
+/* =========================
+   Extended Mode
+========================= */
+
+body[data-areamap-mode="extended"] #spot-cards-layer {
+  display: block;
+  pointer-events: none;
+}
+body[data-areamap-mode="extended"] .spot-card {
+  position: absolute;
+  min-width: 140px;
+  max-width: 180px;
+
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+
+  padding: 8px 10px;
+  font-size: 13px;
+  line-height: 1.3;
+
+  transform: translate(-50%, -100%);
+  pointer-events: auto;
+  cursor: pointer;
+
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+
+  white-space: nowrap;
+}
+
+.spot-name {
+  font-weight: 600;
+  margin: 0;
+  font-size: 14px;
+}
+
+.spot-meta {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: #666;
+}
+
+/* hover */
+body[data-areamap-mode="extended"] .spot-card:hover {
+  transform: translate(-50%, -110%);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.18);
+  z-index: 10;
+}
+
+/* 向き制御 */
+.card-up    { transform: translate(-50%, -110%); }
+.card-down  { transform: translate(-50%, 10%); }
+.card-left  { transform: translate(-110%, -50%); }
+.card-right { transform: translate(10%, -50%); }
+/* ===== Modal Base ===== */
+body[data-areamap-mode="extended"] .modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: none;
+}
+
+body[data-areamap-mode="extended"] .modal.is-open {
+  display: block;
+}
+
+.modal-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+
+  width: 100%;
+  max-width: 480px;
+  background: #fff;
+  border-radius: 16px 16px 0 0;
+  padding: 16px;
+
+  max-height: 90vh;
+  overflow-y: auto;
+}
+@media print {
+  body[data-areamap-mode="extended"] .spot-card {
+    box-shadow: none;
+    border: 1px solid #000;
+    background: #fff;
+  }
+}
+
+@media (max-width: 600px) {
+  body[data-areamap-mode="extended"] .spot-card {
+    min-width: 120px;
+    max-width: 160px;
+    font-size: 12px;
+  }
+
+  .spot-name {
+    font-size: 13px;
+  }
+}

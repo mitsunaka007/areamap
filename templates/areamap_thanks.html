@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AreaMap | 送信完了（次のステップ）</title>
+  <meta name="robots" content="noindex" />
+  <style>
+    :root{
+      --bg:#0b0f17;
+      --panel:#0f1624;
+      --card:#101a2b;
+      --txt:rgba(255,255,255,.92);
+      --muted:rgba(255,255,255,.68);
+      --border:rgba(255,255,255,.12);
+      --accent:#4da3ff;
+      --accent2:#7cf2c5;
+      --danger:#ff6b6b;
+      --shadow:0 12px 34px rgba(0,0,0,.35);
+      --r:16px;
+    }
+    html,body{height:100%;}
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+      color:var(--txt);
+      background: radial-gradient(1200px 800px at 20% -10%, rgba(77,163,255,.18), transparent 55%),
+                  radial-gradient(900px 600px at 90% 10%, rgba(124,242,197,.12), transparent 50%),
+                  var(--bg);
+    }
+    a{color:inherit;}
+    .wrap{max-width:1080px;margin:0 auto;padding:0 18px;}
+    .topbar{
+      position:sticky;top:0;z-index:50;
+      backdrop-filter: blur(10px);
+      background: rgba(11,15,23,.72);
+      border-bottom:1px solid var(--border);
+    }
+    .topbar .inner{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 0;}
+    .brand{display:flex;align-items:center;gap:10px;text-decoration:none;}
+    .logo{
+      width:34px;height:34px;border-radius:10px;
+      background: linear-gradient(135deg, rgba(77,163,255,.95), rgba(124,242,197,.85));
+      box-shadow: var(--shadow);
+    }
+    .brand b{letter-spacing:.2px;}
+    .nav{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+    .nav a{
+      text-decoration:none;
+      color:var(--muted);
+      border:1px solid transparent;
+      padding:8px 10px;border-radius:999px;
+    }
+    .nav a:hover{border-color:var(--border);color:var(--txt);}
+    .btn{
+      display:inline-flex;align-items:center;justify-content:center;gap:8px;
+      border-radius:12px;
+      padding:12px 14px;
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.04);
+      color:var(--txt);
+      text-decoration:none;
+      box-shadow: 0 10px 24px rgba(0,0,0,.18);
+    }
+    .btn.primary{
+      border-color: rgba(77,163,255,.55);
+      background: linear-gradient(135deg, rgba(77,163,255,.22), rgba(124,242,197,.12));
+    }
+    .btn.primary:hover{filter:brightness(1.05);}
+    .btn.ghost{background:transparent;}
+    .hero{padding:46px 0 22px;}
+    .hero-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:18px;align-items:stretch;}
+    @media (max-width: 920px){.hero-grid{grid-template-columns:1fr;}}
+    .hero h1{font-size:clamp(26px, 3.5vw, 42px);line-height:1.12;margin:0 0 10px;}
+    .hero .lead{color:var(--muted);font-size:16px;line-height:1.7;margin:0 0 16px;}
+    .kpis{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0 0;}
+    .pill{border:1px solid var(--border);background:rgba(255,255,255,.03);border-radius:999px;padding:8px 10px;font-size:12.5px;color:var(--muted);}
+    .card{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow);}
+    .hero-card{padding:16px;}
+    .hero-card .mini{color:var(--muted);font-size:13px;line-height:1.6;}
+    .hero-card .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;}
+    .section{padding:28px 0;}
+    .section h2{font-size:20px;margin:0 0 10px;}
+    .section p{margin:0;color:var(--muted);line-height:1.75;}
+    .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px;}
+    @media (max-width: 920px){.grid3{grid-template-columns:1fr;}}
+    .feature{padding:14px;}
+    .feature .t{font-weight:700;margin-bottom:6px;}
+    .feature ul{margin:8px 0 0;padding-left:18px;color:var(--muted);line-height:1.7;}
+    .demo{padding:14px;}
+    .demo .demo-head{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
+    .demo iframe{width:100%;height:min(78vh,760px);border:0;border-radius:14px;background:#fff;}
+    .plans{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px;}
+    @media (max-width: 920px){.plans{grid-template-columns:1fr;}}
+    .plan{padding:16px;}
+    .badge{display:inline-flex;border:1px solid var(--border);background:rgba(255,255,255,.04);border-radius:999px;padding:6px 10px;font-size:12px;color:var(--muted);}
+    .price{font-size:18px;font-weight:800;margin:10px 0 10px;}
+    .plan ul{margin:8px 0 0;padding-left:18px;color:var(--muted);line-height:1.75;}
+    .plan .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;}
+    .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px;}
+    @media (max-width: 920px){.steps{grid-template-columns:1fr;}}
+    .step{padding:14px;}
+    .step .n{color:rgba(124,242,197,.9);font-weight:800;}
+    .faq{margin-top:14px;}
+    details{border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.03);padding:12px 14px;}
+    details+details{margin-top:10px;}
+    summary{cursor:pointer;font-weight:700;}
+    summary::-webkit-details-marker{display:none;}
+    .footer{padding:26px 0 38px;border-top:1px solid var(--border);color:var(--muted);font-size:13px;}
+    .sticky{position:fixed;left:14px;right:14px;bottom:12px;display:none;gap:10px;z-index:80;}
+    .sticky a{flex:1;}
+    @media (max-width: 920px){.sticky{display:flex;}}
+  </style>
+  <style>
+    /* Thanks page additions */
+    .okbox {
+      border: 1px solid rgba(64, 255, 167, .18);
+      background: rgba(64, 255, 167, .06);
+    }
+    .warnbox {
+      border: 1px solid rgba(255, 204, 85, .18);
+      background: rgba(255, 204, 85, .06);
+    }
+    .kvs {
+      display:grid; gap:10px;
+      grid-template-columns: 1fr;
+      margin-top: 12px;
+    }
+    .kv {
+      display:flex; gap:10px; align-items:flex-start;
+      padding: 12px;
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 16px;
+      background: rgba(255,255,255,.04);
+    }
+    .kv .k {
+      min-width: 92px;
+      font-weight: 900;
+      color: rgba(255,255,255,.78);
+      font-size: 12px;
+      letter-spacing: .02em;
+    }
+    .kv .v {
+      color: rgba(255,255,255,.86);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .kv .v b { color: #fff; }
+    .radio {
+      display:flex; gap:12px; align-items:flex-start;
+      padding: 12px;
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 18px;
+      background: rgba(255,255,255,.04);
+    }
+    .radio:hover { border-color: rgba(255,255,255,.18); }
+    .radio input { margin-top: 4px; }
+    .radio .rtitle {
+      font-weight: 950;
+      letter-spacing: .02em;
+    }
+    .radio .rmeta {
+      margin-top: 4px;
+      color: rgba(255,255,255,.70);
+      font-size: 12.5px;
+      line-height: 1.6;
+    }
+    .radio .rmeta b { color: rgba(255,255,255,.92); }
+    .radio .price {
+      margin-top: 8px;
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.05);
+      font-weight: 900;
+      font-size: 12px;
+    }
+    .copybox {
+      margin-top: 10px;
+      border: 1px dashed rgba(255,255,255,.16);
+      border-radius: 18px;
+      padding: 12px;
+      background: rgba(0,0,0,.20);
+    }
+    textarea {
+      width: 100%;
+      min-height: 170px;
+      resize: vertical;
+      padding: 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.04);
+      color: rgba(255,255,255,.86);
+      outline: none;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+      font-size: 12.5px;
+      line-height: 1.6;
+      box-sizing: border-box;
+    }
+    .tiny {
+      font-size: 12px;
+      color: rgba(255,255,255,.68);
+      line-height: 1.6;
+    }
+    .badge2 {
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.05);
+      font-weight: 900;
+      font-size: 12px;
+      color: rgba(255,255,255,.82);
+    }
+    .badge2 i {
+      width: 8px; height: 8px; border-radius: 999px;
+      background: rgba(64, 255, 167, .85);
+      box-shadow: 0 10px 22px rgba(64,255,167,.18);
+      display:inline-block;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="topbar">
+    <div class="wrap">
+      <div class="brand">
+        <div class="badge">AreaMap</div>
+        <div>
+          <div class="t">送信完了</div>
+          <div class="n">迷いを減らして、候補に残る確率を上げる</div>
+        </div>
+      </div>
+      <div class="actions">
+        <a class="btn ghost" href="/tilemap" target="_blank" rel="noopener">デモを開く</a>
+        <a class="btn ghost" href="/" rel="noopener">トップに戻る</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="hero">
+    <div class="wrap hero-grid">
+      <div class="inner">
+        <div class="pill"><span>✅</span> お問い合わせを受け付けました</div>
+        <h1>次の一手：どちらで試すかを選ぶだけ</h1>
+        <p>
+          ここから先は「立地を変える」ではなく、<b>迷い（入口/駐車場/目印）</b>を減らして、<b>取りこぼし</b>を回収する流れです。<br>
+          1営業日以内を目安に、こちらからご連絡します。
+        </p>
+
+        <div class="kvs">
+          <div class="kv okbox">
+            <div class="k">確認</div>
+            <div class="v">
+              受信後、<b>原則1営業日以内</b>に返信します。<br>
+              もし急ぎの場合は、右の「デモ」→「相談する」から再送してもOKです。
+            </div>
+          </div>
+          <div class="kv warnbox">
+            <div class="k">ポイント</div>
+            <div class="v">
+              目的は「37%に入る/入らない」ではなく、<b>候補に残る順番を前倒しする</b>こと。<br>
+              迷いを潰すほど、比較の途中で“保留”されにくくなります。
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>① まずはプランを選ぶ（おすすめ自動判定つき）</h2>
+          <p class="mini">
+            基本は「まずEntranceで小さく試す」→「迷いが多い/導線が複雑ならLast30で強化」。
+          </p>
+
+          <div class="plans" style="grid-template-columns:1fr; gap:12px;">
+            <label class="radio">
+              <input type="radio" name="plan" value="entrance" checked />
+              <div>
+                <div class="rtitle">Entrance Pack｜迷わない“固定導線”を作る</div>
+                <div class="rmeta">
+                  入口/駐車場/料金を <b>1ページで整理</b>。URLを一本化して、まず反応を作る。<br>
+                  目安：<b>迷い電話/DMが週1〜</b> か、<b>説明が長くなりがち</b>な店。
+                </div>
+                <div class="price">初期 10,000円 / 月額 3,000円</div>
+              </div>
+            </label>
+
+            <label class="radio">
+              <input type="radio" name="plan" value="last30" />
+              <div>
+                <div class="rtitle">Last30 Navigator｜最後の30mを“現地目線”で案内</div>
+                <div class="rmeta">
+                  Leaflet＋ルート表示で「入口ズレ/裏口/敷地内」を補強。<br>
+                  目安：<b>共同駐車場</b>、<b>奥まった立地</b>、<b>入口が複数</b>、<b>新規が迷いやすい</b>業種。
+                </div>
+                <div class="price">初期 29,800円 / 月額 10,000円</div>
+              </div>
+            </label>
+
+            <div class="card okbox">
+              <div class="badge2"><i></i>おすすめ：自動判定</div>
+              <div class="mini" style="margin-top:10px;">
+                下のチェックが<b>2つ以上</b>なら「Last30」を検討、<b>1つ以下</b>なら「Entrance」からが失敗しにくいです。
+              </div>
+              <div class="steps" style="margin-top:10px;">
+                <div class="step">
+                  <div class="t">入口が分かりにくい（裏口/奥/建物が似ている）</div>
+                  <div class="n">最後の数十mで不安が出ると保留されがち</div>
+                </div>
+                <div class="step">
+                  <div class="t">駐車場が共同/説明が長い</div>
+                  <div class="n">案内のテンプレ化＝店側が楽になる</div>
+                </div>
+                <div class="step">
+                  <div class="t">曲がるポイント（目印）が弱い</div>
+                  <div class="n">地図は合ってても“現地の迷い”が残る</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="actions" style="margin-top:12px;">
+            <a class="btn primary" id="goAsk" href="/ask?plan=entrance">このプランで相談を確定する →</a>
+            <a class="btn ghost" id="goSample" href="https://areamap.onrender.com/areamap-lite" target="_blank" rel="noopener">サンプルを見る</a>
+          </div>
+          <p class="tiny" style="margin-top:8px;">
+            ※主ボタンは1つにして、次の行動を明確にしています（送信後の不安を減らして行動に繋げるのが有効）。
+          </p>
+        </div>
+
+        <div class="section">
+          <h2>② 必要素材チェックリスト（コピペで送れます）</h2>
+          <p class="mini">
+            まずは “今ある範囲” でOK。足りない分は後から追い足しできます。
+          </p>
+
+          <div class="copybox">
+            <div class="actions" style="justify-content:space-between; gap:10px;">
+              <div class="pill" id="listTitle"><span>📎</span> Entrance Pack向け（まずこれ）</div>
+              <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <button class="btn ghost" type="button" id="copyBtn">コピー</button>
+                <button class="btn ghost" type="button" id="downloadBtn">TXTで保存</button>
+              </div>
+            </div>
+
+            <textarea id="materialsText" spellcheck="false"></textarea>
+            <div class="tiny" id="copyStatus" style="margin-top:8px;"></div>
+          </div>
+
+          <div class="card" style="margin-top:12px;">
+            <h3 style="margin:0 0 6px 0; font-size:14px;">③ 最短の進め方（2週間テスト）</h3>
+            <div class="steps">
+              <div class="step">
+                <div class="t">Day1：素材を集める（入口/駐車場/目印）</div>
+                <div class="n">写真はスマホでOK。文章は短く。</div>
+              </div>
+              <div class="step">
+                <div class="t">Day2：AreaMap初稿を確認</div>
+                <div class="n">必要なら1回目の修正（Entranceは初回修正1回）</div>
+              </div>
+              <div class="step">
+                <div class="t">Day3-14：リンク一本化で運用</div>
+                <div class="n">迷い電話/DM、説明テンプレ送信回数、キャンセル理由を記録（ざっくりでOK）</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="footer">
+          <div class="wrap" style="padding:0;">
+            <div class="mini">
+              ご不明点があれば、このページの「相談を確定」から追記で送ってください。
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="hero-card">
+        <div class="demo-head">
+          <div>
+            <div class="t">迷い削減デモ</div>
+            <div class="n">なぜ必要かを直感で理解</div>
+          </div>
+          <a class="btn ghost" href="/tilemap" target="_blank" rel="noopener">開く</a>
+        </div>
+        <div class="demo">
+          <iframe src="/tilemap?mode=embed" title="AreaMap tilemap demo" loading="lazy"></iframe>
+        </div>
+        <div class="mini" style="margin-top:10px;">
+          迷いを減らして <b>候補に残る順番</b> を前倒しする。<br>
+          デモ内にも回収判定があります。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const PRESETS = {
+      entrance: {
+        ask: "/ask?plan=entrance",
+        sample: "https://areamap.onrender.com/areamap-lite",
+        title: "Entrance Pack向け（まずこれ）",
+        text: `【Entrance Pack｜必要素材チェックリスト】
+
+■基本情報
+- 店名（正式名称）
+- 住所（Google MapのURLも）
+- 電話番号（掲載する/しない）
+- 営業時間・定休日（変更がある場合の補足）
+- 予約導線（HP/予約フォーム/Instagram/LINE等のURL）
+
+■迷いポイント（最重要）
+- 入口の写真（正面1枚＋近づいた写真1枚）
+- 駐車場の写真（入口から見た1枚）
+- 目印（曲がる地点/看板/建物）写真 1枚
+- 『よく聞かれる質問』 1〜2個（例：駐車場どこ？入口どこ？）
+
+■任意（あると強い）
+- 料金の目安（よく選ばれるメニュー/コース）
+- 初回の流れ（短文3行程度）
+- クーポン/特典（あれば）
+
+※写真はスマホでOK。文章は短くてOK。足りない分は後から追い足しできます。`
+      },
+      last30: {
+        ask: "/ask?plan=last30",
+        sample: "https://areamap.onrender.com/areamap-pro",
+        title: "Last30 Navigator向け（入口ズレ/敷地内まで）",
+        text: `【Last30 Navigator｜必要素材チェックリスト】
+
+■基本情報
+- 店名（正式名称）
+- 住所（Google MapのURLも）
+- 電話番号（掲載する/しない）
+- 営業時間・定休日
+- 予約導線（HP/予約フォーム/Instagram/LINE等のURL）
+
+■最後の30m（最重要）
+- 入口の写真（遠目/近目）計2枚
+- 入口が複数ある場合：それぞれの写真と“おすすめ入口”
+- 駐車場：写真2枚（入口から／区画が分かる）
+- 目印：曲がる地点の写真1枚
+- 『敷地内で迷うポイント』 1〜2個（例：裏口、階段、エレベータ、共有通路など）
+
+■地図調整のため（できれば）
+- 入口の位置（ざっくりでOK：スクショに丸でも可）
+- 駐車場入口の位置（スクショに矢印でも可）
+- 共同駐車場のルール（あれば一言）
+
+■任意（あると強い）
+- 初回の流れ（短文3行）
+- 料金の目安（よく選ばれるメニュー）
+- 迷い電話/DMの頻度（週◯回くらい）
+
+※写真はスマホでOK。足りない分は後から追い足しできます。`
+      }
+    };
+
+    function getSelectedPlan(){
+      const el = document.querySelector('input[name="plan"]:checked');
+      return el ? el.value : "entrance";
+    }
+
+    function applyPlan(planKey){
+      const p = PRESETS[planKey] || PRESETS.entrance;
+      document.getElementById("goAsk").setAttribute("href", p.ask);
+      document.getElementById("goSample").setAttribute("href", p.sample);
+      document.getElementById("listTitle").innerHTML = `<span>📎</span> ${p.title}`;
+      document.getElementById("materialsText").value = p.text;
+      document.getElementById("copyStatus").textContent = "";
+    }
+
+    function initFromQuery(){
+      const sp = new URLSearchParams(location.search);
+      const plan = sp.get("plan");
+      if (plan && (plan === "entrance" || plan === "last30")){
+        const r = document.querySelector(`input[name="plan"][value="${plan}"]`);
+        if (r) r.checked = true;
+      }
+    }
+
+    document.querySelectorAll('input[name="plan"]').forEach(r => {
+      r.addEventListener("change", () => applyPlan(getSelectedPlan()));
+    });
+
+    document.getElementById("copyBtn").addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(document.getElementById("materialsText").value);
+        document.getElementById("copyStatus").textContent = "✅ コピーしました。相談フォームにそのまま貼れます。";
+      } catch (e) {
+        document.getElementById("copyStatus").textContent = "⚠️ コピーに失敗しました。テキストを手動で選択してコピーしてください。";
+      }
+    });
+
+    document.getElementById("downloadBtn").addEventListener("click", () => {
+      const plan = getSelectedPlan();
+      const name = plan === "last30" ? "areamap_materials_last30.txt" : "areamap_materials_entrance.txt";
+      const blob = new Blob([document.getElementById("materialsText").value], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      document.getElementById("copyStatus").textContent = "✅ TXTを保存しました。";
+    });
+
+    initFromQuery();
+    applyPlan(getSelectedPlan());
+  </script>
+</body>
+</html>
