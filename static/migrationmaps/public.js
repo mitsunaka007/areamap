@@ -44,6 +44,10 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 const OVERLAY_OPACITY = 0.88;
 const TRANSITION_DURATION_MS = 10000; // 10秒フェード（admin.html の説明文と一致させる）
 
+// 同一緯度経度のテナントビル（1F・2F・3F などに複数店舗が入居）で、
+// 明示的な BuildingGuide 画像が無いときにマーカークリックで表示する既定のビル画像。
+const DEFAULT_BUILDING_IMAGE_URL = "/static/img/migrationmaps_buildingimage.jpg";
+
 let overlay1 = null;          // Layer 1 L.imageOverlay
 let overlay2 = null;          // Layer 2 L.imageOverlay
 let maskLayer = null;
@@ -290,17 +294,29 @@ function getFloorDisplayOrder(groupShops, guide) {
     const key = normalizeFloorLevel(f.floorlevel);
     if (key) floorMap.set(key, f);
   });
+  const syntheticKeys = new Set();
   groupShops.forEach((s) => {
     const key = normalizeFloorLevel(s.floorlevel);
     if (key && !floorMap.has(key)) {
-      floorMap.set(key, { floorlevel: key, area_x_pct: 4, area_y_pct: 4, area_width_pct: 16, area_height_pct: 10 });
+      floorMap.set(key, { floorlevel: key });
+      syntheticKeys.add(key);
     }
   });
-  return [...floorMap.values()].sort((a, b) => {
+  const ordered = [...floorMap.values()].sort((a, b) => {
     const av = parseInt(String(a.floorlevel).replace(/\D/g, "") || "999", 10);
     const bv = parseInt(String(b.floorlevel).replace(/\D/g, "") || "999", 10);
     return av - bv;
   });
+  // ホットスポット座標が未登録のフロアは、ビル画像の左端に縦へ等間隔で仮配置する
+  const synthetic = ordered.filter((f) => syntheticKeys.has(normalizeFloorLevel(f.floorlevel)));
+  synthetic.forEach((f, i) => {
+    const gap = 92 / synthetic.length;
+    f.area_x_pct = 4;
+    f.area_y_pct = 4 + gap * i;
+    f.area_width_pct = 22;
+    f.area_height_pct = Math.max(Math.min(gap - 4, 16), 8);
+  });
+  return ordered;
 }
 
 function buildFloorGridSection(groupShops, floorlevel) {
@@ -340,11 +356,18 @@ function showBuildingGuide(groupShops, groupKey) {
   buildingPhotoWrapEl.innerHTML = "";
   floorShopGridEl.innerHTML = "";
 
-  if (guide && guide.image_url) {
+  // 同一緯度経度に複数店舗（テナントビル）で BuildingGuide 画像が無い場合は、
+  // 既定のビル画像でフロアホットスポット表示に切り替える。
+  const isMultiTenant = Array.isArray(groupShops) && groupShops.length > 1;
+  const buildingImageUrl = (guide && guide.image_url)
+    ? guide.image_url
+    : (isMultiTenant ? DEFAULT_BUILDING_IMAGE_URL : null);
+
+  if (buildingImageUrl) {
     const imgEl = document.createElement("img");
-    imgEl.src = guide.image_url;
+    imgEl.src = buildingImageUrl;
     imgEl.className = "building-photo";
-    imgEl.alt = escapeHtml(guide.building_name || "building");
+    imgEl.alt = escapeHtml(guide?.building_name || "building");
     buildingPhotoWrapEl.appendChild(imgEl);
 
     const floors = getFloorDisplayOrder(groupShops, guide);
