@@ -7,6 +7,8 @@ from migrationmaps_geo import (
     affine_from_capture,
     fit_shift_only,
     fit_similarity_no_rotation,
+    bbox_with_margin,
+    _M_PER_DEG_LAT,
 )
 
 FUKUI = (36.0619, 136.2235)  # (lat, lng)
@@ -112,6 +114,62 @@ def test_fit_similarity_least_squares_with_three_points():
         ll_pts.append((la, lon))
     coef = fit_similarity_no_rotation(img_pts, ll_pts)
     assert coef[0] == pytest.approx(s, abs=0.01)
+
+
+# ---- bbox_with_margin（検索用 bbox の外周マージン） ----
+def test_bbox_with_margin_zero_is_identity():
+    box = (36.0500, 136.2000, 36.0800, 136.2400)
+    assert bbox_with_margin(*box, 0) == box
+    assert bbox_with_margin(*box, 0.0) == box
+
+
+def test_bbox_with_margin_ns_meters_and_ew_cos_correction_at_lat36():
+    # 中心緯度がちょうど 36.0 になる bbox
+    sw_lat, sw_lng, ne_lat, ne_lng = 35.9900, 136.2000, 36.0100, 136.2400
+    margin = 100.0
+    s, w, n, e = bbox_with_margin(sw_lat, sw_lng, ne_lat, ne_lng, margin)
+
+    # 南北: 各辺の拡張量が緯度換算でちょうど margin / 111320 度
+    d_lat_south = sw_lat - s
+    d_lat_north = n - ne_lat
+    assert d_lat_south == pytest.approx(margin / _M_PER_DEG_LAT, rel=1e-9)
+    assert d_lat_north == pytest.approx(margin / _M_PER_DEG_LAT, rel=1e-9)
+    # メートルに戻すと約 100m
+    assert d_lat_south * _M_PER_DEG_LAT == pytest.approx(100.0, rel=1e-9)
+
+    # 東西: cos(36°) 補正が入っている（= 緯度方向より 1/cos(36°) 倍広い）
+    d_lng_west = sw_lng - w
+    d_lng_east = e - ne_lng
+    expected_d_lng = margin / (_M_PER_DEG_LAT * math.cos(math.radians(36.0)))
+    assert d_lng_west == pytest.approx(expected_d_lng, rel=1e-9)
+    assert d_lng_east == pytest.approx(expected_d_lng, rel=1e-9)
+    assert d_lng_west / d_lat_south == pytest.approx(
+        1.0 / math.cos(math.radians(36.0)), rel=1e-9
+    )
+    # 経度方向の実距離（中心緯度換算）も約 100m
+    assert d_lng_west * _M_PER_DEG_LAT * math.cos(math.radians(36.0)) == pytest.approx(
+        100.0, rel=1e-9
+    )
+
+
+def test_bbox_with_margin_clamps_near_north_pole():
+    s, w, n, e = bbox_with_margin(89.9990, 10.0, 89.9995, 20.0, 500.0)
+    assert n == 90.0
+    assert -90.0 <= s <= 90.0
+    # 極近傍では経度方向の拡張が全周を超え、±180 でクランプされる
+    assert w == -180.0 and e == 180.0
+
+
+def test_bbox_with_margin_exact_pole_no_zero_division():
+    s, w, n, e = bbox_with_margin(90.0, -10.0, 90.0, 10.0, 200.0)
+    assert n == 90.0
+    assert w == -180.0 and e == 180.0
+
+
+def test_bbox_with_margin_clamps_near_dateline():
+    s, w, n, e = bbox_with_margin(0.0, 179.9990, 0.0010, 179.99999, 500.0)
+    assert e == 180.0
+    assert -180.0 <= w <= 180.0
 
 
 def test_acceptance_error_within_one_image_pixel_near_center():
