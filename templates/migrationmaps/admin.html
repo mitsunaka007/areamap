@@ -153,7 +153,16 @@
       <div id="osmImportBody" class="shop-menu-body" hidden>
         <div class="shop-toolbar">
           <div class="muted">保存済みプロジェクトの表示範囲内を Overpass で検索します。</div>
-          <button type="button" id="btnOsmSearch" class="small-btn">取得</button>
+          <div class="row" style="gap:6px; align-items:center;">
+            <label for="osmMarginSelect" class="muted">外周マージン</label>
+            <select id="osmMarginSelect">
+              <option value="0">0 m</option>
+              <option value="50" selected>50 m</option>
+              <option value="100">100 m</option>
+              <option value="200">200 m</option>
+            </select>
+            <button type="button" id="btnOsmSearch" class="small-btn">取得</button>
+          </div>
         </div>
         <div id="osmSearchStatus" class="muted"></div>
         <div class="row" style="gap:6px; margin:6px 0;">
