@@ -22,6 +22,7 @@ from migrationmaps_geo import (
     fit_similarity_no_rotation,
     extract_capture,
     resolve_affine,
+    bbox_with_margin,
 )
 from forms import AskForm
 from extensions import db
@@ -130,6 +131,26 @@ def _project_bbox(proj):
     lats = [p[0] for p in latlngs]
     lngs = [p[1] for p in latlngs]
     return min(lats), min(lngs), max(lats), max(lngs)
+
+
+def _project_bbox_padded(proj, margin_m: float):
+    """_project_bbox の bbox を四方へ margin_m メートル拡張した検索用 bbox。
+
+    イラスト地図の端に描かれている店舗が、四隅アフィンから得た bbox の
+    境界をわずかに外れて Overpass の結果に出ないことがある。その取りこぼしを
+    拾うために「検索時だけ」範囲を広げる。
+
+    注意: これは "候補を拾う範囲" であって "地図に表示する範囲" ではない。
+    公開ページ GET /api/migrationmaps/<project_id>/shops の bbox 絞り込みは
+    _project_bbox（拡張なし）のまま。したがってマージン分だけ外側にある店舗を
+    実際に MigrationShop として取り込んでも、公開ページの bbox フィルタで
+    弾かれて地図に出ないことがある。
+
+    returns (sw_lat, sw_lng, ne_lat, ne_lng)
+    """
+    sw_lat, sw_lng, ne_lat, ne_lng = _project_bbox(proj)
+    return bbox_with_margin(sw_lat, sw_lng, ne_lat, ne_lng, margin_m)
+
 
 # 座標変換ユーティリティ（EPSG:4326 -> EPSG:3857）は migrationmaps_geo に移設。
 # _R / _lonlat_to_mercator / _mercator_to_lonlat / _fit_affine / _img_to_latlng は
@@ -1187,6 +1208,29 @@ def api_migrationmaps_shops(project_id: int):
 
 OSM_SEARCH_ENDPOINT_ENV = "OVERPASS_ENDPOINT"
 
+# OSM 検索用 bbox の外周マージン（メートル）。イラスト地図の端の店舗を拾うため。
+OSM_SEARCH_MARGIN_M_DEFAULT = 50
+OSM_SEARCH_MARGIN_M_MIN = 0
+OSM_SEARCH_MARGIN_M_MAX = 500
+
+
+def _parse_osm_margin_m(data):
+    """リクエスト JSON から任意パラメータ margin_m を取り出して検証する。
+
+    返り値 (margin_m: float, error: (response, status) | None)。
+    未指定なら既定 50。数値でない/範囲外(0..500)なら error に 400 応答を入れて返す。
+    """
+    raw = (data or {}).get("margin_m", OSM_SEARCH_MARGIN_M_DEFAULT)
+    try:
+        margin_m = float(raw)
+    except (TypeError, ValueError):
+        return None, (jsonify({"error": "margin_m は数値で指定してください"}), 400)
+    if not (OSM_SEARCH_MARGIN_M_MIN <= margin_m <= OSM_SEARCH_MARGIN_M_MAX):
+        return None, (jsonify({
+            "error": f"margin_m は {OSM_SEARCH_MARGIN_M_MIN}〜{OSM_SEARCH_MARGIN_M_MAX} の範囲で指定してください"
+        }), 400)
+    return margin_m, None
+
 
 @app.post("/api/migrationmaps/<int:project_id>/osm/search")
 def api_migrationmaps_osm_search(project_id: int):
@@ -1194,8 +1238,15 @@ def api_migrationmaps_osm_search(project_id: int):
     if not proj:
         abort(404)
 
+    margin_m, err = _parse_osm_margin_m(request.get_json(silent=True))
+    if err:
+        return err
+
     import migrationmaps_osm as osm
-    sw_lat, sw_lng, ne_lat, ne_lng = _project_bbox(proj)
+    # 検索は拡張後の bbox を使う（候補を拾う範囲）。公開ページの表示範囲は広げない。
+    # search_candidates -> _cache_key には、ここで渡す拡張後 bbox がそのまま入るため
+    # キャッシュキーは拡張後 bbox から作られ、マージン違いで衝突しない。
+    sw_lat, sw_lng, ne_lat, ne_lng = _project_bbox_padded(proj, margin_m)
     endpoint = os.environ.get(OSM_SEARCH_ENDPOINT_ENV) or None
     try:
         candidates, cached = osm.search_candidates(
@@ -1229,7 +1280,9 @@ def api_migrationmaps_osm_search(project_id: int):
         })
 
     return jsonify({
+        # 実際に検索に使った拡張後の bbox（フロントで L.rectangle 可視化用）
         "bbox": [sw_lat, sw_lng, ne_lat, ne_lng],
+        "margin_m": margin_m,
         "cached": cached,
         "candidates": payload,
     })
@@ -1246,10 +1299,19 @@ def api_migrationmaps_osm_import(project_id: int):
     if not isinstance(items, list) or not items:
         return jsonify({"error": "items が空です"}), 400
 
+    margin_m, err = _parse_osm_margin_m(data)
+    if err:
+        return err
+
     import migrationmaps_osm as osm
     from datetime import datetime
 
-    sw_lat, sw_lng, ne_lat, ne_lng = _project_bbox(proj)
+    # 取り込み対象の照合に使う候補も、検索と同じ拡張後 bbox で引き直す。
+    # そうしないと、マージン内で見つけて選んだ候補が by_key に無く skip される。
+    # 注意: ここで取り込んだ「マージン分だけ外側」の店舗は、公開ページ
+    # GET /api/migrationmaps/<project_id>/shops の（拡張しない）bbox フィルタで
+    # 弾かれて地図に出ないことがある。
+    sw_lat, sw_lng, ne_lat, ne_lng = _project_bbox_padded(proj, margin_m)
     endpoint = os.environ.get(OSM_SEARCH_ENDPOINT_ENV) or None
     try:
         candidates, _ = osm.search_candidates(
