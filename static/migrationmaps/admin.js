@@ -1078,6 +1078,23 @@ $("btnRefreshShopList")?.addEventListener("click", refreshShopList);
 // OSM 取り込み
 // ================================================================
 let osmCandidates = [];
+let osmSearchRect = null;        // 直近の検索範囲を示す L.rectangle
+let lastOsmMarginM = 50;         // 直近の検索で使った外周マージン（取り込み時も同値を送る）
+
+function clearOsmSearchRect() {
+  if (osmSearchRect) { map.removeLayer(osmSearchRect); osmSearchRect = null; }
+}
+
+function drawOsmSearchRect(bbox) {
+  // 再検索時は必ず消してから描き直す
+  clearOsmSearchRect();
+  if (!Array.isArray(bbox) || bbox.length !== 4) return;
+  const [swLat, swLng, neLat, neLng] = bbox;
+  osmSearchRect = L.rectangle(
+    [[swLat, swLng], [neLat, neLng]],
+    { color: "#2563eb", weight: 1, fillColor: "#2563eb", fillOpacity: 0.06, dashArray: "4 3" }
+  ).addTo(map);
+}
 
 $("osmImportToggle")?.addEventListener("click", () => {
   const expanded = $("osmImportToggle").getAttribute("aria-expanded") === "true";
@@ -1137,14 +1154,22 @@ $("btnOsmSelectNone")?.addEventListener("click", () => {
 
 $("btnOsmSearch")?.addEventListener("click", async () => {
   if (!currentProjectId) { alert("先にプロジェクトを保存/読み込みしてください"); return; }
+  const selVal = Number($("osmMarginSelect")?.value);
+  lastOsmMarginM = Number.isFinite(selVal) ? selVal : 50;
   $("osmSearchStatus").textContent = "Overpass 検索中…";
   try {
-    const res = await fetch(`/api/migrationmaps/${currentProjectId}/osm/search`, { method: "POST" });
+    const res = await fetch(`/api/migrationmaps/${currentProjectId}/osm/search`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ margin_m: lastOsmMarginM }),
+    });
     const data = await res.json();
     if (!res.ok) { $("osmSearchStatus").textContent = data.error || `失敗 (${res.status})`; return; }
     osmCandidates = data.candidates || [];
+    drawOsmSearchRect(data.bbox);   // 実際に検索した範囲を薄く描画（目視確認用）
+    const usedMargin = data.margin_m != null ? data.margin_m : lastOsmMarginM;
     $("osmSearchStatus").textContent =
-      `${osmCandidates.length} 件${data.cached ? "（キャッシュ）" : ""}`;
+      `${osmCandidates.length} 件${data.cached ? "（キャッシュ）" : ""}・マージン ${usedMargin}m`;
     renderOsmCandidates();
   } catch (err) {
     $("osmSearchStatus").textContent = `通信エラー: ${err.message}`;
@@ -1161,7 +1186,8 @@ $("btnOsmImport")?.addEventListener("click", async () => {
     const res = await fetch(`/api/migrationmaps/${currentProjectId}/osm/import`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ items }),
+      // 検索と同じマージンで候補を引き直させる（マージン内で選んだ候補を skip させない）
+      body: JSON.stringify({ items, margin_m: lastOsmMarginM }),
     });
     const data = await res.json();
     if (!res.ok) { alert(data.error || `失敗 (${res.status})`); return; }
