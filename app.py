@@ -1077,7 +1077,13 @@ def api_migrationmaps_save():
 @app.get("/api/migrationmaps/projects")
 def api_migrationmaps_projects():
     try:
-        rows = MapProject.query.order_by(MapProject.id.desc()).limit(100).all()
+        rows = (
+            MapProject.query
+            .filter(MapProject.status != "draft")
+            .order_by(MapProject.id.desc())
+            .limit(100)
+            .all()
+        )
     except Exception as ex:
         current_app.logger.error("api_migrationmaps_projects DB error: %s", ex)
         return jsonify({"error": str(ex), "projects": []}), 500
@@ -1090,6 +1096,42 @@ def api_migrationmaps_projects():
                 "created_at": p.created_at.isoformat() if p.created_at else None,
                 "public_url": f"/migrationmaps/m/{p.id}",
                 "admin_url": f"/migrationmaps/admin?project_id={p.id}",
+            }
+            for p in rows
+        ]
+    })
+
+@app.get("/api/migrationmaps/captures")
+def api_migrationmaps_captures():
+    status_filter = (request.args.get("status") or "").strip().lower()
+    q = MapProject.query.filter(MapProject.basemap_name.isnot(None))
+    if status_filter in ("draft", "ready"):
+        q = q.filter(MapProject.status == status_filter)
+    rows = q.order_by(MapProject.id.desc()).limit(200).all()
+
+    project_ids = [p.id for p in rows]
+    shop_counts = {}
+    if project_ids:
+        shop_counts = dict(
+            db.session.query(MigrationShop.map_project_id, func.count(MigrationShop.id))
+            .filter(MigrationShop.map_project_id.in_(project_ids))
+            .group_by(MigrationShop.map_project_id)
+            .all()
+        )
+
+    return jsonify({
+        "captures": [
+            {
+                "project_id": p.id,
+                "basemap_name": p.basemap_name,
+                "name": p.name,
+                "status": p.status,
+                "zoom": p.capture_zoom,
+                "width": p.capture_width,
+                "height": p.capture_height,
+                "center": {"lat": p.capture_center_lat, "lng": p.capture_center_lng},
+                "captured_at": p.captured_at.isoformat() if p.captured_at else None,
+                "shop_count": shop_counts.get(p.id, 0),
             }
             for p in rows
         ]
