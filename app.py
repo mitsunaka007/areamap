@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, jsonify, flash, url_for, redirect, current_app, send_from_directory, send_file, abort
 import os
+import re
 import uuid
 import hashlib
 import math
@@ -23,6 +24,10 @@ from migrationmaps_geo import (
     extract_capture,
     resolve_affine,
     bbox_with_margin,
+    validate_capture_size,
+    snap_center_to_pixel,
+    corners_from_capture,
+    latlng_to_img,
 )
 from forms import AskForm
 from extensions import db
@@ -150,6 +155,91 @@ def _project_bbox_padded(proj, margin_m: float):
     """
     sw_lat, sw_lng, ne_lat, ne_lng = _project_bbox(proj)
     return bbox_with_margin(sw_lat, sw_lng, ne_lat, ne_lng, margin_m)
+
+
+_BASEMAP_NAME_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
+
+
+@app.post("/api/migrationmaps/capture/create")
+def api_migrationmaps_capture_create():
+    """capture-first: 枠(中心・サイズ・ズーム)を確定して draft プロジェクトを作る。
+
+    この時点で image_width/height と a..f(アフィン係数)を確定させ、後続の
+    /illustration アップロードはサイズ照合のみを行う(アフィンは再計算しない)。
+    """
+    data = request.get_json(force=True) or {}
+    name = (data.get("name") or "").strip()
+    basemap_name = (data.get("basemap_name") or "").strip()
+
+    try:
+        center_lat = float(data.get("center_lat"))
+        center_lng = float(data.get("center_lng"))
+        zoom = int(data.get("zoom"))
+        width = int(data.get("width"))
+        height = int(data.get("height"))
+    except (TypeError, ValueError):
+        return jsonify({"error": "center_lat/center_lng/zoom/width/height は数値で必須です"}), 400
+
+    if not name:
+        return jsonify({"error": "name は必須です"}), 400
+    if not _BASEMAP_NAME_RE.match(basemap_name):
+        return jsonify({
+            "error": "basemap_name は英数字・アンダースコア・ハイフンのみ、1〜64文字で指定してください"
+        }), 400
+    if not (-85.05112878 <= center_lat <= 85.05112878 and -180 <= center_lng <= 180):
+        return jsonify({"error": "center_lat/center_lng が範囲外です"}), 400
+    if not (1 <= zoom <= 19):
+        return jsonify({"error": "zoom は 1..19 で指定してください"}), 400
+    try:
+        validate_capture_size(width, height)
+    except ValueError as ex:
+        return jsonify({"error": str(ex)}), 400
+    if MapProject.query.filter_by(basemap_name=basemap_name).first():
+        return jsonify({"error": "その画像名は既に使われています。別の名前を指定してください"}), 400
+
+    snap_lat, snap_lng = snap_center_to_pixel(center_lat, center_lng, zoom)
+    a, b_, c, d, e, f = affine_from_capture(snap_lat, snap_lng, zoom, width, height)
+    corners = corners_from_capture(snap_lat, snap_lng, zoom, width, height)
+
+    from datetime import datetime
+    proj = MapProject(
+        name=name,
+        image_filename="",
+        image_width=width,
+        image_height=height,
+        a=a, b=b_, c=c, d=d, e=e, f=f,
+        georef_mode="auto",
+        capture_center_lat=snap_lat,
+        capture_center_lng=snap_lng,
+        capture_zoom=float(zoom),
+        capture_width=width,
+        capture_height=height,
+        capture_dpr=1.0,
+        basemap_name=basemap_name,
+        status="draft",
+        corner_nw_lat=corners["nw"]["lat"], corner_nw_lng=corners["nw"]["lng"],
+        corner_ne_lat=corners["ne"]["lat"], corner_ne_lng=corners["ne"]["lng"],
+        corner_se_lat=corners["se"]["lat"], corner_se_lng=corners["se"]["lng"],
+        corner_sw_lat=corners["sw"]["lat"], corner_sw_lng=corners["sw"]["lng"],
+        captured_at=datetime.utcnow(),
+    )
+    try:
+        db.session.add(proj)
+        db.session.commit()
+    except Exception as ex:
+        db.session.rollback()
+        return jsonify({"error": "DB保存に失敗しました", "detail": str(ex)}), 500
+
+    return jsonify({
+        "project_id": proj.id,
+        "status": proj.status,
+        "basemap_name": proj.basemap_name,
+        "center": {"lat": snap_lat, "lng": snap_lng},
+        "zoom": zoom, "width": width, "height": height,
+        "center_img": {"x": width / 2.0, "y": height / 2.0},
+        "corners": corners,
+        "affine": {"a": a, "b": b_, "c": c, "d": d, "e": e, "f": f},
+    }), 201
 
 
 # 座標変換ユーティリティ（EPSG:4326 -> EPSG:3857）は migrationmaps_geo に移設。
