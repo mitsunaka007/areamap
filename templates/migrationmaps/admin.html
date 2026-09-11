@@ -280,6 +280,32 @@
       <!-- ===== Layer 1 Panel ===== -->
       <div id="layerPanel1" class="layer-panel is-active">
         <div class="layer-panel-header">レイヤー1（主レイヤー）- 必須・最低3点必要</div>
+        <div class="capture-box" id="captureBoxV2">
+          <div class="capture-box-title">枠を先に作る（推奨・capture-first）</div>
+          <div class="row" style="gap:6px; flex-wrap:wrap;">
+            <button type="button" id="btnPickCenterV2" class="small-btn">① 中心をクリックで選択</button>
+            <span class="muted" id="centerStatusV2">中心: 未選択</span>
+          </div>
+          <div class="row" style="gap:6px; flex-wrap:wrap; margin-top:6px;">
+            <label>出力サイズ
+              <input type="number" id="sizeWV2" value="1024" min="256" max="4096" step="2" style="width:80px;" /> ×
+              <input type="number" id="sizeHV2" value="1024" min="256" max="4096" step="2" style="width:80px;" />
+            </label>
+            <label>ズーム
+              <input type="number" id="zoomV2" value="17" min="1" max="19" style="width:60px;" />
+            </label>
+          </div>
+          <div class="muted" id="cornersStatusV2" style="margin-top:6px;"></div>
+          <div class="row" style="gap:6px; flex-wrap:wrap; margin-top:6px;">
+            <label>画像名（インデックス・半角英数字/_/- のみ）
+              <input type="text" id="basemapNameV2" placeholder="例: fukui_eki_01" style="width:200px;" />
+            </label>
+          </div>
+          <div class="row" style="margin-top:6px;">
+            <button type="button" id="btnConfirmCaptureV2" class="small-btn">② 枠を確定してPNGを書き出す</button>
+            <span class="muted" id="confirmStatusV2"></span>
+          </div>
+        </div>
         <div class="capture-box" id="captureBox1">
           <div class="capture-box-title">ジオリファレンス（右のOSM地図に合わせてから）</div>
           <div class="row" style="gap:6px; flex-wrap:wrap;">

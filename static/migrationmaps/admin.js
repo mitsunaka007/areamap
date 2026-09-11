@@ -115,6 +115,52 @@ function showGuideFrame() {
 const EARTH_CIRCUMFERENCE_M = 40075016.68557849;
 function resAtZoom(z) { return EARTH_CIRCUMFERENCE_M / (256 * Math.pow(2, z)); }
 
+// ---- capture-first: クライアント側の四隅プレビュー計算（migrationmaps_geo.py と同じ式） ----
+function mercatorFromLngLat(lng, lat) {
+  const R = 6378137;
+  const x = R * (lng * Math.PI / 180);
+  const clampedLat = Math.max(Math.min(lat, 85.05112878), -85.05112878);
+  const y = R * Math.log(Math.tan(Math.PI / 4 + (clampedLat * Math.PI / 180) / 2));
+  return [x, y];
+}
+
+function lngLatFromMercator(x, y) {
+  const R = 6378137;
+  const lng = (x / R) * 180 / Math.PI;
+  const lat = (2 * Math.atan(Math.exp(y / R)) - Math.PI / 2) * 180 / Math.PI;
+  return [lng, lat];
+}
+
+function snapCenterToPixelV2(lat, lng, zoom) {
+  const res = resAtZoom(zoom);
+  const halfWorld = EARTH_CIRCUMFERENCE_M / 2;
+  const [x, y] = mercatorFromLngLat(lng, lat);
+  const px = Math.round((x + halfWorld) / res);
+  const py = Math.round((halfWorld - y) / res);
+  const x2 = px * res - halfWorld;
+  const y2 = halfWorld - py * res;
+  const [lng2, lat2] = lngLatFromMercator(x2, y2);
+  return [lat2, lng2];
+}
+
+function cornersFromCaptureV2(centerLat, centerLng, zoom, width, height) {
+  const res = resAtZoom(zoom);
+  const [x0, y0] = mercatorFromLngLat(centerLng, centerLat);
+  const a = res, e = -res;
+  const c = x0 - a * (width / 2);
+  const f = y0 + res * (height / 2);
+  const toLatLng = (x, y) => {
+    const X = a * x + c;
+    const Y = e * y + f;
+    const [lng, lat] = lngLatFromMercator(X, Y);
+    return { img_x: x, img_y: y, lat, lng };
+  };
+  return {
+    nw: toLatLng(0, 0), ne: toLatLng(width, 0),
+    se: toLatLng(width, height), sw: toLatLng(0, height),
+  };
+}
+
 // 画像座標 -> 緯度経度（アフィン係数はロード済みプロジェクトのもの）
 function imgToLatLng(affine, x, y) {
   const { a, b, c, d, e, f } = affine;
@@ -166,6 +212,110 @@ $("btnExportBasemap")?.addEventListener("click", async () => {
     log(`[CAPTURE] L${activeLayer} ベース地図PNGを書き出し。上からイラストを描いて同サイズでアップロードしてください`);
     setDirty(true);
   } catch (err) {
+    alert(`通信エラー: ${err.message}`);
+  }
+});
+
+// ================================================================
+// capture-first: 枠を先に作る（クリックで中心選択 -> サイズ/ズーム -> 確定）
+// ================================================================
+let centerPickModeV2 = false;
+let capturedCenterV2 = null;   // {lat, lng} — スナップ後
+let captureRectV2 = null;      // L.rectangle プレビュー
+
+function clearCaptureRectV2() {
+  if (captureRectV2) { map.removeLayer(captureRectV2); captureRectV2 = null; }
+}
+
+function updateCapturePreviewV2() {
+  clearCaptureRectV2();
+  if (!capturedCenterV2) { $("cornersStatusV2").textContent = ""; return; }
+  const zoom = parseInt($("zoomV2").value, 10);
+  const w = parseInt($("sizeWV2").value, 10);
+  const h = parseInt($("sizeHV2").value, 10);
+  if (!zoom || !w || !h) return;
+  const corners = cornersFromCaptureV2(capturedCenterV2.lat, capturedCenterV2.lng, zoom, w, h);
+  captureRectV2 = L.rectangle(
+    [[corners.sw.lat, corners.sw.lng], [corners.ne.lat, corners.ne.lng]],
+    { color: "#2563eb", weight: 1, fillColor: "#2563eb", fillOpacity: 0.06, dashArray: "4 3" }
+  ).addTo(map);
+  const groundW = (resAtZoom(zoom) * w).toFixed(0);
+  const groundH = (resAtZoom(zoom) * h).toFixed(0);
+  $("cornersStatusV2").textContent =
+    `四隅: NW ${corners.nw.lat.toFixed(5)},${corners.nw.lng.toFixed(5)} / SE ${corners.se.lat.toFixed(5)},${corners.se.lng.toFixed(5)} ・ おおよそ ${groundW}m × ${groundH}m`;
+}
+
+$("btnPickCenterV2")?.addEventListener("click", () => {
+  centerPickModeV2 = !centerPickModeV2;
+  if (centerPickModeV2) {
+    pendingAssign = null;
+    verifyMode = false;
+    $("btnVerifyMode")?.classList.remove("is-active");
+    if ($("verifyStatus")) $("verifyStatus").textContent = "";
+  }
+  $("btnPickCenterV2").classList.toggle("is-active", centerPickModeV2);
+  $("centerStatusV2").textContent = centerPickModeV2
+    ? "右のOSM地図をクリックしてください"
+    : (capturedCenterV2 ? `中心: ${capturedCenterV2.lat.toFixed(5)}, ${capturedCenterV2.lng.toFixed(5)}` : "中心: 未選択");
+});
+
+// 注: 実際の map.on("click", ...) 登録は、`map` 変数（L.map(...)）が
+// 初期化された後（このファイル下方の Leaflet マップセットアップ箇所）に置く必要があるため、
+// そこへ移設している（同じ位置に置くと `map` の TDZ 参照エラーになるため）。
+
+["sizeWV2", "sizeHV2", "zoomV2"].forEach((id) => {
+  $(id)?.addEventListener("change", updateCapturePreviewV2);
+});
+
+$("btnConfirmCaptureV2")?.addEventListener("click", async () => {
+  if (!capturedCenterV2) { alert("先に中心をクリックで選択してください"); return; }
+  const name = ($("mapName").value || "").trim();
+  const basemapName = ($("basemapNameV2").value || "").trim();
+  const zoom = parseInt($("zoomV2").value, 10);
+  const w = parseInt($("sizeWV2").value, 10);
+  const h = parseInt($("sizeHV2").value, 10);
+  if (!name) { alert("地図名を入力してください"); return; }
+  if (!basemapName) { alert("画像名を入力してください"); return; }
+
+  $("confirmStatusV2").textContent = "枠を確定中…";
+  try {
+    const createRes = await fetch("/api/migrationmaps/capture/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name, basemap_name: basemapName,
+        center_lat: capturedCenterV2.lat, center_lng: capturedCenterV2.lng,
+        zoom, width: w, height: h,
+      }),
+    });
+    const createData = await createRes.json();
+    if (!createRes.ok) {
+      $("confirmStatusV2").textContent = "";
+      alert(createData.error || `枠の確定に失敗しました (${createRes.status})`);
+      return;
+    }
+
+    $("confirmStatusV2").textContent = "PNGを書き出し中…";
+    const pngRes = await fetch(`/api/migrationmaps/basemap?project_id=${createData.project_id}`);
+    if (!pngRes.ok) {
+      const errData = await pngRes.json().catch(() => ({}));
+      $("confirmStatusV2").textContent = "";
+      alert(`枠は作成されましたが(project_id=${createData.project_id})、PNG書き出しに失敗しました: ${errData.error || pngRes.status}`);
+      return;
+    }
+    const blob = await pngRes.blob();
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `${basemapName}.png`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+
+    $("confirmStatusV2").textContent =
+      `✓ 確定しました (project_id=${createData.project_id})。このPNGの上にイラストを描き、同サイズでアップロードしてください。`;
+    log(`[CAPTURE-V2] project_id=${createData.project_id} basemap_name=${basemapName} 枠を確定してPNGを書き出しました`);
+    if (typeof refreshCapturesV2 === "function") await refreshCapturesV2();
+  } catch (err) {
+    $("confirmStatusV2").textContent = "";
     alert(`通信エラー: ${err.message}`);
   }
 });
@@ -524,6 +674,8 @@ function setMarker(label, latlng, kind, layerNum) {
 }
 
 function pickOSMTarget(label, kind, layerNum) {
+  centerPickModeV2 = false;
+  $("btnPickCenterV2")?.classList.remove("is-active");
   pendingAssign = { label, kind, layerNum };
   log(`[OSM] 次のクリックで L${layerNum} ${label} の緯度経度を割当`);
 }
@@ -540,6 +692,18 @@ map.on("click", (e) => {
   setDirty(true);
   redrawTable(layerNum);
   log(`[OSM] L${layerNum} ${label} = ${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}`);
+});
+
+// capture-first: 中心クリック選択（map 初期化後に登録）
+map.on("click", (e) => {
+  if (!centerPickModeV2) return;
+  const zoom = parseInt($("zoomV2").value, 10) || map.getZoom();
+  const [snapLat, snapLng] = snapCenterToPixelV2(e.latlng.lat, e.latlng.lng, zoom);
+  capturedCenterV2 = { lat: snapLat, lng: snapLng };
+  centerPickModeV2 = false;
+  $("btnPickCenterV2").classList.remove("is-active");
+  $("centerStatusV2").textContent = `中心: ${snapLat.toFixed(5)}, ${snapLng.toFixed(5)}`;
+  updateCapturePreviewV2();
 });
 
 // ================================================================
@@ -1208,6 +1372,10 @@ $("btnOsmImport")?.addEventListener("click", async () => {
 
 $("btnVerifyMode")?.addEventListener("click", () => {
   verifyMode = !verifyMode;
+  if (verifyMode) {
+    centerPickModeV2 = false;
+    $("btnPickCenterV2")?.classList.remove("is-active");
+  }
   $("btnVerifyMode").classList.toggle("is-active", verifyMode);
   $("verifyStatus").textContent = verifyMode
     ? "イラスト地図をクリックしてください"
