@@ -817,22 +817,20 @@ def api_cloudinary_images():
     except Exception as ex:
         return jsonify({"error": str(ex)}), 500
 
-@app.post("/api/migrationmaps/upload")
-def api_migrationmaps_upload():
-    f = request.files.get("file")
-    name = request.form.get("name", "").strip()
-    if not f or not name:
-        return jsonify({"error": "file と name は必須です"}), 400
+def _store_migrationmaps_image(f):
+    """migrationmaps イラスト画像を保存する。
 
+    返り値: (image_url, image_filename, width, height)
+    拡張子が不正なら ValueError を投げる（呼び出し側で 400 にする）。
+    """
     ext = Path(f.filename).suffix.lower()
     if ext not in MIGRATIONMAPS_ALLOWED_EXT:
-        return jsonify({"error": f"拡張子が不正です: {ext}"}), 400
+        raise ValueError(f"拡張子が不正です: {ext}")
 
     safe = secure_filename(Path(f.filename).stem)
     unique_stem = f"{safe}_{uuid.uuid4().hex}"
 
     if CLOUDINARY_ENABLED:
-        # Cloudinary にアップロード
         result = cloudinary.uploader.upload(
             f,
             public_id=unique_stem,
@@ -840,9 +838,7 @@ def api_migrationmaps_upload():
             resource_type="image",
         )
         image_url = result["secure_url"]
-        image_filename = image_url  # フルURLをそのまま保存
-
-        # 画像サイズは Cloudinary のレスポンスから取得
+        image_filename = image_url
         w = result.get("width", 0)
         h = result.get("height", 0)
     else:
@@ -854,6 +850,19 @@ def api_migrationmaps_upload():
         image_url = f"/migrationmaps/uploads/{filename}"
         image_filename = filename
 
+    return image_url, image_filename, w, h
+
+
+@app.post("/api/migrationmaps/upload")
+def api_migrationmaps_upload():
+    f = request.files.get("file")
+    name = request.form.get("name", "").strip()
+    if not f or not name:
+        return jsonify({"error": "file と name は必須です"}), 400
+    try:
+        image_url, image_filename, w, h = _store_migrationmaps_image(f)
+    except ValueError as ex:
+        return jsonify({"error": str(ex)}), 400
     return jsonify({
         "image_url": image_url,
         "image_filename": image_filename,
@@ -1135,6 +1144,63 @@ def api_migrationmaps_captures():
             }
             for p in rows
         ]
+    })
+
+@app.post("/api/migrationmaps/<int:project_id>/illustration")
+def api_migrationmaps_illustration(project_id: int):
+    proj = MapProject.query.get(project_id)
+    if not proj:
+        abort(404)
+
+    if proj.status != "draft":
+        return jsonify({"error": "この操作は draft のプロジェクトにのみ実行できます"}), 400
+
+    f = request.files.get("file")
+    if not f:
+        return jsonify({"error": "file は必須です"}), 400
+
+    ext = Path(f.filename).suffix.lower()
+    if ext not in MIGRATIONMAPS_ALLOWED_EXT:
+        return jsonify({"error": f"拡張子が不正です: {ext}"}), 400
+
+    # 保存前にサイズだけ検証する（不一致なら何も保存せずエラーにする）。
+    try:
+        with Image.open(f.stream) as im:
+            actual_w, actual_h = im.size
+        f.stream.seek(0)
+    except Exception:
+        return jsonify({"error": "画像を読み込めませんでした"}), 400
+
+    expected_w, expected_h = proj.capture_width, proj.capture_height
+    if expected_w and expected_h and (actual_w != expected_w or actual_h != expected_h):
+        return jsonify({
+            "error": f"サイズが一致しません（枠 {expected_w}×{expected_h} / 画像 {actual_w}×{actual_h}）。"
+                     "書き出した PNG のサイズを変えずに加工してください。"
+        }), 400
+
+    try:
+        image_url, image_filename, w, h = _store_migrationmaps_image(f)
+    except ValueError as ex:
+        return jsonify({"error": str(ex)}), 400
+
+    proj.image_filename = image_filename
+    proj.image_width = w
+    proj.image_height = h
+    proj.status = "ready"
+    proj.georef_mode = "auto"
+    try:
+        db.session.commit()
+    except Exception as ex:
+        db.session.rollback()
+        return jsonify({"error": "DB保存に失敗しました", "detail": str(ex)}), 500
+
+    return jsonify({
+        "project_id": proj.id,
+        "status": proj.status,
+        "image_url": image_url,
+        "image_width": w,
+        "image_height": h,
+        "public_url": f"/migrationmaps/m/{proj.id}",
     })
 
 @app.get("/api/migrationmaps/<int:project_id>")
