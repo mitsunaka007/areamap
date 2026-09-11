@@ -1382,6 +1382,14 @@ def api_migrationmaps_shops(project_id: int):
 
     def shop_to_dict(s):
         guide = guides_by_id.get(s.building_guide_id)
+        try:
+            img_x, img_y = latlng_to_img(
+                proj.a, proj.b, proj.c, proj.d, proj.e, proj.f,
+                float(s.lat), float(s.lng),
+            )
+            in_frame = (0 <= img_x <= proj.image_width) and (0 <= img_y <= proj.image_height)
+        except ValueError:
+            img_x, img_y, in_frame = None, None, False
         return {
             "id": s.id,
             "shopname": s.shopname,
@@ -1393,6 +1401,9 @@ def api_migrationmaps_shops(project_id: int):
             "website_url": s.website_url,
             "lat": float(s.lat),
             "lng": float(s.lng),
+            "img_x": img_x,
+            "img_y": img_y,
+            "in_frame": in_frame,
             "images": [
                 {"id": img.id, "image_url": img.image_url, "sort_order": img.sort_order}
                 for img in s.shopimages
