@@ -360,6 +360,64 @@
   }
   #siteFooter { padding: 8px 12px; font-size: 11px; color: #666; background: #f2f2f3; border-top: 1px solid #ddd; text-align: center; }
   .osm-credit { margin-top: 8px; font-size: 10px; color: #888; }
+
+  /* ---- 目的地バナー ---- */
+  .nav-banner{
+    position: fixed; left: 50%; top: 10px; transform: translateX(-50%); z-index: 1200;
+    display: flex; align-items: center; gap: 10px; max-width: calc(100% - 24px);
+    padding: 8px 10px 8px 14px; border-radius: 999px;
+    background: rgba(28,44,62,.92); color: #fff; font-size: 13px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.25);
+  }
+  .nav-banner[hidden]{ display: none; }
+  .nav-banner__text{ overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .nav-banner__clear{
+    flex: none; padding: 4px 10px; border: 0; border-radius: 999px;
+    background: rgba(255,255,255,.18); color: #fff; font-size: 12px; cursor: pointer;
+  }
+
+  /* ---- 方向通知トースト ---- */
+  .nav-toast{
+    position: fixed; left: 50%; top: 54px; transform: translateX(-50%); z-index: 1250;
+    max-width: calc(100% - 24px); padding: 10px 16px; border-radius: 10px;
+    background: rgba(20,20,20,.88); color: #fff; font-size: 14px; font-weight: 600;
+    box-shadow: 0 4px 14px rgba(0,0,0,.3); animation: navToastIn .18s ease-out;
+  }
+  .nav-toast[hidden]{ display: none; }
+  @keyframes navToastIn{ from{ opacity: 0; transform: translate(-50%, -6px); } }
+
+  /* ---- 目的地ボタン ---- */
+  .dest-btn{
+    padding: 7px 14px; border: 1px solid #1e88e5; border-radius: 999px;
+    background: #fff; color: #1e88e5; font-size: 13px; cursor: pointer;
+  }
+  .dest-btn.is-active{ background: #1e88e5; color: #fff; }
+  .dest-btn[hidden]{ display: none; }
+
+  /* ---- 現在地 FAB（Leaflet コントロール） ---- */
+  .location-fab{
+    padding: 7px 12px; border: 1px solid rgba(0,0,0,.2); border-radius: 999px;
+    background: #fff; color: #888; font-size: 12px; line-height: 1; cursor: pointer;
+    box-shadow: 0 1px 5px rgba(0,0,0,.3);
+  }
+  .location-fab.is-on{ color: #1e88e5; border-color: #1e88e5; font-weight: 700; }
+
+  /* ---- マーカー展開表示（既存クラスに .is-expanded を足す） ---- */
+  .shop-marker-normal.is-expanded,
+  .shop-marker-active.is-expanded,
+  .shop-marker-dimmed.is-expanded{ overflow: visible; }
+
+  .shop-marker-label{
+    position: absolute; left: 100%; top: 50%; transform: translateY(-50%);
+    margin-left: 6px; padding: 3px 9px; border-radius: 999px;
+    background: rgba(255,255,255,.96); color: #222;
+    font-size: 12px; font-weight: 700; white-space: nowrap;
+    max-width: 42vw; overflow: hidden; text-overflow: ellipsis;
+    box-shadow: 0 1px 4px rgba(0,0,0,.28); pointer-events: none;
+    animation: shopLabelIn .16s ease-out;
+  }
+  .shop-marker-count{ margin-left: 4px; color: #888; font-weight: 400; font-style: normal; }
+  @keyframes shopLabelIn{ from{ opacity: 0; transform: translate(-6px, -50%); } }
 </style>
 </head>
 <body>
@@ -386,6 +444,7 @@
 <div class="building-guide" id="buildingGuide" hidden>
   <div class="building-guide-inner">
     <button type="button" class="building-guide-close" id="buildingGuideClose" aria-label="閉じる">×</button>
+    <button id="btnSetDestination" class="dest-btn" type="button" hidden>ここを目的地に設定</button>
     <div class="building-photo-wrap" id="buildingPhotoWrap"></div>
     <div id="floorShopGrid"></div>
     <div class="osm-credit">店舗情報: © OpenStreetMap contributors (ODbL)</div>
@@ -396,6 +455,13 @@
   地図タイル: © OpenStreetMap contributors ・
   店舗情報: © OpenStreetMap contributors (ODbL)
 </footer>
+
+<div id="navBanner" class="nav-banner" hidden>
+  <span class="nav-banner__text" id="navBannerText"></span>
+  <button class="nav-banner__clear" id="navBannerClear" type="button">解除</button>
+</div>
+
+<div id="navToast" class="nav-toast" role="status" aria-live="polite" hidden></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
