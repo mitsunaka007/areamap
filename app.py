@@ -870,14 +870,32 @@ def api_migrationmaps_basemap():
                      "自前タイルサーバー / 商用タイル / 開発用 OSM 公式タイルの URL を環境変数に設定してください。"
         }), 503
 
-    try:
-        lat = float(request.args.get("lat", ""))
-        lng = float(request.args.get("lng", ""))
-        zoom = int(round(float(request.args.get("zoom", ""))))
-        width = int(request.args.get("width", ""))
-        height = int(request.args.get("height", ""))
-    except (TypeError, ValueError):
-        return jsonify({"error": "lat/lng/zoom/width/height は数値で必須です"}), 400
+    download_name = None
+    project_id = request.args.get("project_id")
+    if project_id:
+        try:
+            proj = MapProject.query.get(int(project_id))
+        except (TypeError, ValueError):
+            return jsonify({"error": "project_id は整数で指定してください"}), 400
+        if not proj:
+            return jsonify({"error": "指定された project_id のプロジェクトが見つかりません"}), 404
+        if proj.capture_center_lat is None or proj.capture_center_lng is None or proj.capture_zoom is None:
+            return jsonify({"error": "このプロジェクトには枠（capture）情報がありません"}), 400
+        lat = proj.capture_center_lat
+        lng = proj.capture_center_lng
+        zoom = int(round(proj.capture_zoom))
+        width = proj.capture_width or proj.image_width
+        height = proj.capture_height or proj.image_height
+        download_name = f"{proj.basemap_name}.png" if proj.basemap_name else f"basemap_project_{proj.id}.png"
+    else:
+        try:
+            lat = float(request.args.get("lat", ""))
+            lng = float(request.args.get("lng", ""))
+            zoom = int(round(float(request.args.get("zoom", ""))))
+            width = int(request.args.get("width", ""))
+            height = int(request.args.get("height", ""))
+        except (TypeError, ValueError):
+            return jsonify({"error": "lat/lng/zoom/width/height は数値で必須です"}), 400
 
     if not (-85.05112878 <= lat <= 85.05112878 and -180 <= lng <= 180):
         return jsonify({"error": "lat/lng が範囲外です"}), 400
@@ -900,7 +918,7 @@ def api_migrationmaps_basemap():
 
     from io import BytesIO
     resp = send_file(BytesIO(png), mimetype="image/png",
-                     download_name=f"basemap_{lat:.6f}_{lng:.6f}_z{zoom}_{width}x{height}.png")
+                     download_name=download_name or f"basemap_{lat:.6f}_{lng:.6f}_z{zoom}_{width}x{height}.png")
     resp.headers["X-Basemap-Center"] = f"{lat},{lng}"
     resp.headers["X-Basemap-Zoom"] = str(zoom)
     resp.headers["X-Basemap-Size"] = f"{width}x{height}"
