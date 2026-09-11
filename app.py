@@ -1208,6 +1208,8 @@ def api_migrationmaps_get(project_id: int):
     proj = MapProject.query.get(project_id)
     if not proj:
         abort(404)
+    if proj.status == "draft":
+        return jsonify({"error": "このイラスト地図はまだ準備中です（イラスト未アップロード）"}), 409
 
     pts = []
     for p in proj.points:
