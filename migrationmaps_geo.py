@@ -10,6 +10,8 @@ _R = 6378137.0
 # 赤道周長 [m] = 2 * pi * _R = 40075016.68557849
 _EARTH_CIRCUMFERENCE = 2.0 * math.pi * _R
 _TILE_SIZE = 256
+# 緯度 1 度あたりの距離 [m]（球近似）。bbox の外周マージン換算に使う。
+_M_PER_DEG_LAT = 111320.0
 
 
 # ---- EPSG:4326 <-> EPSG:3857 ----
@@ -105,6 +107,39 @@ def affine_from_capture(
     e = -s
     f = y0 + s * (float(image_height) / 2.0)
     return a, b, c, d, e, f
+
+
+# ---- 新規: 検索用 bbox の外周マージン（OSM 候補の取りこぼし対策） ----
+def bbox_with_margin(sw_lat, sw_lng, ne_lat, ne_lng, margin_m):
+    """bbox を四方へ margin_m メートル分広げた新しい bbox を返す（純関数）。
+
+    - 緯度方向は 1 度 ≒ 111,320 m で換算する。
+    - 経度方向は bbox 中心緯度の cos で補正する（高緯度ほど経度 1 度が短い）。
+    - 広げた結果は緯度 ±90 / 経度 ±180 を超えないようにクランプする。
+    - margin_m <= 0 のときは入力 bbox をそのまま返す（誤差ゼロで等価）。
+
+    引数・返り値とも (sw_lat, sw_lng, ne_lat, ne_lng) の順。
+    Flask/DB 非依存なので pytest から直接呼べる。
+    """
+    if margin_m <= 0:
+        return sw_lat, sw_lng, ne_lat, ne_lng
+
+    d_lat = margin_m / _M_PER_DEG_LAT
+    center_lat = (sw_lat + ne_lat) / 2.0
+    cos_lat = math.cos(math.radians(center_lat))
+    if abs(cos_lat) < 1e-12:
+        # 極のほぼ真上: 経度方向は事実上全周に広がるので端までクランプ
+        west, east = -180.0, 180.0
+    else:
+        d_lng = margin_m / (_M_PER_DEG_LAT * cos_lat)
+        west = sw_lng - d_lng
+        east = ne_lng + d_lng
+
+    south = max(sw_lat - d_lat, -90.0)
+    north = min(ne_lat + d_lat, 90.0)
+    west = max(west, -180.0)
+    east = min(east, 180.0)
+    return south, west, north, east
 
 
 # ---- 新規: 対応点フォールバック（B-5） ----
