@@ -73,6 +73,7 @@ function getMarkers(layerNum) { return layerNum === 1 ? markersL1 : markersL2; }
 let currentAffineL1 = null;
 let currentAffineL2 = null;
 let currentProjectId = null;
+let shopMarkersV2 = [];  // GET /<id>/shops の結果（layer1キャンバスへのマーカー描画用）
 
 // ジオリファレンス capture メタデータ（レイヤー別）。null = 未確定（= manual）
 const captureMeta = { 1: null, 2: null };
@@ -552,6 +553,22 @@ function drawMarkersOnCanvas(layerNum) {
           ctx.fillText("現在地", sx + 10, sy + 4);
         }
       }
+    }
+  }
+
+  // 店舗マーカー（レイヤー1のみ・status='ready' で読み込んだプロジェクトの GET /shops 結果）
+  if (layerNum === 1 && shopMarkersV2.length) {
+    for (const shop of shopMarkersV2) {
+      if (!shop.in_frame) continue;
+      const sx = shop.img_x * ls.canvasScale;
+      const sy = shop.img_y * ls.canvasScale;
+      ctx.beginPath();
+      ctx.rect(sx - 6, sy - 6, 12, 12);
+      ctx.fillStyle = "#16a34a";
+      ctx.fill();
+      ctx.strokeStyle = "white";
+      ctx.lineWidth = 2;
+      ctx.stroke();
     }
   }
 }
@@ -1055,6 +1072,17 @@ async function loadProject(projectId) {
   }
 
   editingProjectEl.textContent = `編集中: #${proj.id}`;
+  shopMarkersV2 = [];
+  try {
+    const shopsRes = await fetch(`/api/migrationmaps/${proj.id}/shops`);
+    if (shopsRes.ok) {
+      const shopsData = await shopsRes.json();
+      shopMarkersV2 = shopsData.shops ?? [];
+      if (LAYERS[1].img?.complete) drawMarkersOnCanvas(1);
+    }
+  } catch (err) {
+    log(`[SHOPS] 店舗マーカーの取得に失敗: ${err.message}`);
+  }
   redrawTable(1);
   redrawTable(2);
   setCaptureStatus(1);
