@@ -1423,6 +1423,100 @@ map.on("click", (e) => {
 });
 
 // ================================================================
+// capture-first: draft/ready 枠インデックス
+// ================================================================
+
+async function refreshCapturesV2() {
+  const el = $("capturesListV2");
+  if (!el) return;
+  el.innerHTML = '<div class="muted">読み込み中…</div>';
+  try {
+    const res = await fetch("/api/migrationmaps/captures");
+    const data = await res.json();
+    if (!res.ok) {
+      el.innerHTML = `<div class="muted" style="color:#b02a37;">取得エラー: ${data.error || res.status}</div>`;
+      return;
+    }
+    const captures = data.captures ?? [];
+    if (!captures.length) {
+      el.innerHTML = '<div class="muted">枠はまだありません</div>';
+      return;
+    }
+    el.innerHTML = "";
+    for (const cap of captures) {
+      const div = document.createElement("div");
+      div.className = "project-item";
+      const statusLabel = cap.status === "draft" ? "🟡 イラスト待ち" : "🟢 紐づけ済み";
+      div.innerHTML = `
+        <strong>${escapeHtmlLocal(cap.basemap_name)}</strong> <span class="muted">(${escapeHtmlLocal(cap.name)})</span>
+        <div class="muted">${statusLabel} ・ z${cap.zoom} ・ ${cap.width}×${cap.height} ・ 店舗${cap.shop_count}件</div>
+        <div class="project-actions">
+          <button class="small-btn btnRedownloadV2" data-id="${cap.project_id}" data-name="${escapeHtmlLocal(cap.basemap_name)}">PNGを再ダウンロード</button>
+          ${cap.status === "draft" ? `
+            <label class="small-btn" style="display:inline-block;">
+              イラストをアップロード
+              <input type="file" accept="image/*" class="illustrationInputV2" data-id="${cap.project_id}" style="display:none;" />
+            </label>
+          ` : `<a class="small-btn" href="/migrationmaps/m/${cap.project_id}" target="_blank">公開ページ</a>`}
+        </div>
+        <div class="muted illustrationErrorV2" data-id="${cap.project_id}" style="color:#b02a37;"></div>
+      `;
+      el.appendChild(div);
+    }
+  } catch (err) {
+    el.innerHTML = `<div class="muted" style="color:#b02a37;">取得失敗: ${err.message}</div>`;
+  }
+}
+
+$("capturesListV2")?.addEventListener("click", async (ev) => {
+  const btn = ev.target.closest(".btnRedownloadV2");
+  if (!btn) return;
+  const id = btn.dataset.id;
+  const name = btn.dataset.name || `basemap_${id}`;
+  try {
+    const res = await fetch(`/api/migrationmaps/basemap?project_id=${id}`);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      alert(data.error || `PNG取得に失敗しました (${res.status})`);
+      return;
+    }
+    const blob = await res.blob();
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `${name}.png`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  } catch (err) {
+    alert(`通信エラー: ${err.message}`);
+  }
+});
+
+$("capturesListV2")?.addEventListener("change", async (ev) => {
+  const input = ev.target.closest(".illustrationInputV2");
+  if (!input || !input.files?.[0]) return;
+  const id = input.dataset.id;
+  const errEl = document.querySelector(`.illustrationErrorV2[data-id="${id}"]`);
+  if (errEl) errEl.textContent = "アップロード中…";
+  const fd = new FormData();
+  fd.append("file", input.files[0]);
+  try {
+    const res = await fetch(`/api/migrationmaps/${id}/illustration`, { method: "POST", body: fd });
+    const data = await res.json();
+    if (!res.ok) {
+      if (errEl) errEl.textContent = data.error || `失敗 (${res.status})`;
+      return;
+    }
+    if (errEl) errEl.textContent = "";
+    log(`[ILLUSTRATION] project_id=${id} 紐づけ完了 -> ${data.public_url}`);
+    await refreshCapturesV2();
+  } catch (err) {
+    if (errEl) errEl.textContent = `通信エラー: ${err.message}`;
+  }
+});
+
+$("btnRefreshCapturesV2")?.addEventListener("click", refreshCapturesV2);
+
+// ================================================================
 // 初期化
 // ================================================================
 
@@ -1430,6 +1524,7 @@ redrawTable(1);
 redrawTable(2);
 refreshProjects();
 refreshShopList();
+refreshCapturesV2();
 
 const params = new URLSearchParams(location.search);
 const initialProjectId = params.get("project_id");
