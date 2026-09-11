@@ -9,6 +9,10 @@ from migrationmaps_geo import (
     fit_similarity_no_rotation,
     bbox_with_margin,
     _M_PER_DEG_LAT,
+    validate_capture_size,
+    snap_center_to_pixel,
+    corners_from_capture,
+    latlng_to_img,
 )
 
 FUKUI = (36.0619, 136.2235)  # (lat, lng)
@@ -190,3 +194,80 @@ def test_acceptance_error_within_one_image_pixel_near_center():
         back_y = (Y - coef[5]) / coef[4]
         assert abs(back_x - px) < 1.0
         assert abs(back_y - py) < 1.0
+
+
+def test_validate_capture_size_accepts_even_in_range():
+    validate_capture_size(1024, 1024)  # no exception
+    validate_capture_size(256, 4096)
+
+
+def test_validate_capture_size_rejects_odd():
+    with pytest.raises(ValueError):
+        validate_capture_size(1023, 1024)
+    with pytest.raises(ValueError):
+        validate_capture_size(1024, 1023)
+
+
+def test_validate_capture_size_rejects_out_of_range():
+    with pytest.raises(ValueError):
+        validate_capture_size(200, 1024)  # below 256
+    with pytest.raises(ValueError):
+        validate_capture_size(1024, 4098)  # above 4096
+
+
+def test_snap_center_to_pixel_is_idempotent():
+    lat, lng = FUKUI
+    once = snap_center_to_pixel(lat, lng, 17)
+    twice = snap_center_to_pixel(*once, 17)
+    assert once[0] == pytest.approx(twice[0], abs=1e-12)
+    assert once[1] == pytest.approx(twice[1], abs=1e-12)
+
+
+def test_snap_center_to_pixel_moves_less_than_one_pixel():
+    lat, lng = FUKUI
+    snapped_lat, snapped_lng = snap_center_to_pixel(lat, lng, 17)
+    # Moved distance should be well under one pixel at this zoom.
+    from migrationmaps_geo import _lonlat_to_mercator
+    x0, y0 = _lonlat_to_mercator(lng, lat)
+    x1, y1 = _lonlat_to_mercator(snapped_lng, snapped_lat)
+    dist = ((x1 - x0) ** 2 + (y1 - y0) ** 2) ** 0.5
+    assert dist < res_at_zoom(17)
+
+
+def test_corners_from_capture_orientation_and_center():
+    lat, lng = FUKUI
+    snapped_lat, snapped_lng = snap_center_to_pixel(lat, lng, 17)
+    corners = corners_from_capture(snapped_lat, snapped_lng, 17, 1024, 1024)
+    nw, ne, se, sw = corners["nw"], corners["ne"], corners["se"], corners["sw"]
+    assert nw["lat"] > se["lat"]
+    assert nw["lng"] < se["lng"]
+    assert ne["lat"] == pytest.approx(nw["lat"], abs=1e-12)
+    assert sw["lng"] == pytest.approx(nw["lng"], abs=1e-12)
+    # Corners are consistent with the exact pixel positions requested.
+    assert nw["img_x"] == 0 and nw["img_y"] == 0
+    assert se["img_x"] == 1024 and se["img_y"] == 1024
+
+
+def test_latlng_to_img_round_trips_axis_aligned_affine():
+    lat, lng = FUKUI
+    coef = affine_from_capture(lat, lng, 16, 1000, 800)
+    for x, y in [(0, 0), (1000, 800), (500, 400), (123.5, 77.25)]:
+        got_lat, got_lng = _img_to_latlng(*coef, x, y)
+        back_x, back_y = latlng_to_img(*coef, got_lat, got_lng)
+        assert back_x == pytest.approx(x, abs=1e-6)
+        assert back_y == pytest.approx(y, abs=1e-6)
+
+
+def test_latlng_to_img_handles_rotation_and_shear():
+    # A deliberately rotated+sheared affine (b, d non-zero) — the kind `manual`
+    # mode with 3+ correspondence points can produce. The naive b=d=0-only
+    # inverse would be wrong here; the general 2x2 inverse must not be.
+    a, b, c, d, e, f = 1.2, 0.3, 15000000.0, -0.25, -1.1, 4300000.0
+    for x, y in [(0, 0), (300, 150), (-40, 220)]:
+        X = a * x + b * y + c
+        Y = d * x + e * y + f
+        from migrationmaps_geo import _mercator_to_lonlat
+        lng, lat = _mercator_to_lonlat(X, Y)
+        back_x, back_y = latlng_to_img(a, b, c, d, e, f, lat, lng)
+        assert back_x == pytest.approx(x, abs=1e-6)
+        assert back_y == pytest.approx(y, abs=1e-6)
