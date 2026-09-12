@@ -109,6 +109,65 @@ def affine_from_capture(
     return a, b, c, d, e, f
 
 
+# ---- 新規: capture-first ジオリファレンス（枠を先に決める方式） ----
+def validate_capture_size(width, height):
+    """枠サイズの妥当性を検証する。不正なら ValueError。"""
+    if width % 2 != 0 or height % 2 != 0:
+        raise ValueError("width/height は偶数で指定してください")
+    if not (256 <= width <= 4096) or not (256 <= height <= 4096):
+        raise ValueError("width/height は 256..4096 の範囲で指定してください")
+
+
+def snap_center_to_pixel(center_lat, center_lng, zoom):
+    """中心をそのズームのピクセルグリッドに丸め、丸めた後の (lat, lng) を返す。
+
+    タイルのピクセル境界と中心がずれたまま PNG をクロップすると、切り出しオフセット
+    が整数にならず微妙な位置ズレになる。中心を先にグリッドへスナップし、
+    スナップ後の値を DB 上の正とする。
+    """
+    res = res_at_zoom(zoom)
+    half_world = _EARTH_CIRCUMFERENCE / 2.0
+    x, y = _lonlat_to_mercator(center_lng, center_lat)
+    px = round((x + half_world) / res)
+    py = round((half_world - y) / res)
+    x2 = px * res - half_world
+    y2 = half_world - py * res
+    lng2, lat2 = _mercator_to_lonlat(x2, y2)
+    return lat2, lng2
+
+
+def corners_from_capture(center_lat, center_lng, zoom, width, height):
+    """capture-first の枠の四隅を返す（image_width==width, image_height==height 前提）。
+
+    返り値: {"nw"|"ne"|"se"|"sw": {"img_x","img_y","lat","lng"}}
+    center_lat/center_lng は事前に snap_center_to_pixel() 済みであることを想定する
+    （呼び出し側の責務。ここでは丸めない）。
+    """
+    a, b, c, d, e, f = affine_from_capture(center_lat, center_lng, zoom, width, height)
+    pts = {"nw": (0, 0), "ne": (width, 0), "se": (width, height), "sw": (0, height)}
+    out = {}
+    for key, (x, y) in pts.items():
+        lat, lng = _img_to_latlng(a, b, c, d, e, f, x, y)
+        out[key] = {"img_x": x, "img_y": y, "lat": lat, "lng": lng}
+    return out
+
+
+def latlng_to_img(a, b, c, d, e, f, lat, lng):
+    """緯度経度 -> 画像ピクセル座標（_img_to_latlng の逆変換）。
+
+    b, d が非ゼロ（manual モードの回転・せん断込みアフィン）でも正しく解ける
+    一般の 2x2 逆行列を使う（b=d=0 前提の単純逆算は使わない）。
+    """
+    X, Y = _lonlat_to_mercator(lng, lat)
+    det = a * e - b * d
+    if abs(det) < 1e-12:
+        raise ValueError("アフィン行列が特異で逆変換できません")
+    dx, dy = X - c, Y - f
+    x = (e * dx - b * dy) / det
+    y = (-d * dx + a * dy) / det
+    return x, y
+
+
 # ---- 新規: 検索用 bbox の外周マージン（OSM 候補の取りこぼし対策） ----
 def bbox_with_margin(sw_lat, sw_lng, ne_lat, ne_lng, margin_m):
     """bbox を四方へ margin_m メートル分広げた新しい bbox を返す（純関数）。

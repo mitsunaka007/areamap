@@ -979,7 +979,10 @@ async function loadProject() {
     fetch(`/api/migrationmaps/${PROJECT_ID}/overlay_bounds`),
   ]);
 
-  if (!projectRes.ok) throw new Error("project load failed");
+  if (!projectRes.ok) {
+    const data = await projectRes.json().catch(() => ({}));
+    throw new Error(data.error || "project load failed");
+  }
   if (!boundsRes.ok) throw new Error("overlay bounds load failed");
 
   const project = await projectRes.json();
@@ -1115,6 +1118,6 @@ async function loadShops() {
   } catch (err) {
     console.error(err);
     if (loadingEl) loadingEl.classList.add("hidden");
-    alert("公開地図の読み込みに失敗しました");
+    alert(err.message || "公開地図の読み込みに失敗しました");
   }
 })();
