@@ -1496,11 +1496,14 @@ async function refreshCapturesV2() {
       const div = document.createElement("div");
       div.className = "project-item";
       const statusLabel = cap.status === "draft" ? "🟡 イラスト待ち" : "🟢 紐づけ済み";
+      const targetLabel = `${cap.basemap_name} (#${cap.project_id}・${cap.status === "draft" ? "イラスト待ち" : "紐づけ済み"})`;
       div.innerHTML = `
         <strong>${escapeHtmlLocal(cap.basemap_name)}</strong> <span class="muted">(${escapeHtmlLocal(cap.name)})</span>
         <div class="muted">${statusLabel} ・ z${cap.zoom} ・ ${cap.width}×${cap.height} ・ 店舗${cap.shop_count}件</div>
         <div class="project-actions">
           <button class="small-btn btnRedownloadV2" data-id="${cap.project_id}" data-name="${escapeHtmlLocal(cap.basemap_name)}">PNGを再ダウンロード</button>
+          <button class="small-btn btnSelectForOsmV2" data-id="${cap.project_id}" data-label="${escapeHtmlLocal(targetLabel)}" data-lat="${cap.center?.lat ?? ""}" data-lng="${cap.center?.lng ?? ""}" data-zoom="${cap.zoom ?? ""}">🗺 OSMから取得</button>
+          <button class="small-btn btnSelectForShopV2" data-id="${cap.project_id}" data-label="${escapeHtmlLocal(targetLabel)}">☰ 店舗を登録・編集</button>
           ${cap.status === "draft" ? `
             <label class="small-btn" style="display:inline-block;">
               イラストをアップロード
@@ -1518,6 +1521,32 @@ async function refreshCapturesV2() {
 }
 
 $("capturesListV2")?.addEventListener("click", async (ev) => {
+  const osmBtn = ev.target.closest(".btnSelectForOsmV2");
+  if (osmBtn) {
+    currentProjectId = osmBtn.dataset.id;
+    updateShopTargetIndicator(osmBtn.dataset.label);
+    setOsmMenuOpen(true);
+    const lat = parseFloat(osmBtn.dataset.lat);
+    const lng = parseFloat(osmBtn.dataset.lng);
+    const zoom = parseInt(osmBtn.dataset.zoom, 10);
+    if (Number.isFinite(lat) && Number.isFinite(lng) && Number.isFinite(zoom)) {
+      map.setView([lat, lng], zoom);
+    }
+    log(`[CAPTURES] project_id=${osmBtn.dataset.id} をOSM取得の対象に選択`);
+    return;
+  }
+
+  const shopBtn = ev.target.closest(".btnSelectForShopV2");
+  if (shopBtn) {
+    currentProjectId = shopBtn.dataset.id;
+    updateShopTargetIndicator(shopBtn.dataset.label);
+    setShopMenuOpen(true);
+    if ($("r_map_project_id")) $("r_map_project_id").value = shopBtn.dataset.id;
+    if (typeof refreshShopList === "function") await refreshShopList();
+    log(`[CAPTURES] project_id=${shopBtn.dataset.id} を店舗登録の対象に選択`);
+    return;
+  }
+
   const btn = ev.target.closest(".btnRedownloadV2");
   if (!btn) return;
   const id = btn.dataset.id;
