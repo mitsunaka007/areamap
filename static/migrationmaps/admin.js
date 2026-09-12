@@ -75,6 +75,16 @@ let currentAffineL2 = null;
 let currentProjectId = null;
 let shopMarkersV2 = [];  // GET /<id>/shops の結果（layer1キャンバスへのマーカー描画用）
 
+// OSM取得パネル・店舗登録パネルは currentProjectId を共有する。切り替わるたびに
+// ここを呼んで、どちらのパネルからも「今どのプロジェクト向けの操作か」を見えるようにする。
+function updateShopTargetIndicator(label) {
+  const el = $("shopTargetIndicatorV2");
+  if (!el) return;
+  el.textContent = currentProjectId
+    ? `対象の地図: ${label || `#${currentProjectId}`}`
+    : "対象の地図: 未選択";
+}
+
 // ジオリファレンス capture メタデータ（レイヤー別）。null = 未確定（= manual）
 const captureMeta = { 1: null, 2: null };
 
@@ -789,6 +799,7 @@ function applyUploadedImage(data, layerNum) {
   ls.nextPointIndex = 1;
   if (layerNum === 1) {
     currentProjectId = null;
+    updateShopTargetIndicator();
     markersL1.forEach((m) => map.removeLayer(m));
     markersL1.clear();
     editingProjectEl.textContent = "新規作成";
@@ -953,6 +964,7 @@ $("btnSave")?.addEventListener("click", async () => {
     const data = await res.json();
     if (!res.ok) { alert(data.error || "保存に失敗しました"); return; }
     currentProjectId = data.project_id;
+    updateShopTargetIndicator(`${name} (#${data.project_id})`);
     editingProjectEl.textContent = `編集中: #${data.project_id}`;
     setDirty(false);
     refreshProjects();
@@ -1008,6 +1020,7 @@ async function loadProject(projectId) {
   const proj = await res.json();
 
   currentProjectId = proj.id;
+  updateShopTargetIndicator(`${proj.name} (#${proj.id})`);
   currentAffineL1 = proj.affine;
   currentAffineL2 = proj.affine2 || null;
 
@@ -1104,6 +1117,7 @@ $("btnRefreshProjects")?.addEventListener("click", refreshProjects);
 
 function resetToNew() {
   currentProjectId = null;
+  updateShopTargetIndicator();
   currentAffineL1 = null;
   currentAffineL2 = null;
 
