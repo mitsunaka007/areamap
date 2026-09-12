@@ -19,7 +19,7 @@ OSM_AMENITY_VALUES = [
 ]
 
 OVERPASS_DEFAULT_ENDPOINT = "https://overpass-api.de/api/interpreter"
-USER_AGENT = "MigrationMap/1.0 (+https://example.com; contact@example.com)"
+USER_AGENT = "MigrationMap/1.0 (+https://areamap.onrender.com/migrationmaps/admin; mitsunaka007@gmail.com)"
 CONNECT_TIMEOUT = 10
 READ_TIMEOUT = 60
 MAX_RETRIES = 3
