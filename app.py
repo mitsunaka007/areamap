@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, jsonify, flash, url_for, redirect, current_app, send_from_directory, send_file, abort
 import os
+import re
 import uuid
 import hashlib
 import math
@@ -23,6 +24,10 @@ from migrationmaps_geo import (
     extract_capture,
     resolve_affine,
     bbox_with_margin,
+    validate_capture_size,
+    snap_center_to_pixel,
+    corners_from_capture,
+    latlng_to_img,
 )
 from forms import AskForm
 from extensions import db
@@ -150,6 +155,91 @@ def _project_bbox_padded(proj, margin_m: float):
     """
     sw_lat, sw_lng, ne_lat, ne_lng = _project_bbox(proj)
     return bbox_with_margin(sw_lat, sw_lng, ne_lat, ne_lng, margin_m)
+
+
+_BASEMAP_NAME_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
+
+
+@app.post("/api/migrationmaps/capture/create")
+def api_migrationmaps_capture_create():
+    """capture-first: 枠(中心・サイズ・ズーム)を確定して draft プロジェクトを作る。
+
+    この時点で image_width/height と a..f(アフィン係数)を確定させ、後続の
+    /illustration アップロードはサイズ照合のみを行う(アフィンは再計算しない)。
+    """
+    data = request.get_json(force=True) or {}
+    name = (data.get("name") or "").strip()
+    basemap_name = (data.get("basemap_name") or "").strip()
+
+    try:
+        center_lat = float(data.get("center_lat"))
+        center_lng = float(data.get("center_lng"))
+        zoom = int(data.get("zoom"))
+        width = int(data.get("width"))
+        height = int(data.get("height"))
+    except (TypeError, ValueError):
+        return jsonify({"error": "center_lat/center_lng/zoom/width/height は数値で必須です"}), 400
+
+    if not name:
+        return jsonify({"error": "name は必須です"}), 400
+    if not _BASEMAP_NAME_RE.match(basemap_name):
+        return jsonify({
+            "error": "basemap_name は英数字・アンダースコア・ハイフンのみ、1〜64文字で指定してください"
+        }), 400
+    if not (-85.05112878 <= center_lat <= 85.05112878 and -180 <= center_lng <= 180):
+        return jsonify({"error": "center_lat/center_lng が範囲外です"}), 400
+    if not (1 <= zoom <= 19):
+        return jsonify({"error": "zoom は 1..19 で指定してください"}), 400
+    try:
+        validate_capture_size(width, height)
+    except ValueError as ex:
+        return jsonify({"error": str(ex)}), 400
+    if MapProject.query.filter_by(basemap_name=basemap_name).first():
+        return jsonify({"error": "その画像名は既に使われています。別の名前を指定してください"}), 400
+
+    snap_lat, snap_lng = snap_center_to_pixel(center_lat, center_lng, zoom)
+    a, b_, c, d, e, f = affine_from_capture(snap_lat, snap_lng, zoom, width, height)
+    corners = corners_from_capture(snap_lat, snap_lng, zoom, width, height)
+
+    from datetime import datetime
+    proj = MapProject(
+        name=name,
+        image_filename="",
+        image_width=width,
+        image_height=height,
+        a=a, b=b_, c=c, d=d, e=e, f=f,
+        georef_mode="auto",
+        capture_center_lat=snap_lat,
+        capture_center_lng=snap_lng,
+        capture_zoom=float(zoom),
+        capture_width=width,
+        capture_height=height,
+        capture_dpr=1.0,
+        basemap_name=basemap_name,
+        status="draft",
+        corner_nw_lat=corners["nw"]["lat"], corner_nw_lng=corners["nw"]["lng"],
+        corner_ne_lat=corners["ne"]["lat"], corner_ne_lng=corners["ne"]["lng"],
+        corner_se_lat=corners["se"]["lat"], corner_se_lng=corners["se"]["lng"],
+        corner_sw_lat=corners["sw"]["lat"], corner_sw_lng=corners["sw"]["lng"],
+        captured_at=datetime.utcnow(),
+    )
+    try:
+        db.session.add(proj)
+        db.session.commit()
+    except Exception as ex:
+        db.session.rollback()
+        return jsonify({"error": "DB保存に失敗しました", "detail": str(ex)}), 500
+
+    return jsonify({
+        "project_id": proj.id,
+        "status": proj.status,
+        "basemap_name": proj.basemap_name,
+        "center": {"lat": snap_lat, "lng": snap_lng},
+        "zoom": zoom, "width": width, "height": height,
+        "center_img": {"x": width / 2.0, "y": height / 2.0},
+        "corners": corners,
+        "affine": {"a": a, "b": b_, "c": c, "d": d, "e": e, "f": f},
+    }), 201
 
 
 # 座標変換ユーティリティ（EPSG:4326 -> EPSG:3857）は migrationmaps_geo に移設。
@@ -727,22 +817,20 @@ def api_cloudinary_images():
     except Exception as ex:
         return jsonify({"error": str(ex)}), 500
 
-@app.post("/api/migrationmaps/upload")
-def api_migrationmaps_upload():
-    f = request.files.get("file")
-    name = request.form.get("name", "").strip()
-    if not f or not name:
-        return jsonify({"error": "file と name は必須です"}), 400
+def _store_migrationmaps_image(f):
+    """migrationmaps イラスト画像を保存する。
 
+    返り値: (image_url, image_filename, width, height)
+    拡張子が不正なら ValueError を投げる（呼び出し側で 400 にする）。
+    """
     ext = Path(f.filename).suffix.lower()
     if ext not in MIGRATIONMAPS_ALLOWED_EXT:
-        return jsonify({"error": f"拡張子が不正です: {ext}"}), 400
+        raise ValueError(f"拡張子が不正です: {ext}")
 
     safe = secure_filename(Path(f.filename).stem)
     unique_stem = f"{safe}_{uuid.uuid4().hex}"
 
     if CLOUDINARY_ENABLED:
-        # Cloudinary にアップロード
         result = cloudinary.uploader.upload(
             f,
             public_id=unique_stem,
@@ -750,9 +838,7 @@ def api_migrationmaps_upload():
             resource_type="image",
         )
         image_url = result["secure_url"]
-        image_filename = image_url  # フルURLをそのまま保存
-
-        # 画像サイズは Cloudinary のレスポンスから取得
+        image_filename = image_url
         w = result.get("width", 0)
         h = result.get("height", 0)
     else:
@@ -764,6 +850,19 @@ def api_migrationmaps_upload():
         image_url = f"/migrationmaps/uploads/{filename}"
         image_filename = filename
 
+    return image_url, image_filename, w, h
+
+
+@app.post("/api/migrationmaps/upload")
+def api_migrationmaps_upload():
+    f = request.files.get("file")
+    name = request.form.get("name", "").strip()
+    if not f or not name:
+        return jsonify({"error": "file と name は必須です"}), 400
+    try:
+        image_url, image_filename, w, h = _store_migrationmaps_image(f)
+    except ValueError as ex:
+        return jsonify({"error": str(ex)}), 400
     return jsonify({
         "image_url": image_url,
         "image_filename": image_filename,
@@ -780,14 +879,32 @@ def api_migrationmaps_basemap():
                      "自前タイルサーバー / 商用タイル / 開発用 OSM 公式タイルの URL を環境変数に設定してください。"
         }), 503
 
-    try:
-        lat = float(request.args.get("lat", ""))
-        lng = float(request.args.get("lng", ""))
-        zoom = int(round(float(request.args.get("zoom", ""))))
-        width = int(request.args.get("width", ""))
-        height = int(request.args.get("height", ""))
-    except (TypeError, ValueError):
-        return jsonify({"error": "lat/lng/zoom/width/height は数値で必須です"}), 400
+    download_name = None
+    project_id = request.args.get("project_id")
+    if project_id:
+        try:
+            proj = MapProject.query.get(int(project_id))
+        except (TypeError, ValueError):
+            return jsonify({"error": "project_id は整数で指定してください"}), 400
+        if not proj:
+            return jsonify({"error": "指定された project_id のプロジェクトが見つかりません"}), 404
+        if proj.capture_center_lat is None or proj.capture_center_lng is None or proj.capture_zoom is None:
+            return jsonify({"error": "このプロジェクトには枠（capture）情報がありません"}), 400
+        lat = proj.capture_center_lat
+        lng = proj.capture_center_lng
+        zoom = int(round(proj.capture_zoom))
+        width = proj.capture_width or proj.image_width
+        height = proj.capture_height or proj.image_height
+        download_name = f"{proj.basemap_name}.png" if proj.basemap_name else f"basemap_project_{proj.id}.png"
+    else:
+        try:
+            lat = float(request.args.get("lat", ""))
+            lng = float(request.args.get("lng", ""))
+            zoom = int(round(float(request.args.get("zoom", ""))))
+            width = int(request.args.get("width", ""))
+            height = int(request.args.get("height", ""))
+        except (TypeError, ValueError):
+            return jsonify({"error": "lat/lng/zoom/width/height は数値で必須です"}), 400
 
     if not (-85.05112878 <= lat <= 85.05112878 and -180 <= lng <= 180):
         return jsonify({"error": "lat/lng が範囲外です"}), 400
@@ -810,7 +927,7 @@ def api_migrationmaps_basemap():
 
     from io import BytesIO
     resp = send_file(BytesIO(png), mimetype="image/png",
-                     download_name=f"basemap_{lat:.6f}_{lng:.6f}_z{zoom}_{width}x{height}.png")
+                     download_name=download_name or f"basemap_{lat:.6f}_{lng:.6f}_z{zoom}_{width}x{height}.png")
     resp.headers["X-Basemap-Center"] = f"{lat},{lng}"
     resp.headers["X-Basemap-Zoom"] = str(zoom)
     resp.headers["X-Basemap-Size"] = f"{width}x{height}"
@@ -969,7 +1086,13 @@ def api_migrationmaps_save():
 @app.get("/api/migrationmaps/projects")
 def api_migrationmaps_projects():
     try:
-        rows = MapProject.query.order_by(MapProject.id.desc()).limit(100).all()
+        rows = (
+            MapProject.query
+            .filter(MapProject.status != "draft")
+            .order_by(MapProject.id.desc())
+            .limit(100)
+            .all()
+        )
     except Exception as ex:
         current_app.logger.error("api_migrationmaps_projects DB error: %s", ex)
         return jsonify({"error": str(ex), "projects": []}), 500
@@ -987,11 +1110,106 @@ def api_migrationmaps_projects():
         ]
     })
 
+@app.get("/api/migrationmaps/captures")
+def api_migrationmaps_captures():
+    status_filter = (request.args.get("status") or "").strip().lower()
+    q = MapProject.query.filter(MapProject.basemap_name.isnot(None))
+    if status_filter in ("draft", "ready"):
+        q = q.filter(MapProject.status == status_filter)
+    rows = q.order_by(MapProject.id.desc()).limit(200).all()
+
+    project_ids = [p.id for p in rows]
+    shop_counts = {}
+    if project_ids:
+        shop_counts = dict(
+            db.session.query(MigrationShop.map_project_id, func.count(MigrationShop.id))
+            .filter(MigrationShop.map_project_id.in_(project_ids))
+            .group_by(MigrationShop.map_project_id)
+            .all()
+        )
+
+    return jsonify({
+        "captures": [
+            {
+                "project_id": p.id,
+                "basemap_name": p.basemap_name,
+                "name": p.name,
+                "status": p.status,
+                "zoom": p.capture_zoom,
+                "width": p.capture_width,
+                "height": p.capture_height,
+                "center": {"lat": p.capture_center_lat, "lng": p.capture_center_lng},
+                "captured_at": p.captured_at.isoformat() if p.captured_at else None,
+                "shop_count": shop_counts.get(p.id, 0),
+            }
+            for p in rows
+        ]
+    })
+
+@app.post("/api/migrationmaps/<int:project_id>/illustration")
+def api_migrationmaps_illustration(project_id: int):
+    proj = MapProject.query.get(project_id)
+    if not proj:
+        abort(404)
+
+    if proj.status != "draft":
+        return jsonify({"error": "この操作は draft のプロジェクトにのみ実行できます"}), 400
+
+    f = request.files.get("file")
+    if not f:
+        return jsonify({"error": "file は必須です"}), 400
+
+    ext = Path(f.filename).suffix.lower()
+    if ext not in MIGRATIONMAPS_ALLOWED_EXT:
+        return jsonify({"error": f"拡張子が不正です: {ext}"}), 400
+
+    # 保存前にサイズだけ検証する（不一致なら何も保存せずエラーにする）。
+    try:
+        with Image.open(f.stream) as im:
+            actual_w, actual_h = im.size
+        f.stream.seek(0)
+    except Exception:
+        return jsonify({"error": "画像を読み込めませんでした"}), 400
+
+    expected_w, expected_h = proj.capture_width, proj.capture_height
+    if expected_w and expected_h and (actual_w != expected_w or actual_h != expected_h):
+        return jsonify({
+            "error": f"サイズが一致しません（枠 {expected_w}×{expected_h} / 画像 {actual_w}×{actual_h}）。"
+                     "書き出した PNG のサイズを変えずに加工してください。"
+        }), 400
+
+    try:
+        image_url, image_filename, w, h = _store_migrationmaps_image(f)
+    except ValueError as ex:
+        return jsonify({"error": str(ex)}), 400
+
+    proj.image_filename = image_filename
+    proj.image_width = w
+    proj.image_height = h
+    proj.status = "ready"
+    proj.georef_mode = "auto"
+    try:
+        db.session.commit()
+    except Exception as ex:
+        db.session.rollback()
+        return jsonify({"error": "DB保存に失敗しました", "detail": str(ex)}), 500
+
+    return jsonify({
+        "project_id": proj.id,
+        "status": proj.status,
+        "image_url": image_url,
+        "image_width": w,
+        "image_height": h,
+        "public_url": f"/migrationmaps/m/{proj.id}",
+    })
+
 @app.get("/api/migrationmaps/<int:project_id>")
 def api_migrationmaps_get(project_id: int):
     proj = MapProject.query.get(project_id)
     if not proj:
         abort(404)
+    if proj.status == "draft":
+        return jsonify({"error": "このイラスト地図はまだ準備中です（イラスト未アップロード）"}), 409
 
     pts = []
     for p in proj.points:
@@ -1166,6 +1384,14 @@ def api_migrationmaps_shops(project_id: int):
 
     def shop_to_dict(s):
         guide = guides_by_id.get(s.building_guide_id)
+        try:
+            img_x, img_y = latlng_to_img(
+                proj.a, proj.b, proj.c, proj.d, proj.e, proj.f,
+                float(s.lat), float(s.lng),
+            )
+            in_frame = (0 <= img_x <= proj.image_width) and (0 <= img_y <= proj.image_height)
+        except ValueError:
+            img_x, img_y, in_frame = None, None, False
         return {
             "id": s.id,
             "shopname": s.shopname,
@@ -1177,6 +1403,9 @@ def api_migrationmaps_shops(project_id: int):
             "website_url": s.website_url,
             "lat": float(s.lat),
             "lng": float(s.lng),
+            "img_x": img_x,
+            "img_y": img_y,
+            "in_frame": in_frame,
             "images": [
                 {"id": img.id, "image_url": img.image_url, "sort_order": img.sort_order}
                 for img in s.shopimages

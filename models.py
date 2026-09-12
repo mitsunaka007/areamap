@@ -238,6 +238,19 @@ class MapProject(db.Model):
     capture_height2 = db.Column(db.Integer, nullable=True)
     capture_dpr2 = db.Column(db.Float, nullable=True)
 
+    # ---- capture-first ジオリファレンス（枠を先に決める方式） ----
+    basemap_name = db.Column(db.String(64), nullable=True)
+    status = db.Column(db.String(16), nullable=False, server_default="ready")
+    corner_nw_lat = db.Column(db.Float, nullable=True)
+    corner_nw_lng = db.Column(db.Float, nullable=True)
+    corner_ne_lat = db.Column(db.Float, nullable=True)
+    corner_ne_lng = db.Column(db.Float, nullable=True)
+    corner_se_lat = db.Column(db.Float, nullable=True)
+    corner_se_lng = db.Column(db.Float, nullable=True)
+    corner_sw_lat = db.Column(db.Float, nullable=True)
+    corner_sw_lng = db.Column(db.Float, nullable=True)
+    captured_at = db.Column(db.DateTime, nullable=True)
+
     # Time-based layer switching (format: "HH:MM", JST)
     switch_time_1to2 = db.Column(db.String(5), nullable=True)  # switch Layer1→Layer2 at this time
     switch_time_2to1 = db.Column(db.String(5), nullable=True)  # switch Layer2→Layer1 at this time
