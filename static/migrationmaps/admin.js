@@ -1302,11 +1302,18 @@ function drawOsmSearchRect(bbox) {
   ).addTo(map);
 }
 
+function setOsmMenuOpen(open) {
+  const toggle = $("osmImportToggle");
+  const body = $("osmImportBody");
+  if (!toggle || !body) return;
+  body.hidden = !open;
+  toggle.setAttribute("aria-expanded", open ? "true" : "false");
+  if ($("osmImportToggleIcon")) $("osmImportToggleIcon").textContent = open ? "－" : "＋";
+}
+
 $("osmImportToggle")?.addEventListener("click", () => {
   const expanded = $("osmImportToggle").getAttribute("aria-expanded") === "true";
-  $("osmImportToggle").setAttribute("aria-expanded", expanded ? "false" : "true");
-  $("osmImportBody").hidden = expanded;
-  if ($("osmImportToggleIcon")) $("osmImportToggleIcon").textContent = expanded ? "＋" : "－";
+  setOsmMenuOpen(!expanded);
 });
 
 function renderOsmCandidates() {
