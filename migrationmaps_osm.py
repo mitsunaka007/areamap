@@ -1,9 +1,16 @@
 """OpenStreetMap Overpass API から店舗候補を取得し、MigrationShop 形式に整形する。"""
 import re
+import socket
 import time
 import hashlib
 
 import requests
+import urllib3.util.connection as urllib3_cn
+
+# Render.com など IPv6 発信経路が不安定な環境で、DNS が IPv6 を先頭に返す
+# ホスト（overpass-api.de など）への接続が [Errno 101] Network is unreachable
+# になるのを避けるため、requests/urllib3 の発信接続を IPv4 に固定する。
+urllib3_cn.allowed_gai_family = lambda: socket.AF_INET
 
 # --- 対象タグ（あとから増減できるようにトップレベル定数に） ---
 OSM_AMENITY_VALUES = [
