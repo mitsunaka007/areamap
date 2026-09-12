@@ -1410,6 +1410,7 @@ $("btnOsmImport")?.addEventListener("click", async () => {
     idxs.forEach((i) => { osmCandidates[i].already_imported = true; });
     renderOsmCandidates();
     if (typeof refreshShopList === "function") await refreshShopList();
+    if (typeof refreshCapturesV2 === "function") await refreshCapturesV2();
   } catch (err) {
     alert(`通信エラー: ${err.message}`);
   }

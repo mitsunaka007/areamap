@@ -475,6 +475,7 @@
             : `✓ 登録完了（shop_id=${data.shop_id}、画像${data.image_count}枚）`;
           resultEl.className = "ok";
           if (typeof refreshShopList === "function") await refreshShopList();
+          if (typeof refreshCapturesV2 === "function") await refreshCapturesV2();
           if (!data.updated && typeof resetShopForm === "function") resetShopForm(true);
         }
       } catch (err) {
