@@ -1320,6 +1320,84 @@ function resetShopForm(isNewMode) {
 
 $("btnResetShopForm")?.addEventListener("click", () => resetShopForm(false));
 
+function normalizeFloorLevel(value) { return String(value || "").trim().toUpperCase(); }
+function latLngGroupKey(lat, lng) { return `${Number(lat).toFixed(7)},${Number(lng).toFixed(7)}`; }
+
+function floorSortValue(floorlevel) {
+  const digits = String(floorlevel || "").replace(/\D/g, "");
+  return digits ? parseInt(digits, 10) : 999;
+}
+
+function buildAdminFloorGrid(groupShops, floorKey) {
+  const floorShops = groupShops.filter((s) => (normalizeFloorLevel(s.floorlevel) || "階層未設定") === floorKey);
+  if (!floorShops.length) return `<div class="muted">この階の店舗はありません</div>`;
+  return `
+    <div class="building-shop-grid">
+      ${floorShops.map((shop) => `
+        <button type="button" class="building-shop-card" data-shop-id="${shop.id}">
+          ${shop.thumbnail_url
+            ? `<img class="building-shop-thumb" src="${escapeHtmlLocal(shop.thumbnail_url)}" alt="${escapeHtmlLocal(shop.shopname)}" />`
+            : `<div class="building-shop-thumb"></div>`}
+          <div class="building-shop-name">${escapeHtmlLocal(shop.shopname)}</div>
+          <div class="building-shop-address">${escapeHtmlLocal(shop.address || "")}</div>
+        </button>
+      `).join("")}
+    </div>
+  `;
+}
+
+function wireShopCardClicks(container, groupShops) {
+  container.querySelectorAll(".building-shop-card").forEach((cardBtn) => {
+    const shop = groupShops.find((s) => String(s.id) === cardBtn.dataset.shopId);
+    if (!shop) return;
+    cardBtn.addEventListener("click", () => loadShopIntoForm(shop.id, cardBtn));
+  });
+}
+
+function renderBuildingCard(groupShops) {
+  const card = document.createElement("div");
+  card.className = "building-card";
+
+  const floorKeys = [];
+  groupShops.forEach((s) => {
+    const key = normalizeFloorLevel(s.floorlevel) || "階層未設定";
+    if (!floorKeys.includes(key)) floorKeys.push(key);
+  });
+  floorKeys.sort((a, b) => {
+    if (a === "階層未設定") return 1;
+    if (b === "階層未設定") return -1;
+    return floorSortValue(a) - floorSortValue(b);
+  });
+
+  card.innerHTML = `
+    <div class="building-card-header">
+      <img class="building-thumb" src="/static/img/migrationmaps_buildingimage.jpg" alt="ビル" />
+      <div class="building-card-title">${escapeHtmlLocal(groupShops[0].address || "")}<br>${groupShops.length}件の店舗</div>
+    </div>
+    <div class="building-floor-tabs">
+      ${floorKeys.map((f, idx) => `<button type="button" class="floor-tab${idx === 0 ? " is-active" : ""}" data-floor="${escapeHtmlLocal(f)}">${escapeHtmlLocal(f)}</button>`).join("")}
+    </div>
+    <div class="building-shop-grid-wrap"></div>
+  `;
+
+  const gridWrap = card.querySelector(".building-shop-grid-wrap");
+  const renderGrid = (floorKey) => {
+    gridWrap.innerHTML = buildAdminFloorGrid(groupShops, floorKey);
+    wireShopCardClicks(gridWrap, groupShops);
+  };
+  renderGrid(floorKeys[0]);
+
+  card.querySelectorAll(".floor-tab").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      card.querySelectorAll(".floor-tab").forEach((t) => t.classList.remove("is-active"));
+      tab.classList.add("is-active");
+      renderGrid(tab.dataset.floor);
+    });
+  });
+
+  return card;
+}
+
 async function refreshShopList() {
   if (!registeredShopListEl) return;
   const query = currentProjectId ? `?project_id=${encodeURIComponent(currentProjectId)}` : "";
@@ -1330,12 +1408,37 @@ async function refreshShopList() {
     registeredShopListEl.innerHTML = `<div class="muted">登録済み店舗はありません</div>`;
     return;
   }
+
+  const groups = new Map();
   for (const shop of data.shops) {
+    const lat = Number(shop.lat);
+    const lng = Number(shop.lng);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+    const key = latLngGroupKey(lat, lng);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(shop);
+  }
+
+  const renderedGroupKeys = new Set();
+  for (const shop of data.shops) {
+    const lat = Number(shop.lat);
+    const lng = Number(shop.lng);
+    const key = (Number.isFinite(lat) && Number.isFinite(lng)) ? latLngGroupKey(lat, lng) : null;
+    const groupShops = key ? groups.get(key) : null;
+
+    if (groupShops && groupShops.length >= 2) {
+      if (renderedGroupKeys.has(key)) continue;
+      renderedGroupKeys.add(key);
+      registeredShopListEl.appendChild(renderBuildingCard(groupShops));
+      continue;
+    }
+
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "registered-shop-item";
     btn.dataset.shopId = shop.id;
-    btn.innerHTML = `<div class="registered-shop-name">${shop.shopname}</div>`;
+    btn.innerHTML = `<div class="registered-shop-name">${escapeHtmlLocal(shop.shopname)}</div>`;
+    btn.addEventListener("click", () => loadShopIntoForm(shop.id, btn));
     registeredShopListEl.appendChild(btn);
   }
 }
