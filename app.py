@@ -1769,6 +1769,9 @@ def api_migrationshop_list():
                 "map_project_id": s.map_project_id,
                 "is_active": bool(s.is_active),
                 "updated_at": s.updated_at.isoformat() if s.updated_at else None,
+                "lat": float(s.lat) if s.lat is not None else None,
+                "lng": float(s.lng) if s.lng is not None else None,
+                "thumbnail_url": s.shopimages[0].image_url if s.shopimages else None,
             }
             for s in shops
         ]
