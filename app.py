@@ -1146,6 +1146,23 @@ def api_migrationmaps_captures():
         ]
     })
 
+@app.delete("/api/migrationmaps/<int:project_id>")
+def api_migrationmaps_delete_capture(project_id: int):
+    proj = MapProject.query.get(project_id)
+    if not proj:
+        abort(404)
+    if proj.status != "draft":
+        return jsonify({"error": "イラスト待ち(draft)の枠のみ削除できます"}), 400
+
+    try:
+        db.session.delete(proj)
+        db.session.commit()
+    except Exception as ex:
+        db.session.rollback()
+        return jsonify({"error": "DB削除に失敗しました", "detail": str(ex)}), 500
+
+    return jsonify({"deleted": True, "project_id": project_id})
+
 @app.post("/api/migrationmaps/<int:project_id>/illustration")
 def api_migrationmaps_illustration(project_id: int):
     proj = MapProject.query.get(project_id)
