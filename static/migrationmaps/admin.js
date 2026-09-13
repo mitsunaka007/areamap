@@ -1258,6 +1258,68 @@ shopMenuToggle?.addEventListener("click", () => {
   setShopMenuOpen(!expanded);
 });
 
+let activeShopEl = null;
+
+function setActiveShopEl(el) {
+  if (activeShopEl) activeShopEl.classList.remove("is-active");
+  activeShopEl = el || null;
+  if (activeShopEl) activeShopEl.classList.add("is-active");
+}
+
+async function loadShopIntoForm(shopId, sourceEl) {
+  const res = await fetch(`/api/migrationmaps/shops/${shopId}`);
+  const data = await res.json();
+  if (!res.ok || !data.shop) {
+    alert(`店舗情報の取得に失敗しました: ${data.error || res.status}`);
+    return;
+  }
+  const shop = data.shop;
+
+  $("r_shop_id").value = shop.id;
+  $("r_shopname").value = shop.shopname || "";
+  $("r_address").value = shop.address || "";
+  $("r_floorlevel").value = shop.floorlevel || "";
+  $("r_tel").value = shop.tel || "";
+  $("r_email").value = shop.email || "";
+  $("r_instagram").value = shop.instagram_account || "";
+  $("r_lat").value = shop.lat ?? "";
+  $("r_lng").value = shop.lng ?? "";
+  $("r_is_active").checked = !!shop.is_active;
+  $("r_description").value = shop.description || "";
+  $("r_website_url").value = shop.website_url || "";
+  $("r_map_project_id").value = shop.map_project_id || "";
+
+  for (let i = 1; i <= 5; i++) {
+    const preview = $(`r_preview${i}`);
+    if (preview) preview.innerHTML = "";
+  }
+  (shop.images || []).forEach((img) => {
+    const preview = $(`r_preview${img.sort_order}`);
+    if (!preview) return;
+    const el = document.createElement("img");
+    el.src = img.image_url;
+    preview.appendChild(el);
+  });
+
+  if ($("shopFormTitle")) $("shopFormTitle").textContent = "店舗を編集する";
+  setShopMenuOpen(true);
+  setActiveShopEl(sourceEl || null);
+  $("shopRegisterForm")?.scrollIntoView({ block: "nearest" });
+}
+
+function resetShopForm(isNewMode) {
+  $("shopRegisterForm")?.reset();
+  if ($("r_shop_id")) $("r_shop_id").value = "";
+  for (let i = 1; i <= 5; i++) {
+    const preview = $(`r_preview${i}`);
+    if (preview) preview.innerHTML = "";
+  }
+  if ($("shopFormTitle")) $("shopFormTitle").textContent = "店舗を新規登録する";
+  setActiveShopEl(null);
+}
+
+$("btnResetShopForm")?.addEventListener("click", () => resetShopForm(false));
+
 async function refreshShopList() {
   if (!registeredShopListEl) return;
   const query = currentProjectId ? `?project_id=${encodeURIComponent(currentProjectId)}` : "";
