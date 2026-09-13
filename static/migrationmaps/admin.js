@@ -1549,6 +1549,35 @@ $("capturesListV2")?.addEventListener("click", async (ev) => {
     return;
   }
 
+  const deleteBtn = ev.target.closest(".btnDeleteCaptureV2");
+  if (deleteBtn) {
+    const id = deleteBtn.dataset.id;
+    const name = deleteBtn.dataset.name || `#${id}`;
+    const shopCount = parseInt(deleteBtn.dataset.shopcount, 10) || 0;
+    const msg = shopCount > 0
+      ? `「${name}」を削除します。店舗${shopCount}件の紐づけが解除されます（店舗自体は削除されません）。よろしいですか？`
+      : `「${name}」を削除します。よろしいですか？`;
+    if (!confirm(msg)) return;
+    const errEl = document.querySelector(`.illustrationErrorV2[data-id="${id}"]`);
+    try {
+      const res = await fetch(`/api/migrationmaps/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) {
+        if (errEl) errEl.textContent = data.error || `削除に失敗しました (${res.status})`;
+        return;
+      }
+      if (String(currentProjectId) === String(id)) {
+        currentProjectId = null;
+        updateShopTargetIndicator();
+      }
+      log(`[CAPTURES] project_id=${id} を削除しました`);
+      await refreshCapturesV2();
+    } catch (err) {
+      if (errEl) errEl.textContent = `通信エラー: ${err.message}`;
+    }
+    return;
+  }
+
   const btn = ev.target.closest(".btnRedownloadV2");
   if (!btn) return;
   const id = btn.dataset.id;
