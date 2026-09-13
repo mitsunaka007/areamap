@@ -1510,6 +1510,7 @@ async function refreshCapturesV2() {
               イラストをアップロード
               <input type="file" accept="image/*" class="illustrationInputV2" data-id="${cap.project_id}" style="display:none;" />
             </label>
+            <button class="small-btn btnDeleteCaptureV2" data-id="${cap.project_id}" data-name="${escapeHtmlLocal(cap.basemap_name)}" data-shopcount="${cap.shop_count}" style="color:#b02a37;">🗑 削除</button>
           ` : `<a class="small-btn" href="/migrationmaps/m/${cap.project_id}" target="_blank">公開ページ</a>`}
         </div>
         <div class="muted illustrationErrorV2" data-id="${cap.project_id}" style="color:#b02a37;"></div>
