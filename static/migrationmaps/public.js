@@ -394,8 +394,8 @@ const FIXED_FLOOR_BANDS = {
 function getDefaultBuildingFloorLayout(groupShops) {
   const keys = [];
   groupShops.forEach((s) => {
-    const key = normalizeFloorLevel(s.floorlevel) || "階層未設定";
-    if (!keys.includes(key)) keys.push(key);
+    const key = normalizeFloorLevel(s.floorlevel);
+    if (key && !keys.includes(key)) keys.push(key);
   });
 
   const fixed = keys.filter((k) => FIXED_FLOOR_BANDS[k]);
