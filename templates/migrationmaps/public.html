@@ -222,6 +222,53 @@
     border-color: #1d4ed8;
   }
 
+  /* ---- 既定ビル画像: 階グリッドのオーバーレイ表示 ---- */
+  .building-floor-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.97);
+    border-radius: 8px;
+    padding: 40px 10px 10px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    box-sizing: border-box;
+  }
+
+  .building-floor-overlay[hidden] {
+    display: none;
+  }
+
+  .building-floor-overlay-close {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    font-size: 18px;
+    line-height: 1;
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    cursor: pointer;
+    color: #374151;
+    padding: 3px 9px;
+    border-radius: 8px;
+    z-index: 1;
+  }
+
+  .building-floor-overlay-close:hover {
+    background: #f3f4f6;
+  }
+
+  .building-floor-overlay-grid .floor-shop-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 8px;
+    box-sizing: border-box;
+  }
+
+  .building-floor-overlay-grid .floor-shop-card {
+    padding: 8px 10px;
+    box-sizing: border-box;
+  }
+
   /* ---- Floor shop list ---- */
   .floor-shop-list {
     display: flex;
