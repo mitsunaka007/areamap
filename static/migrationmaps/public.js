@@ -476,26 +476,50 @@ function hideBuildingGuide() {
   resetMarkerIcons();
 }
 
+function renderCustomGuidePhoto(groupShops, guide) {
+  const imgEl = document.createElement("img");
+  imgEl.src = guide.image_url;
+  imgEl.className = "building-photo";
+  imgEl.alt = escapeHtml(guide?.building_name || "building");
+  buildingPhotoWrapEl.appendChild(imgEl);
+
+  const floors = getFloorDisplayOrder(groupShops, guide);
+  floors.forEach((floor, idx) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "floor-hotspot" + (idx === 0 ? " is-active" : "");
+    btn.dataset.floor = floor.floorlevel;
+    btn.style.cssText = buildHotspotStyle(floor);
+    btn.textContent = floor.floorlevel;
+    btn.addEventListener("click", () => {
+      buildingPhotoWrapEl.querySelectorAll(".floor-hotspot").forEach((b) => b.classList.remove("is-active"));
+      btn.classList.add("is-active");
+      floorShopGridEl.innerHTML = buildFloorGridSection(groupShops, floor.floorlevel);
+    });
+    buildingPhotoWrapEl.appendChild(btn);
+  });
+  const firstFloor = floors[0]?.floorlevel || groupShops[0]?.floorlevel || "";
+  floorShopGridEl.innerHTML = buildFloorGridSection(groupShops, firstFloor);
+}
+
 function showBuildingGuide(groupShops, groupKey) {
   const guide = groupShops[0]?.building_guide || null;
   buildingPhotoWrapEl.innerHTML = "";
   floorShopGridEl.innerHTML = "";
 
-  // 同一緯度経度に複数店舗（テナントビル）で BuildingGuide 画像が無い場合は、
-  // 既定のビル画像でフロアホットスポット表示に切り替える。
   const isMultiTenant = Array.isArray(groupShops) && groupShops.length > 1;
-  const buildingImageUrl = (guide && guide.image_url)
-    ? guide.image_url
-    : (isMultiTenant ? DEFAULT_BUILDING_IMAGE_URL : null);
 
-  if (buildingImageUrl) {
+  if (guide && guide.image_url) {
+    renderCustomGuidePhoto(groupShops, guide);
+  } else if (isMultiTenant) {
+    // Task 3 replaces this branch with renderDefaultBuildingPhoto(groupShops).
     const imgEl = document.createElement("img");
-    imgEl.src = buildingImageUrl;
+    imgEl.src = DEFAULT_BUILDING_IMAGE_URL;
     imgEl.className = "building-photo";
-    imgEl.alt = escapeHtml(guide?.building_name || "building");
+    imgEl.alt = "building";
     buildingPhotoWrapEl.appendChild(imgEl);
 
-    const floors = getFloorDisplayOrder(groupShops, guide);
+    const floors = getFloorDisplayOrder(groupShops, null);
     floors.forEach((floor, idx) => {
       const btn = document.createElement("button");
       btn.type = "button";
@@ -528,7 +552,6 @@ function showBuildingGuide(groupShops, groupKey) {
   userClosedGuide = false;
   buildingGuideEl.hidden = false;
 
-  // シートに表示中のグループを覚えて目的地ボタンを同期
   guideGroupKey = groupKey;
   guideGroupShops = groupShops;
   syncDestinationButton();
