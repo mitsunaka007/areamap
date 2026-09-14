@@ -858,7 +858,7 @@ function stopLocationWatch() {
   updateNavBanner();
 
   updateLocationButtons();
-  locationStatusEl.textContent = "現在地表示はOFFです";
+  setLocationStatus("");
 }
 
 function checkProximityToShops(lat, lng) {
@@ -880,13 +880,13 @@ function checkProximityToShops(lat, lng) {
 }
 
 function updateLocationInsideBounds(lat, lng, accuracy) {
-  if (!overlayLatLngBounds) { locationStatusEl.textContent = "地図範囲が未確定です"; return; }
+  if (!overlayLatLngBounds) { setLocationStatus("地図範囲が未確定です"); return; }
   if (!overlayLatLngBounds.contains([lat, lng])) {
     clearCurrentLocationLayers();
-    locationStatusEl.textContent = "現在地は画像範囲外です";
+    setLocationStatus("現在地は画像範囲外です");
     return;
   }
-  locationStatusEl.textContent = `現在地: ${lat.toFixed(6)}, ${lng.toFixed(6)} / ±${Math.round(accuracy)}m`;
+  setLocationStatus(`現在地: ${lat.toFixed(6)}, ${lng.toFixed(6)} / ±${Math.round(accuracy)}m`);
   if (currentLocationMarker) {
     currentLocationMarker.setLatLng([lat, lng]);
   } else {
@@ -908,12 +908,12 @@ function startLocationWatch() {
   locationEnabled = true;
   userClosedGuide = false;
   updateLocationButtons();
-  locationStatusEl.textContent = "現在地を取得中です...";
+  setLocationStatus("現在地を取得中です...");
   updateNavBanner();
 
   locationWatchId = navigator.geolocation.watchPosition(
     onGeoPosition,
-    (err) => { console.error(err); locationStatusEl.textContent = "現在地を取得できませんでした"; },
+    (err) => { console.error(err); setLocationStatus("現在地を取得できませんでした"); },
     { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 }
   );
 }
@@ -936,10 +936,21 @@ function setLocationEnabled(on) {
   if (on) startLocationWatch(); else stopLocationWatch();
 }
 
+/** ON/OFF の状態をテキストで locationStatus に反映（空文字なら非表示） */
+function setLocationStatus(text) {
+  if (!locationStatusEl) return;
+  locationStatusEl.textContent = text || "";
+  locationStatusEl.hidden = !text;
+}
+
 /** ヘッダのボタンと地図上の FAB の表示を揃える */
 function updateLocationButtons() {
   if (btnToggleLocation) {
-    btnToggleLocation.textContent = locationEnabled ? "現在地表示: ON" : "現在地表示: OFF";
+    const label = locationEnabled ? "現在地表示: ON" : "現在地表示: OFF";
+    btnToggleLocation.classList.toggle("is-on", locationEnabled);
+    btnToggleLocation.setAttribute("aria-pressed", String(locationEnabled));
+    btnToggleLocation.setAttribute("aria-label", label);
+    btnToggleLocation.title = label;
   }
   if (locationFabEl) {
     locationFabEl.textContent = locationEnabled ? "現在地 ON" : "現在地 OFF";
@@ -1180,7 +1191,7 @@ async function loadShops() {
     await loadProject();
     if (loadingEl) loadingEl.classList.add("hidden");
     await loadShops();
-    locationStatusEl.textContent = "現在地表示はOFFです";
+    setLocationStatus("");
 
     window.addEventListener("resize", () => {
       if (overlayLatLngBounds && projectData?.image_width && projectData?.image_height) {
