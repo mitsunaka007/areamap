@@ -23,6 +23,12 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
+    pointer-events: none;
+  }
+
+  header button,
+  header a {
+    pointer-events: auto;
   }
 
   .top-row {
@@ -76,7 +82,7 @@
     display: none;
   }
 
-  /* ---- 現在地表示トグル（アイコンボタン） ---- */
+  /* ---- 現在地表示トグル（アイコンボタン、背景透過・アイコン範囲のみタップ可） ---- */
   .icon-btn {
     display: inline-flex;
     align-items: center;
@@ -84,21 +90,29 @@
     width: 38px;
     height: 38px;
     padding: 0;
+    border: none;
     border-radius: 999px;
-    border: 1px solid #ccc;
-    background: #fff;
-    color: #9ca3af;
+    background: transparent;
+    color: #6b7280;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+  }
+
+  .icon-btn:hover {
+    background: transparent;
   }
 
   .icon-btn svg {
-    width: 20px;
-    height: 20px;
+    width: 22px;
+    height: 22px;
   }
 
   .icon-btn.is-on {
-    background: #1e88e5;
-    border-color: #1e88e5;
-    color: #fff;
+    color: #1e88e5;
+  }
+
+  .icon-btn.is-on svg {
+    fill: currentColor;
+    fill-opacity: 0.18;
   }
 
   #map {
@@ -162,18 +176,17 @@
   #mapWrap { position: relative; }
 
   @media (max-width: 720px) {
-    /* イラスト地図を全画面表示。ヘッダーは地図の上に浮かせる */
+    /* イラスト地図を全画面表示。ヘッダーは透明にして地図に重ね、
+       アイコン自身の範囲だけをタップ可能にする（他は地図を素通しでタップ） */
     header {
       position: fixed;
       top: 0;
       left: 0;
       right: 0;
       z-index: 950;
-      background: rgba(255, 255, 255, 0.85);
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
+      background: transparent;
       border-bottom: none;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+      box-shadow: none;
       padding: 8px 10px;
     }
 
