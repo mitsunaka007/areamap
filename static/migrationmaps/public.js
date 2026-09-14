@@ -384,6 +384,38 @@ function getFloorDisplayOrder(groupShops, guide) {
   return ordered;
 }
 
+// ---- 既定ビル画像専用: 1F/2F/3F は画像の高さバンドに固定、それ以外は左端に自動縦積み ----
+const FIXED_FLOOR_BANDS = {
+  "3F": { area_x_pct: 0, area_y_pct: 0,  area_width_pct: 100, area_height_pct: 30 },
+  "2F": { area_x_pct: 0, area_y_pct: 35, area_width_pct: 100, area_height_pct: 30 },
+  "1F": { area_x_pct: 0, area_y_pct: 70, area_width_pct: 100, area_height_pct: 30 },
+};
+
+function getDefaultBuildingFloorLayout(groupShops) {
+  const keys = [];
+  groupShops.forEach((s) => {
+    const key = normalizeFloorLevel(s.floorlevel) || "階層未設定";
+    if (!keys.includes(key)) keys.push(key);
+  });
+
+  const fixed = keys.filter((k) => FIXED_FLOOR_BANDS[k]);
+  const other = keys.filter((k) => !FIXED_FLOOR_BANDS[k]);
+
+  fixed.sort((a, b) => (parseInt(a, 10) || 0) - (parseInt(b, 10) || 0));
+  const fixedFloors = fixed.map((k) => ({ floorlevel: k, ...FIXED_FLOOR_BANDS[k] }));
+
+  const gap = other.length ? 92 / other.length : 0;
+  const otherFloors = other.map((k, i) => ({
+    floorlevel: k,
+    area_x_pct: 4,
+    area_y_pct: 4 + gap * i,
+    area_width_pct: 22,
+    area_height_pct: Math.max(Math.min(gap - 4, 16), 8),
+  }));
+
+  return [...fixedFloors, ...otherFloors];
+}
+
 function buildFloorGridSection(groupShops, floorlevel) {
   const floorKey = normalizeFloorLevel(floorlevel);
   const floorShops = groupShops.filter((s) => normalizeFloorLevel(s.floorlevel) === floorKey);
