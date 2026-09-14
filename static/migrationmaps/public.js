@@ -534,6 +534,47 @@ function renderCustomGuidePhoto(groupShops, guide) {
   floorShopGridEl.innerHTML = buildFloorGridSection(groupShops, firstFloor);
 }
 
+function renderDefaultBuildingPhoto(groupShops) {
+  const imgEl = document.createElement("img");
+  imgEl.src = DEFAULT_BUILDING_IMAGE_URL;
+  imgEl.className = "building-photo";
+  imgEl.alt = "building";
+  buildingPhotoWrapEl.appendChild(imgEl);
+
+  const overlayEl = document.createElement("div");
+  overlayEl.className = "building-floor-overlay";
+  overlayEl.hidden = true;
+  overlayEl.innerHTML = `
+    <button type="button" class="building-floor-overlay-close" aria-label="閉じる">×</button>
+    <div class="building-floor-overlay-grid"></div>
+  `;
+  buildingPhotoWrapEl.appendChild(overlayEl);
+
+  const gridEl = overlayEl.querySelector(".building-floor-overlay-grid");
+  overlayEl.querySelector(".building-floor-overlay-close").addEventListener("click", () => {
+    overlayEl.hidden = true;
+    buildingPhotoWrapEl.querySelectorAll(".floor-hotspot.is-active").forEach((b) => b.classList.remove("is-active"));
+  });
+
+  const floors = getDefaultBuildingFloorLayout(groupShops);
+  floors.forEach((floor) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "floor-hotspot";
+    btn.dataset.floor = floor.floorlevel;
+    btn.style.cssText = buildHotspotStyle(floor);
+    btn.textContent = floor.floorlevel;
+    btn.addEventListener("click", () => {
+      buildingPhotoWrapEl.querySelectorAll(".floor-hotspot").forEach((b) => b.classList.remove("is-active"));
+      btn.classList.add("is-active");
+      gridEl.innerHTML = buildFloorGridSection(groupShops, floor.floorlevel);
+      overlayEl.hidden = false;
+    });
+    buildingPhotoWrapEl.appendChild(btn);
+  });
+  // 要件: どの階もタップされるまでグリッドを表示しない（overlayEl は hidden のまま）
+}
+
 function showBuildingGuide(groupShops, groupKey) {
   const guide = groupShops[0]?.building_guide || null;
   buildingPhotoWrapEl.innerHTML = "";
@@ -544,30 +585,7 @@ function showBuildingGuide(groupShops, groupKey) {
   if (guide && guide.image_url) {
     renderCustomGuidePhoto(groupShops, guide);
   } else if (isMultiTenant) {
-    // Task 3 replaces this branch with renderDefaultBuildingPhoto(groupShops).
-    const imgEl = document.createElement("img");
-    imgEl.src = DEFAULT_BUILDING_IMAGE_URL;
-    imgEl.className = "building-photo";
-    imgEl.alt = "building";
-    buildingPhotoWrapEl.appendChild(imgEl);
-
-    const floors = getFloorDisplayOrder(groupShops, null);
-    floors.forEach((floor, idx) => {
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "floor-hotspot" + (idx === 0 ? " is-active" : "");
-      btn.dataset.floor = floor.floorlevel;
-      btn.style.cssText = buildHotspotStyle(floor);
-      btn.textContent = floor.floorlevel;
-      btn.addEventListener("click", () => {
-        buildingPhotoWrapEl.querySelectorAll(".floor-hotspot").forEach((b) => b.classList.remove("is-active"));
-        btn.classList.add("is-active");
-        floorShopGridEl.innerHTML = buildFloorGridSection(groupShops, floor.floorlevel);
-      });
-      buildingPhotoWrapEl.appendChild(btn);
-    });
-    const firstFloor = floors[0]?.floorlevel || groupShops[0]?.floorlevel || "";
-    floorShopGridEl.innerHTML = buildFloorGridSection(groupShops, firstFloor);
+    renderDefaultBuildingPhoto(groupShops);
   } else {
     const shop = groupShops[0];
     floorShopGridEl.innerHTML = `
